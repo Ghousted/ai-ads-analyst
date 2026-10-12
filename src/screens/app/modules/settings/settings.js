@@ -49,10 +49,10 @@ export function settingsVals(app, ctx) {
 // Values for the settings dialog (one dialog at a time, chosen by S.dlg.kind).
 function dialogVals(app, S, { toast, me, agency, members, conns, C }) {
   const D = S.dlg, err = S.dlgErr;
-  const close = () => app.setState({ dlg: null, dlgErr: null });
+  const close = () => { clearTimeout(app.cnT); app.setState({ dlg: null, dlgErr: null }); };
   const base = { dlgOpen: !!D, dlgClose: close, dlgBackdrop: e => { if (e.target === e.currentTarget) close(); }, dlgErr: err || '', dlgHasErr: !!err };
   if (!D) return { ...base, dlgTitle: '', dlgText: '', dlgTools: [], dlgPlans: [], dlgInvoices: [], dlgRoles: [] };
-  const set = o => app.setState(s => ({ dlg: { ...s.dlg, ...o }, dlgErr: null }));
+  const set = o => app.setState(s => s.dlg ? { dlg: { ...s.dlg, ...o }, dlgErr: null } : null);
   const k = D.kind;
   const T = {
     name: ['Edit your name', 'This is how teammates and clients see you.', 'Save name'],
@@ -77,7 +77,9 @@ function dialogVals(app, S, { toast, me, agency, members, conns, C }) {
       if (!D.tool) return app.setState({ dlgErr: 'Pick a tool to connect.' });
       if (D.tool === 'ig') return app.setState({ dlgErr: 'Instagram ads live in your Meta ad accounts. Connect Meta to report on them.' });
       set({ st: 'signing' }); clearTimeout(app.cnT);
-      app.cnT = setTimeout(() => { app.setState(s => ({ connOn: { ...(s.connOn || {}), [D.tool]: true }, connOff: { ...(s.connOff || {}), [D.tool]: false } })); set({ st: 'done' }); }, 1200);
+      const tool = D.tool;
+      // The sign-in may be cancelled while it runs. Only finish if this connect dialog is still open.
+      app.cnT = setTimeout(() => app.setState(s => s.dlg && s.dlg.kind === 'connect' && s.dlg.tool === tool ? { connOn: { ...(s.connOn || {}), [tool]: true }, connOff: { ...(s.connOff || {}), [tool]: false }, dlg: { ...s.dlg, st: 'done' }, dlgErr: null } : null), 1200);
       return;
     }
     if (k === 'plan') { app.setState({ plan: D.val }); close(); return toast('You are now on the ' + D.val + ' plan'); }
