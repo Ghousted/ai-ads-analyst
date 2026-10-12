@@ -2,5 +2,6 @@
 import dashboard from './dashboard';
 import clients from './clients';
 import reporting from './reporting';
+import tasks from './tasks';
 
-export const FEATURES = [dashboard, clients, reporting];
+export const FEATURES = [dashboard, clients, reporting, tasks];
