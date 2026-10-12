@@ -1,5 +1,6 @@
 // Feature modules mounted inside the app shell. Each one adds its render values, page view and overlays.
 import dashboard from './dashboard';
 import clients from './clients';
+import reporting from './reporting';
 
-export const FEATURES = [dashboard, clients];
+export const FEATURES = [dashboard, clients, reporting];
