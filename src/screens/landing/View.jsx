@@ -1,7 +1,7 @@
 // Converted from design/Landing Page.dc.html with scripts/dc-to-react.mjs, then edited by hand.
 import React from 'react';
 
-export const css = "html,body{margin:0;background:#ffffff;color:#0b1626;-webkit-font-smoothing:antialiased}\n*{box-sizing:border-box}\na{color:#1f6be2;text-underline-offset:3px}\na:hover{color:#0b1626}\n@keyframes clario-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}\n@keyframes clario-pre-in{0%{opacity:0;transform:scale(.6) rotate(-120deg)}60%{opacity:1}100%{opacity:1;transform:scale(1) rotate(0deg)}}\n@keyframes clario-pre-spin{to{transform:rotate(360deg)}}\n@keyframes clario-pre-word{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}\n@keyframes clario-pre-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}\n.clario-deck [data-page=\"3\"] section,.clario-deck [data-page=\"4\"] section,.clario-deck [data-page=\"5\"] section{padding-top:24px !important;padding-bottom:24px !important}\n@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}\n.dc0d2bdff:hover{background:#f0f3f8 !important;color:#0b1626 !important}\n.dcc638d12:hover{background:#f0f3f8 !important;color:#1f6be2 !important}\n.dc41f4d87:hover{background:#1858b8 !important;color:#ffffff !important}\n.dcadff8cd:active{transform:scale(0.97) !important}\n.dc93c1ac2:hover{text-decoration:underline !important}\n.dcc0dc266:hover{animation-play-state:paused !important}\n.dc056570b:hover{transform:rotate(0deg) translateY(-4px) !important}\n.dc2f752bd:hover{transform:rotate(0deg) translateY(-6px) !important}\n.dc91e4695:hover{transform:rotate(0deg) translateY(10px) !important}\n.dcc3caca9:hover{background:#0b1626 !important;color:#ffffff !important}";
+export const css = "html,body{margin:0;background:#ffffff;color:#0b1626;-webkit-font-smoothing:antialiased}\n*{box-sizing:border-box}\na{color:#1f6be2;text-underline-offset:3px}\na:hover{color:#0b1626}\n@keyframes clario-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}\n@keyframes clario-pre-in{0%{opacity:0;transform:scale(.6) rotate(-120deg)}60%{opacity:1}100%{opacity:1;transform:scale(1) rotate(0deg)}}\n@keyframes clario-pre-spin{to{transform:rotate(360deg)}}\n@keyframes clario-pre-word{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}\n@keyframes clario-pre-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}\n.clario-deck [data-page=\"3\"] section,.clario-deck [data-page=\"4\"] section,.clario-deck [data-page=\"5\"] section{padding-top:24px !important;padding-bottom:24px !important}\n.clario-burger{display:none}\n#how,#pricing{scroll-margin-top:72px}\n@media (max-width:959px){.clario-dnav,.clario-dlogin{display:none !important}.clario-burger{display:grid}}\n@media (min-width:960px){.clario-mnav{display:none !important}}\n@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}\n.dc0d2bdff:hover{background:#f0f3f8 !important;color:#0b1626 !important}\n.dcc638d12:hover{background:#f0f3f8 !important;color:#1f6be2 !important}\n.dc41f4d87:hover{background:#1858b8 !important;color:#ffffff !important}\n.dcadff8cd:active{transform:scale(0.97) !important}\n.dc93c1ac2:hover{text-decoration:underline !important}\n.dcc0dc266:hover{animation-play-state:paused !important}\n.dc056570b:hover{transform:rotate(0deg) translateY(-4px) !important}\n.dc2f752bd:hover{transform:rotate(0deg) translateY(-6px) !important}\n.dc91e4695:hover{transform:rotate(0deg) translateY(10px) !important}\n.dcc3caca9:hover{background:#0b1626 !important;color:#ffffff !important}";
 
 export default function View({ v }) {
   return (
@@ -49,7 +49,7 @@ export default function View({ v }) {
                 {"Clario "}
               </a>
               {" "}
-              <nav style={{ display: "flex", alignItems: "center", gap: "2px", flexWrap: "wrap" }}>
+              <nav className="clario-dnav" style={{ display: "flex", alignItems: "center", gap: "2px", flexWrap: "wrap" }}>
                 {" "}
                 <div style={{ position: "relative" }} onMouseEnter={v.openF} onMouseLeave={v.closeMenu}>
                   {" "}
@@ -480,17 +480,55 @@ export default function View({ v }) {
             {" "}
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               {" "}
-              <a href={"/login"} style={{ display: "flex", alignItems: "center", height: "44px", padding: "0 12px", textDecoration: "none", color: "#0b1626", fontWeight: "500" }}>
+              <a href={"/login"} className="clario-dlogin" style={{ display: "flex", alignItems: "center", height: "44px", padding: "0 12px", textDecoration: "none", color: "#0b1626", fontWeight: "500" }}>
                 {"Log in"}
               </a>
               {" "}
               <a href={"#pricing"} style={{ display: "flex", alignItems: "center", height: "44px", padding: "0 18px", background: "#1f6be2", color: "#ffffff", borderRadius: "14px", textDecoration: "none", fontWeight: "600", transition: "background-color 160ms ease,transform 160ms cubic-bezier(0.23,1,0.32,1)" }} className="dc41f4d87 dcadff8cd">
                 {"Start free"}
               </a>
-              {" "}
+              <button type="button" ref={v.mnavBtnRef} className="clario-burger dc0d2bdff" onClick={v.mnavToggle} aria-expanded={v.mnavOpen} aria-controls="mobile-nav" aria-label={v.mnavOpen ? "Close menu" : "Open menu"} style={{ width: "44px", height: "44px", placeItems: "center", border: "0", borderRadius: "12px", background: "transparent", color: "#0b1626", cursor: "pointer", padding: "0" }}>
+                <svg width={"22"} height={"22"} viewBox={"0 0 24 24"} fill={"none"} stroke={"currentColor"} strokeWidth={"2.2"} strokeLinecap={"round"} aria-hidden={"true"}>
+                  {v.mnavOpen ? <path d={"M6 6l12 12M18 6L6 18"}></path> : <path d={"M4 7h16M4 12h16M4 17h16"}></path>}
+                </svg>
+              </button>
             </div>
             {" "}
           </div>
+          {v.mnavOpen && (
+            <nav id="mobile-nav" aria-label={"Menu"} className="clario-mnav" style={{ position: "fixed", top: "73px", left: "0", right: "0", bottom: "0", background: "#ffffff", overflowY: "auto", padding: "8px 16px 24px", display: "flex", flexDirection: "column" }}>
+              {v.mnavGroups.map(g => (
+                <div key={g.label} style={{ borderBottom: "1px solid #eef1f6" }}>
+                  <button type="button" onClick={g.toggle} aria-expanded={g.open} className="dc0d2bdff" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: "52px", padding: "0 8px", border: "0", borderRadius: "12px", background: "transparent", font: "inherit", fontSize: "17px", fontWeight: "500", color: "#0b1626", cursor: "pointer" }}>
+                    {g.label}
+                    <svg width={"14"} height={"14"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#0b1626"} strokeWidth={"2.6"} strokeLinecap={"round"} strokeLinejoin={"round"} aria-hidden={"true"} style={{ transform: g.open ? "rotate(180deg)" : "none", transition: "transform 200ms cubic-bezier(0.23,1,0.32,1)" }}>
+                      <path d={"M6 9l6 6 6-6"}></path>
+                    </svg>
+                  </button>
+                  {g.open && (
+                    <div style={{ display: "flex", flexDirection: "column", padding: "0 0 8px" }}>
+                      {g.links.map(l => (
+                        <a key={l[1]} href={l[0]} onClick={v.mnavClose} className="dc0d2bdff" style={{ display: "flex", alignItems: "center", minHeight: "44px", padding: "0 8px 0 20px", borderRadius: "12px", textDecoration: "none", color: "#45505f", fontSize: "16px" }}>
+                          {l[1]}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <a href={"#pricing"} onClick={v.mnavClose} className="dc0d2bdff" style={{ display: "flex", alignItems: "center", minHeight: "52px", padding: "0 8px", borderRadius: "12px", textDecoration: "none", color: "#0b1626", fontSize: "17px", fontWeight: "500" }}>
+                {"Pricing"}
+              </a>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "auto", paddingTop: "24px" }}>
+                <a href={"/login"} className="dc0d2bdff" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "48px", borderRadius: "14px", border: "1px solid #d5dce6", textDecoration: "none", color: "#0b1626", fontWeight: "600" }}>
+                  {"Log in"}
+                </a>
+                <a href={"#pricing"} onClick={v.mnavClose} className="dc41f4d87" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "48px", borderRadius: "14px", background: "#1f6be2", textDecoration: "none", color: "#ffffff", fontWeight: "600" }}>
+                  {"Start free"}
+                </a>
+              </div>
+            </nav>
+          )}
         </header>
         <main className={v.deckCls} style={{ position: "relative", height: v.deckH }}>
           <div style={{ position: v.dkPos, top: "72px", height: v.dkH, display: v.dkD, gridTemplateRows: "minmax(0,1fr)", gridTemplateColumns: "minmax(0,1fr)", overflow: v.dkO }}>

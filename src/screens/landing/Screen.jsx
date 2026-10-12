@@ -9,6 +9,13 @@ import View, { css } from './View';
 const PAGES = 8;
 const WRAP = [[0, 0], [1, 1], [2, 4], [5, 5], [6, 6], [7, 7]];
 const ANCHOR = { how: 2, pricing: 7 };
+// Mobile menu groups, mirroring the header dropdowns.
+const MNAV = [
+  ['Features', [['/#how', 'Reporting'], ['/#how', 'Risk alerts'], ['/#how', 'Drafted check-ins'], ['/integrations', 'Integrations'], ['/#how', 'Scheduled delivery'], ['/#pricing', 'White label'], ['/#how', 'Client dashboard'], ['/#how', 'Feature overview']]],
+  ['Integrations', [['/integrations', 'Meta'], ['/integrations', 'Google Ads'], ['/integrations', 'Facebook Ads'], ['/integrations', 'Instagram Ads'], ['/integrations', 'LinkedIn Ads'], ['/integrations', 'Microsoft Ads'], ['/integrations', 'Google Analytics 4'], ['/integrations', 'Google Search Console'], ['/integrations', 'TikTok Ads'], ['/integrations', 'Google Business Profile'], ['/integrations', 'See all integrations']]],
+  ['Solutions', [['/report-examples', 'Paid ads reports'], ['/report-examples', 'Social ads reports'], ['/report-examples', 'Website analytics reports'], ['/report-examples', 'See report examples'], ['/freelancers', 'Freelancers'], ['/agencies', 'Small agencies'], ['/in-house', 'In-house marketers']]],
+  ['Resources', [['/help', 'Help center'], ['/blog', 'Blog'], ['/report-examples', 'Report examples'], ['/changelog', "What's new"]]],
+];
 const wrapOf = page => WRAP.findIndex(([a, b]) => page >= a && page <= b);
 
 class Logic extends React.Component {
@@ -64,6 +71,10 @@ class Logic extends React.Component {
     };
     document.addEventListener('click', this.onAnchor);
     document.addEventListener('focusin', this.onFocus);
+    this.onKey = e => { if (e.key === 'Escape' && this.state.mnav) { this.setMnav(false); this.mnavBtn.current && this.mnavBtn.current.focus(); } };
+    this.onWide = () => { if (window.innerWidth >= 960) this.setMnav(false); };
+    document.addEventListener('keydown', this.onKey);
+    window.addEventListener('resize', this.onWide);
     window.addEventListener('resize', this.onFit = () => requestAnimationFrame(() => this.fitPages()));
     window.addEventListener('scroll', this.onHow, { passive: true });
     window.addEventListener('resize', this.onHow);
@@ -73,6 +84,13 @@ class Logic extends React.Component {
     this.t = setInterval(() => this.setState(s => ({ sync: s.sync >= 92 ? 18 : s.sync + 6 })), 900);
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!reduce && (this.props.autoShuffle ?? true)) this.sh = setInterval(() => { if (!this.state.paused) this.go(); }, this.props.shuffleMs ?? 3200);
+  }
+  mnavBtn = React.createRef();
+  // The mobile menu covers the page, so the page behind it stops scrolling while it is open.
+  setMnav(open) {
+    if (open === !!this.state.mnav) return;
+    document.body.style.overflow = open ? 'hidden' : '';
+    this.setState({ mnav: open, mnavSec: null });
   }
   // Scroll progress through the pinned stage, as a page index.
   pageAt() {
@@ -183,7 +201,7 @@ class Logic extends React.Component {
     targets.forEach(([el]) => { if (!this.rvGroups || !el.closest('[data-page]')) this.io.observe(el); });
     if (this.rvGroups) this.revealWrap(wrapOf(this.state.page || 0));
   }
-  componentWillUnmount() { clearTimeout(this.rvT); clearTimeout(this.pt1); clearTimeout(this.pt2); window.removeEventListener('scroll', this.onHow); window.removeEventListener('resize', this.onHow); clearInterval(this.t); clearInterval(this.sh); clearTimeout(this.lt); if (this.io) this.io.disconnect(); document.removeEventListener('click', this.onAnchor); document.removeEventListener('focusin', this.onFocus); window.removeEventListener('resize', this.onFit); }
+  componentWillUnmount() { clearTimeout(this.rvT); clearTimeout(this.pt1); clearTimeout(this.pt2); window.removeEventListener('scroll', this.onHow); window.removeEventListener('resize', this.onHow); clearInterval(this.t); clearInterval(this.sh); clearTimeout(this.lt); if (this.io) this.io.disconnect(); document.removeEventListener('click', this.onAnchor); document.removeEventListener('focusin', this.onFocus); document.removeEventListener('keydown', this.onKey); window.removeEventListener('resize', this.onWide); document.body.style.overflow = ''; window.removeEventListener('resize', this.onFit); }
   curTop() {
     const names = ['Client report', 'Google Analytics', 'Meta Pixel', 'TikTok Ads'];
     return this.state.top ?? Math.max(0, names.indexOf(this.props.startCard ?? 'Client report'));
@@ -228,6 +246,11 @@ class Logic extends React.Component {
       v['toggle' + k] = () => this.setState(s => ({ menu: s.menu === k ? null : k }));
     });
     v.closeMenu = () => this.setState({ menu: null });
+    v.mnavOpen = !!this.state.mnav;
+    v.mnavBtnRef = this.mnavBtn;
+    v.mnavToggle = () => this.setMnav(!this.state.mnav);
+    v.mnavClose = () => this.setMnav(false);
+    v.mnavGroups = MNAV.map(([label, links]) => ({ label, links, open: this.state.mnavSec === label, toggle: () => this.setState(s => ({ mnavSec: s.mnavSec === label ? null : label })) }));
     const pre = this.state.pre || 'in';
     v.preVisible = pre !== 'done';
     v.preO = pre === 'in' ? 1 : 0;
