@@ -8,7 +8,6 @@ import View, { css } from './View';
 // small stuff, pricing. WRAP maps each page wrapper in the view (data-page) to the scroll pages it covers.
 const PAGES = 8;
 const WRAP = [[0, 0], [1, 1], [2, 4], [5, 5], [6, 6], [7, 7]];
-const PAGE_BG = ['#ffffff', '#0b1626', '#ffffff', '#ffffff', '#ffffff', '#ffffff'];
 const ANCHOR = { how: 2, pricing: 7 };
 const wrapOf = page => WRAP.findIndex(([a, b]) => page >= a && page <= b);
 
@@ -248,7 +247,7 @@ class Logic extends React.Component {
     v.dTr = deck ? 'opacity 500ms cubic-bezier(0.23,1,0.32,1),transform 650ms cubic-bezier(0.23,1,0.32,1)' : 'none';
     WRAP.forEach(([a, b], k) => {
       const on = !deck || (page >= a && page <= b);
-      v['pgBg' + k] = deck ? PAGE_BG[k] : undefined;
+      v['pgBg' + k] = deck ? '#ffffff' : undefined;
       v['pgO' + k] = on ? 1 : 0;
       v['pgT' + k] = on ? 'none' : (page > b ? 'translateY(-48px) scale(.97)' : 'translateY(48px) scale(.97)');
       v['pgPe' + k] = on ? 'auto' : 'none';

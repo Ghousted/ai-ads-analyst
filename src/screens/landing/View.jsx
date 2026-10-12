@@ -1058,7 +1058,7 @@ export default function View({ v }) {
             </div>
             <div data-page={"1"} style={{ gridArea: v.dA, display: v.dD, flexDirection: "column", justifyContent: "center", height: v.dH, background: v.pgBg1, opacity: v.pgO1, transform: v.pgT1, pointerEvents: v.pgPe1, transition: v.dTr }}>
               <div className="clario-fit">
-              <section style={{ background: "#0b1626", color: "#ffffff", overflow: "hidden" }}>
+              <section style={{ background: "#ffffff", color: "#0b1626", overflow: "hidden" }}>
                 {" "}
                 <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "110px 24px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,440px),1fr))", gap: "56px 80px", alignItems: "center" }}>
                   {" "}
@@ -1066,12 +1066,12 @@ export default function View({ v }) {
                     {" "}
                     <h2 style={{ margin: "0", fontSize: "clamp(36px,4vw,48px)", fontWeight: "700", lineHeight: "1.1", letterSpacing: "-0.035em", textWrap: "balance" }}>
                       {"Many clients who cancel weren't getting bad results. "}
-                      <span style={{ color: "#7fa6e6" }}>
+                      <span style={{ color: "#1f6be2" }}>
                         {"They just couldn't tell what was going on."}
                       </span>
                     </h2>
                     {" "}
-                    <p style={{ margin: "0", fontSize: "18px", color: "#b8c4d4", textWrap: "pretty" }}>
+                    <p style={{ margin: "0", fontSize: "18px", color: "#5a6474", textWrap: "pretty" }}>
                       {"Writing a clear report for every client, every week, takes hours. "}
                       <span style={{ color: "#1f6be2" }}>
                         {"Clario"}
@@ -1085,12 +1085,12 @@ export default function View({ v }) {
                     {" "}
                     <div style={{ alignSelf: "flex-start", maxWidth: "340px", display: "flex", alignItems: "flex-end", gap: "10px", transform: "rotate(-1deg)", transition: "transform 320ms cubic-bezier(0.23,1,0.32,1)" }} className="dc056570b">
                       {" "}
-                      <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "#7fa6e6", color: "#0b1626", display: "grid", placeItems: "center", fontWeight: "700" }}>
+                      <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "#e6ebf2", color: "#0b1626", display: "grid", placeItems: "center", fontWeight: "700" }}>
                         {"D"}
                       </span>
                       {" "}
-                      <span style={{ background: "#1c2a3f", borderRadius: "20px 20px 20px 6px", padding: "14px 18px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <span style={{ fontSize: "14px", letterSpacing: "-0.52px", color: "#b8c4d4" }}>
+                      <span style={{ background: "#f0f3f8", borderRadius: "20px 20px 20px 6px", padding: "14px 18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <span style={{ fontSize: "14px", letterSpacing: "-0.52px", color: "#5a6474" }}>
                           {"Your client, Friday 4:12pm"}
                         </span>
                         <span style={{ fontSize: "18px", lineHeight: "1.35" }}>
@@ -1100,9 +1100,9 @@ export default function View({ v }) {
                       {" "}
                     </div>
                     {" "}
-                    <figure style={{ margin: "0", alignSelf: "flex-end", maxWidth: "440px", background: "#ffffff", color: "#0b1626", borderRadius: "28px", padding: "24px", display: "flex", flexDirection: "column", gap: "12px", transform: "rotate(2deg)", transition: "transform 320ms cubic-bezier(0.23,1,0.32,1)" }} className="dc056570b">
+                    <figure style={{ margin: "0", alignSelf: "flex-end", maxWidth: "440px", background: "#f0f3f8", color: "#0b1626", borderRadius: "28px", padding: "24px", display: "flex", flexDirection: "column", gap: "12px", transform: "rotate(2deg)", transition: "transform 320ms cubic-bezier(0.23,1,0.32,1)" }} className="dc056570b">
                       {" "}
-                      <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "9999px", background: "#f0f3f8", color: "#0b1626", fontSize: "14px", fontWeight: "500", letterSpacing: "-0.52px" }}>
+                      <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "9999px", background: "#ffffff", color: "#0b1626", fontSize: "14px", fontWeight: "500", letterSpacing: "-0.52px" }}>
                         <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#ff4500" }}></span>
                         {"r/digital_marketing"}
                       </span>
