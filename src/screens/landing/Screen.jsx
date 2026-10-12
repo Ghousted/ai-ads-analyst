@@ -37,48 +37,64 @@ class Logic extends React.Component {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!reduce && (this.props.autoShuffle ?? true)) this.sh = setInterval(() => { if (!this.state.paused) this.go(); }, this.props.shuffleMs ?? 3200);
   }
+  // Fades each block up as it scrolls into view: headings, copy, buttons, cards and list items, across every
+  // section and the footer. Uses the `translate` and `scale` properties so the design's own inline transforms,
+  // transitions and opacity are never overwritten.
   setupReveal() {
     if (this.props.scrollAnimations === false) return;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     if (!('IntersectionObserver' in window)) return;
-    const main = document.querySelector('main');
-    if (!main) return;
+    const roots = [...document.querySelectorAll('main > section'), document.querySelector('body footer')].filter(Boolean);
+    if (!roots.length) return;
     const ease = 'cubic-bezier(0.23,1,0.32,1)';
-    const prep = (el, i, dist) => {
-      el.style.opacity = '0';
-      el.style.transform = `translateY(${dist}px)`;
-      el.style.transition = `opacity 700ms ${ease} ${i * 90}ms, transform 800ms ${ease} ${i * 90}ms`;
-      el.style.willChange = 'opacity, transform';
+    const LEAF = /^(H[1-6]|P|IMG|SVG|BUTTON|A|LI|LABEL|INPUT|FIGURE|BLOCKQUOTE|TABLE|FORM)$/;
+    const isCard = (el, cs) => parseFloat(cs.borderTopLeftRadius) >= 12 && (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || cs.boxShadow !== 'none' || parseFloat(cs.borderTopWidth) > 0);
+    // Children layered on top of each other (the hero card stack) move as one block.
+    const stacked = kids => {
+      if (kids.length < 2) return false;
+      const [r1, r2] = [kids[0].getBoundingClientRect(), kids[1].getBoundingClientRect()];
+      const w = Math.min(r1.right, r2.right) - Math.max(r1.left, r2.left), hh = Math.min(r1.bottom, r2.bottom) - Math.max(r1.top, r2.top);
+      return w > 0 && hh > 0 && w * hh > 0.5 * Math.min(r1.width * r1.height, r2.width * r2.height);
     };
-    const show = el => {
-      el.style.opacity = '1';
-      el.style.transform = 'none';
-      setTimeout(() => { el.style.transition = ''; el.style.willChange = ''; el.style.transform = ''; }, 1400);
-    };
-    const sections = Array.from(main.children).filter(n => n.tagName === 'SECTION');
-    const hero = sections[0];
-    if (hero && hero.firstElementChild) {
-      Array.from(hero.firstElementChild.children).forEach((el, i) => { prep(el, i, 20); requestAnimationFrame(() => requestAnimationFrame(() => show(el))); });
-      if (hero.children[1]) { prep(hero.children[1], 3, 32); requestAnimationFrame(() => requestAnimationFrame(() => show(hero.children[1]))); }
-    }
     const targets = [];
-    const collect = (container) => {
-      Array.from(container.children).forEach(child => {
-        const cs = getComputedStyle(child);
-        const kids = Array.from(child.children);
-        if (cs.display === 'grid' && kids.length >= 2 && kids.every(k => k.tagName === 'DIV')) {
-          kids.forEach((k, i) => targets.push([k, i]));
-        } else targets.push([child, 0]);
-      });
+    const walk = el => {
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.position === 'absolute' || cs.position === 'fixed') return;
+      const kids = [...el.children].filter(k => { const p = getComputedStyle(k).position; return p !== 'absolute' && p !== 'fixed'; });
+      const h = el.getBoundingClientRect().height;
+      const card = isCard(el, cs);
+      const leaf = LEAF.test(el.tagName.toUpperCase()) || !kids.length || h <= 200 || (card && h <= 560) || stacked(kids);
+      // Sticky blocks and blocks driven by their own opacity keep their behaviour; only their contents reveal.
+      if (leaf && !el.style.opacity && cs.position !== 'sticky') return targets.push([el, card]);
+      if (!leaf || cs.position === 'sticky') [...el.children].forEach(walk);
     };
-    sections.slice(1).forEach(sec => {
-      const only = sec.children.length === 1 && sec.firstElementChild.tagName === 'DIV' ? sec.firstElementChild : sec;
-      if (sec.id !== 'how') collect(only);
-    });
+    roots.forEach(r => [...r.children].forEach(walk));
+    const done = el => {
+      const o = el._rv;
+      el.style.transition = o.transition; el.style.willChange = o.willChange; el.style.translate = ''; el.style.scale = ''; el.style.opacity = '';
+      delete el._rv;
+    };
+    const show = (el, delay) => {
+      el.style.transition = `opacity 650ms ${ease} ${delay}ms, translate 800ms ${ease} ${delay}ms, scale 800ms ${ease} ${delay}ms`;
+      el.style.opacity = ''; el.style.translate = '0 0'; el.style.scale = '1';
+      setTimeout(() => el._rv && done(el), 900 + delay);
+    };
+    // Everything that enters together shares one stagger, ordered top to bottom then left to right.
     this.io = new IntersectionObserver(entries => {
-      entries.forEach(en => { if (en.isIntersecting) { show(en.target); this.io.unobserve(en.target); } });
-    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-    targets.forEach(([el, i]) => { prep(el, i, 28); this.io.observe(el); });
+      entries.filter(en => en.isIntersecting)
+        .sort((x, y) => (x.boundingClientRect.top - y.boundingClientRect.top) || (x.boundingClientRect.left - y.boundingClientRect.left))
+        .forEach((en, i) => { this.io.unobserve(en.target); show(en.target, Math.min(i, 8) * 60); });
+    }, { threshold: 0.15 });
+    targets.forEach(([el, card]) => {
+      el._rv = { transition: el.style.transition, willChange: el.style.willChange };
+      el.style.transition = 'none';
+      el.style.opacity = '0';
+      el.style.translate = card ? '0 32px' : '0 20px';
+      if (card) el.style.scale = '0.97';
+      el.style.willChange = 'opacity, translate';
+    });
+    void document.body.offsetHeight; // commit the hidden state before anything can start revealing
+    targets.forEach(([el]) => this.io.observe(el));
   }
   componentWillUnmount() { clearTimeout(this.pt1); clearTimeout(this.pt2); window.removeEventListener('scroll', this.onHow); window.removeEventListener('resize', this.onHow); clearInterval(this.t); clearInterval(this.sh); clearTimeout(this.lt); if (this.io) this.io.disconnect(); }
   curTop() {
