@@ -256,7 +256,7 @@ class Logic extends React.Component {
     // In page mode How it works keeps its stacked steps, driven by the page index instead of its own scroll.
     const st = deck || !!this.state.howSticky, hs = this.state.howStep || 0;
     v.howH = deck ? 'auto' : st ? '330vh' : 'auto';
-    v.stPos = !deck && st ? 'sticky' : 'relative';
+    v.stPos = deck ? 'static' : st ? 'sticky' : 'relative'; // static ignores the sticky top offset
     v.stH = deck ? 'auto' : st ? 'calc(100vh - 72px)' : 'auto';
     v.stPad = deck ? '0 24px' : st ? '0 24px 72px' : '100px 24px';
     v.stGap = st ? '0' : '100px';
