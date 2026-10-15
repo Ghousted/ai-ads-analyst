@@ -1,6 +1,7 @@
 // Clients: list, add-client wizard and profile panel.
 import { createClientAction, updateClientAction } from '@/app/actions/clients';
 import { connList, toolAccts, acctKey, clSplit, TOOL_NAMES, TOOL_ORDER } from '../../data';
+import { clientGoalVals } from './clientGoals';
 
 export function clientsVals(app, ctx) {
   // eslint-disable-next-line no-unused-vars
@@ -8,17 +9,18 @@ export function clientsVals(app, ctx) {
   return {
       cur: clients[S.cid] || clients[0],
       ...(() => {
-        const pI = S.pfPanel ? S.pfI : S.sel; if (pI == null) return { pfSub: '', pfView: true, pfEditing: false, pfFields: [], pfInputs: [], pfInts: [], pfKpis: [] };
+        const pI = S.pfPanel ? S.pfI : S.sel; if (pI == null) return { pfSub: '', pfView: true, pfEditing: false, pfFields: [], pfInputs: [], pfInts: [], pfKpis: [], cgGoals: [], cgTypes: [] };
         const i = pI, c = C[i] || C[0], ex = c.extra, ed = (S.pfEdits || {})[i] || {}, D = S.pfDraft, E = S.pfErr || {};
         const base = ex ? { contact: ex.contactName || 'Not set', email: ex.email, schedule: ex.schedule || 'Mondays, 8:00am' } : { contact: ['Dana Whitfield', 'Marco Reyes', 'Dr. Priya Nair', 'Lena Cho', 'Tom Alvarez'][i], email: ['dana@northsidephysio.com', 'marco@kalye.co', 'office@harborpine.com', 'hello@maraskin.com', 'team@coastline.realty'][i], schedule: 'Mondays, 8:00am' };
         const info = { ...base, ...ed };
-        const industry = ex ? 'Industry not set' : ['Physiotherapy clinic', 'Streetwear brand', 'Dental practice', 'Skincare brand', 'Real estate agency'][i], since = ex ? 'Oct 2026' : ['Mar 2025', 'Jan 2026', 'Aug 2024', 'May 2025', 'Nov 2025'][i];
+        const industry = ex ? ex.industry || 'Industry not set' : ['Physiotherapy clinic', 'Streetwear brand', 'Dental practice', 'Skincare brand', 'Real estate agency'][i], since = ex ? (ex.createdAt ? new Date(ex.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }) : 'recently') : ['Mar 2025', 'Jan 2026', 'Aug 2024', 'May 2025', 'Nov 2025'][i];
         const INT = [['meta', 'Meta', L.meta], ['ga4', 'Google Analytics 4', L.ga4], ['gads', 'Google Ads', L.gads], ['tt', 'TikTok Ads', L.tt], ['sc', 'Google Search Console', '/assets/logo-search-console.png'], ['li', 'LinkedIn Ads', '/assets/logo-linkedin.png'], ['ms', 'Microsoft Ads', '/assets/logo-microsoft.png'], ['gbp', 'Google Business Profile', '/assets/logo-google-business.png']];
         // A client who will not share access with the agency can connect from their side with a one-time link.
         const ask = (S.cAsk || {})[c.name], askUrl = 'https://app.aiadsanalyst.app/connect/' + c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-7f3k';
         const cpl = [12.9, 10.6, 8.73, 7.4, 9.1][i] ?? 0, spend = [1170, 1968, 960, 1280, 696][i] ?? 0;
         const keys = [['contact', 'Contact person'], ['email', 'Contact email'], ['schedule', 'Report schedule']];
-        return {
+        const cgToast = t => { clearTimeout(app.ctT); app.setState({ cToast: t }); app.ctT = setTimeout(() => app.setState({ cToast: null }), 4000); };
+        return { ...clientGoalVals(app, { S, live, C }, i, cgToast),
           pfSub: industry + ' · Client since ' + since,
           pfView: !D, pfEditing: !!D,
           pfFields: [{ k: 'Contact person', v: info.contact }, { k: 'Contact email', v: info.email }, { k: 'Industry', v: industry }, { k: 'Report tone', v: c.tone }, { k: 'Report schedule', v: info.schedule }],

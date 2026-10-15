@@ -90,7 +90,7 @@ class Logic extends React.Component {
       const [status, bg, col] = ST[c.s], mx = Math.max(...c.bars);
       return { ...c, initials: c.i, status, bg, c: col, dc: c.delta.startsWith('+') ? '#1d6b3a' : '#5a6474',
         spark: c.bars.map((b, k) => ({ h: Math.round(6 + 26 * b / mx) + 'px', c: k === 5 ? '#1f6be2' : '#d6e4f8' })),
-        logos: c.logos.map(l => L[l]), risky: c.s !== 'h', open: () => this.setState({ sel: idx, cid: idx, tab: 0, view: 'kpi' }),
+        logos: c.logos.map(l => L[l]), risky: c.s !== 'h', open: () => this.setState({ sel: idx, cid: idx, pfPanel: true, pfI: idx, pfDraft: null }),
         signals: c.signals.map(([t, d]) => ({ t, d })) };
     };
     const clients = C.map(card);
@@ -100,7 +100,6 @@ class Logic extends React.Component {
       monitoring: 'M19 5v2h-4V5h4M9 5v6H5V5h4m10 8v6h-4v-6h4M9 17v2H5v-2h4M21 3h-8v6h8V3zM11 3H3v10h8V3zm10 8h-8v10h8V11zm-10 4H3v6h8v-6z',
       risk: 'M12 2 4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm6 9.09c0 4-2.55 7.7-6 8.83-3.45-1.13-6-4.82-6-8.83v-4.7l6-2.25 6 2.25v4.7zM11 15h2v2h-2zm0-8h2v6h-2z',
       workflow: 'M22 5.18 10.59 16.6l-4.24-4.24 1.41-1.41 2.83 2.83 10-10L22 5.18zm-2.21 5.04c.13.57.21 1.17.21 1.78 0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8c1.58 0 3.04.46 4.28 1.25l1.44-1.44C16.1 2.67 14.13 2 12 2 6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10c0-1.19-.22-2.33-.6-3.39l-1.61 1.61z',
-      kpis: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
       ai: 'M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z'
     };
     const M = [
@@ -108,13 +107,12 @@ class Logic extends React.Component {
       ['clients', 'Clients', [['clients', 'Clients']]],
       ['reporting', 'Reporting', [['templates', 'Reports']]],
       ['workflow', 'Tasks', [['tasks', 'Tasks']]],
-      ['kpis', 'KPIs & goals', [['kpi', 'KPIs & goals']]],
     ];
     const rkCount = C.filter(c => c.s !== 'h' && !c.dismissed && !(S.rkGone || {})[c.name]).length;
     const activeView = S.view === 'client' ? 'clients' : (S.view === 'builder' || S.view === 'repview' || S.view === 'reports' || S.view === 'lrep') ? 'templates' : S.view;
     const modules = M.map(([id, label, items]) => {
       const hasActive = items.some(x => x[0] === activeView || (x[2] && x[2].some(y => y[0] === activeView))), open = hasActive;
-      const single = id === 'reporting' || id === 'monitoring' || id === 'clients' || id === 'kpis' || id === 'workflow' || id === 'risk';
+      const single = id === 'reporting' || id === 'monitoring' || id === 'clients' || id === 'workflow' || id === 'risk';
       return { label, open, multi: !single, aria: single && hasActive ? 'page' : undefined, icon: icons[id], rows: open && !single ? '1fr' : '0fr', chev: open ? 'rotate(180deg)' : 'rotate(0deg)',
         bg: single && hasActive ? '#eef3fd' : 'transparent', iconBg: 'transparent', iconC: hasActive ? '#1f6be2' : '#5a6474',
         hasBadge: false, badge: '',
@@ -136,7 +134,6 @@ class Logic extends React.Component {
       'an-gads': ['Dashboard · Analytics', 'Google Ads', 'Search and display ad results.', ''],
       'an-tt': ['Dashboard · Analytics', 'TikTok Ads', 'Video ad results on TikTok.', ''],
       settings: ['Settings', 'Settings', '', ''],
-      kpi: ['Dashboard', 'KPIs & goals', '', ''],
       clients: ['Clients', 'Clients', '', 'Add client'],
       reports: ['Reporting', 'Report history', '', ''],
       templates: ['Reporting', 'Reports', '', 'Create blank'],
@@ -161,7 +158,7 @@ class Logic extends React.Component {
     const moveTask = (i, k) => setTasks(arr => { arr[i].status = k; arr[i].done = k === 'done'; if (k === 'done' && arr[i].sub) arr[i].sub = [arr[i].sub[1], arr[i].sub[1]]; });
     const tasksAll = tkSrc.map((t, i) => ({ ...t, i, done: t.status === 'done', meta: (t.client || 'No client') + (t.due ? ' · Due ' + t.due : ''), statusLabel: TCOLS.find(c => c[0] === t.status)[1], deco: t.status === 'done' ? 'line-through' : 'none', c: t.status === 'done' ? '#97a2b2' : '#0b1626',
       toggle: () => moveTask(i, t.status === 'done' ? 'todo' : 'done') }));
-    const p = pages[v] || pages.kpi;
+    const p = pages[v] || pages.an;
     const atRisk = clients.filter(c => c.risky);
     const ctx = { live, SL, refresh: () => this.props.refresh?.(), S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll };
     return {
@@ -219,10 +216,10 @@ class Logic extends React.Component {
       swProfile: false, goProfile: () => this.setState({ view: 'clients', clList: false, swOpen: false, pfDraft: null }), swProfileLabel: 'View client profile',
       swList: [{ name: 'All clients', initials: 'All', sub: `${clients.length} clients`, avBg: '#0b1626', avC: '#ffffff', on: S.sel == null, bg: S.sel == null ? '#eef3fd' : 'transparent', pick: () => this.setState(s => ({ sel: null, swOpen: false, view: (s.view === 'clients' && !s.cForm) ? 'an' : s.view })) }]
         .concat(clients.map((c, i) => ({ name: c.name, initials: c.initials, sub: c.status, avBg: '#d6e4f8', avC: '#0b1626', on: S.sel === i, bg: S.sel === i ? '#eef3fd' : 'transparent', pick: () => this.setState({ sel: i, cid: i, tab: 0, swOpen: false }) }))),
-      hdrShadow: S.hdrStuck ? '0 1px 0 #e6ebf2, 0 8px 20px -16px rgba(11,22,38,.35)' : 'none', showHeader: v !== 'client' && v !== 'builder' && v !== 'repview' && v !== 'settings' && v !== 'lrep', crumb: p[0], pageTitle: v === 'kpi' ? 'KPIs & goals' : (v === 'clients' && S.cForm) ? 'New client' : p[1], pageSub: v === 'kpi' ? `${atRisk.length} clients need attention. ${clients.length - atRisk.length} are doing well.` : p[2],
-      showSw: v === 'an' || v.startsWith('an-') || v === 'kpi', hasAction: !!p[3] && !(v === 'clients' && S.cForm) && !(live && (v === 'templates' || v === 'reports')), // Live agencies write reports from the template gallery on the Reports page.
+      hdrShadow: S.hdrStuck ? '0 1px 0 #e6ebf2, 0 8px 20px -16px rgba(11,22,38,.35)' : 'none', showHeader: v !== 'client' && v !== 'builder' && v !== 'repview' && v !== 'settings' && v !== 'lrep', crumb: p[0], pageTitle: (v === 'clients' && S.cForm) ? 'New client' : p[1], pageSub: p[2],
+      showSw: v === 'an' || v.startsWith('an-'), hasAction: !!p[3] && !(v === 'clients' && S.cForm) && !(live && (v === 'templates' || v === 'reports')), // Live agencies write reports from the template gallery on the Reports page.
       actionLabel: p[3], action: v === 'tasks' ? () => this.setState({ tw: { step: 1, title: '', desc: '', client: S.sel != null ? C[S.sel].name : '', due: '', who: ['AR'], items: [], itemVal: '' }, twErr: null }) : v === 'clients' ? () => this.setState({ view: 'clients', sel: null, swOpen: false, cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : v === 'templates' ? () => this.setState({ newRep: { step: 1, name: '', tpl: 'blank', err: false, direct: true } }) : v === 'clients' ? () => this.setState({ cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : () => {},
-      vKpi: v === 'kpi', vClient: v === 'client', vTasks: v === 'tasks', vBuilder: v === 'builder' && !live,
+      vClient: v === 'client', vTasks: v === 'tasks', vBuilder: v === 'builder' && !live,
       meName: S.me?.name || '', meInitials: (S.me?.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), meRole: S.me?.role || '', agencyName: S.agName, sampleMode: !!this.props.agency?.sampleMode, // A report being edited uses the full width: its ribbon runs edge to edge, the page stays centred.
       mainPad: v === 'lrep' ? '0 0 64px' : '32px clamp(20px,4vw,48px) 64px', mainMax: v === 'lrep' ? 'none' : '1100px', mainGap: v === 'lrep' ? '0' : '24px', canConnect: S.me?.role !== 'Member', connectMeta: () => this.setState({ view: 'settings', stgTab: 'conn', dlg: { kind: 'metaToken' }, dlgErr: null }),
       goSettings: go('settings'), goReports: go('reports'), goHistory: go('reports'), histCount: '', goTemplates: go('templates'), viewRef: this.viewRef, setAria: v === 'settings' ? 'page' : undefined, setBg: v === 'settings' ? '#eef3fd' : 'transparent', setC: v === 'settings' ? '#1f6be2' : '#45505f',

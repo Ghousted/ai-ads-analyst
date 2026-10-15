@@ -579,6 +579,79 @@ export function ClientsView({ v }) {
               {" "}
             </section>
             {" "}
+            <section aria-labelledby={"cg-h"} style={{ background: "#ffffff", borderRadius: "0", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "20px" }}>
+              <h2 id={"cg-h"} style={{ margin: "0", fontSize: "18px", fontWeight: "700" }}>{"Budget and goals"}</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                  <span style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <span style={{ fontSize: "13px", fontWeight: "600", color: "#5a6474" }}>{"Monthly ad budget"}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}><strong style={{ fontSize: "20px", letterSpacing: "-0.4px", fontVariantNumeric: "tabular-nums", color: v.cgHasBudget ? "#0b1626" : "#5a6474" }}>{v.cgBudget}</strong>{v.cgBudgetStatus ? <span style={{ padding: "2px 10px", background: v.cgBPBg, color: v.cgBPC, fontSize: "13px", fontWeight: "600" }}>{v.cgBudgetStatus}</span> : null}</span>
+                  </span>
+                  {(!v.cgBudgetEditing) ? <button onClick={v.cgEditBudget} style={{ height: "40px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">{v.cgBudgetBtn}</button> : null}
+                </div>
+                {(v.cgShowBar && !v.cgBudgetEditing) ? (
+                  <span aria-hidden={"true"} style={{ position: "relative", display: "block", height: "8px", background: "#eef1f6" }}><span style={{ display: "block", height: "100%", width: v.cgBW, background: v.cgBCol }}></span><span title={"Where spend should be today"} style={{ position: "absolute", top: "-3px", bottom: "-3px", left: v.cgBMk, width: "2px", background: "#0b1626" }}></span></span>
+                ) : null}
+                {(!v.cgBudgetEditing) ? <span style={{ fontSize: "14px", color: "#45505f", textWrap: "pretty" }}>{v.cgBudgetNote}</span> : null}
+                {(v.cgBudgetEditing) ? (
+                  <form onSubmit={v.cgSaveBudget} noValidate={true} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px", width: "200px", height: "44px", padding: "0 12px", border: "1px solid " + (v.cgBudgetErr ? "#e0481a" : "#d3dbe6"), background: "#ffffff" }}>
+                        <span style={{ color: "#5a6474", fontWeight: "600" }}>{"$"}</span>
+                        <input aria-label={"Monthly ad budget"} autoFocus={true} value={v.cgBudgetDraft} onChange={v.cgSetBudget} inputMode={"decimal"} placeholder={"No budget"} style={{ flex: "1", minWidth: "0", height: "40px", border: "0", outline: "none", font: "inherit", letterSpacing: "inherit", fontVariantNumeric: "tabular-nums" }} />
+                        <span style={{ color: "#5a6474", fontSize: "14px" }}>{"a month"}</span>
+                      </span>
+                      <button type={"submit"} style={{ height: "44px", padding: "0 18px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{"Save"}</button>
+                      <button type={"button"} onClick={v.cgCancelBudget} style={{ height: "44px", padding: "0 14px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{"Cancel"}</button>
+                    </span>
+                    {v.cgBudgetErr ? <span role={"alert"} style={{ fontSize: "13px", fontWeight: "600", color: "#a3330c" }}>{v.cgBudgetErr}</span> : <span style={{ fontSize: "13px", color: "#5a6474" }}>{"Leave it empty to remove the budget."}</span>}
+                  </form>
+                ) : null}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "600", color: "#5a6474" }}>{"Goals"}</span>
+                  {(v.cgCanAdd) ? <button onClick={v.cgAdd} style={{ height: "40px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">{"Add goal"}</button> : null}
+                </div>
+                {(v.cgNoGoals) ? <span style={{ fontSize: "14px", color: "#5a6474", padding: "6px 0" }}>{"No goals yet. Set a cost per lead limit or a weekly leads target, and Analyst tells you when it drifts."}</span> : null}
+                {((v.cgGoals) || []).map(g => (
+                  <div key={g.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: "6px 12px", alignItems: "center", padding: "12px 0", borderTop: "1px solid #eef1f6" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}><strong style={{ fontWeight: "600" }}>{g.label}</strong><span style={{ fontSize: "14px", color: "#45505f" }}>{g.target}</span></span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+                      <span style={{ padding: "2px 10px", background: g.pBg, color: g.pC, fontSize: "13px", fontWeight: "600", whiteSpace: "nowrap", marginRight: "6px" }}>{g.status}</span>
+                      <button onClick={g.edit} aria-label={g.editLabel} style={{ width: "44px", height: "44px", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcf0b705f"><svg width={"16"} height={"16"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#45505f"} strokeWidth={"2"} strokeLinecap={"round"} strokeLinejoin={"round"}><path d={"M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"}></path></svg></button>
+                      <button onClick={g.remove} aria-label={g.removeLabel} style={{ width: "44px", height: "44px", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcf0b705f"><svg width={"16"} height={"16"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#45505f"} strokeWidth={"2"} strokeLinecap={"round"} strokeLinejoin={"round"}><path d={"M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"}></path></svg></button>
+                    </span>
+                    <span style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span aria-hidden={"true"} style={{ position: "relative", flex: "1", height: "6px", background: "#eef1f6" }}><span style={{ display: "block", height: "100%", width: g.w, background: g.col }}></span><span style={{ position: "absolute", top: "-3px", bottom: "-3px", left: g.mk, width: "2px", background: "#0b1626" }}></span></span>
+                      <span style={{ flex: "none", fontSize: "13px", color: "#5a6474", fontVariantNumeric: "tabular-nums" }}>{g.now}</span>
+                    </span>
+                  </div>
+                ))}
+                {(v.cgFormOn) ? (
+                  <form onSubmit={v.cgSave} noValidate={true} aria-label={v.cgFormTitle} style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "16px", marginTop: "6px", background: "#f4f7fb" }}>
+                    <strong style={{ fontSize: "15px" }}>{v.cgFormTitle}</strong>
+                    <div role={"radiogroup"} aria-label={"Goal type"} style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                      {((v.cgTypes) || []).map(t => <button key={t.label} type={"button"} role={"radio"} aria-checked={t.on} onClick={t.pick} style={{ height: "40px", padding: "0 14px", border: "1.5px solid " + (t.on ? "#1f6be2" : "#d3dbe6"), borderRadius: "0", background: t.on ? "#eef3fd" : "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }}>{t.label}</button>)}
+                    </div>
+                    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <span style={{ fontSize: "14px", fontWeight: "600" }}>{v.cgTargetLabel}</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px", width: "220px", height: "44px", padding: "0 12px", border: "1px solid " + (v.cgTargetErr ? "#e0481a" : "#d3dbe6"), background: "#ffffff" }}>
+                        <span style={{ color: "#5a6474", fontWeight: "600" }}>{v.cgPre}</span>
+                        <input autoFocus={true} value={v.cgTarget} onChange={v.cgSetTarget} inputMode={"decimal"} placeholder={v.cgPh} aria-invalid={!!v.cgTargetErr} style={{ flex: "1", minWidth: "0", height: "40px", border: "0", outline: "none", font: "inherit", letterSpacing: "inherit", background: "transparent" }} />
+                        <span style={{ color: "#5a6474", fontWeight: "600" }}>{v.cgSuf}</span>
+                      </span>
+                      {v.cgTargetErr ? <span role={"alert"} style={{ fontSize: "13px", fontWeight: "600", color: "#a3330c" }}>{v.cgTargetErr}</span> : <span style={{ fontSize: "13px", color: "#5a6474" }}>{v.cgHelp}</span>}
+                    </label>
+                    <span style={{ display: "flex", gap: "8px" }}>
+                      <button type={"submit"} style={{ height: "44px", padding: "0 18px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{v.cgFormSave}</button>
+                      <button type={"button"} onClick={v.cgCancel} style={{ height: "44px", padding: "0 14px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{"Cancel"}</button>
+                    </span>
+                  </form>
+                ) : null}
+              </div>
+            </section>
+            {" "}
             <section style={{ background: "#ffffff", borderRadius: "0", padding: "20px 22px 8px", display: "flex", flexDirection: "column", gap: "8px" }}>
               {" "}
               <h2 style={{ margin: "0", fontSize: "18px", fontWeight: "700" }}>
