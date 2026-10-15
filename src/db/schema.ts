@@ -173,3 +173,32 @@ export const clientGoals = pgTable('client_goals', {
   target: doublePrecision('target').notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [primaryKey({ columns: [t.clientId, t.type] }), index('client_goals_agency_idx').on(t.agencyId)]);
+
+// A task on the Tasks board. assignees are user ids; items is the checklist. position orders the board (new tasks
+// go to the top from the new-task form, to the bottom when added in a column).
+export const TASK_STATUS = ['todo', 'doing', 'review', 'done'] as const;
+export const taskStatusEnum = pgEnum('task_status', TASK_STATUS);
+
+export const tasks = pgTable('tasks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agencyId: uuid('agency_id').notNull().references(() => agencies.id, { onDelete: 'cascade' }),
+  clientId: uuid('client_id').references(() => clients.id, { onDelete: 'set null' }),
+  title: text('title').notNull(),
+  description: text('description').notNull().default(''),
+  status: taskStatusEnum('status').notNull().default('todo'),
+  due: date('due'),
+  assignees: jsonb('assignees').$type<string[]>().notNull().default([]),
+  items: jsonb('items').$type<{ label: string; done: boolean }[]>().notNull().default([]),
+  position: doublePrecision('position').notNull().default(0),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [index('tasks_agency_idx').on(t.agencyId, t.position)]);
+
+export const taskComments = pgTable('task_comments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  taskId: uuid('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [index('task_comments_task_idx').on(t.taskId, t.createdAt)]);
