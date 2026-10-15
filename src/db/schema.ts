@@ -160,3 +160,16 @@ export const clientFlags = pgTable('client_flags', {
   analyzedAt: timestamp('analyzed_at', { withTimezone: true }),
   dismissedKeys: text('dismissed_keys'),
 }, t => [index('client_flags_agency_idx').on(t.agencyId)]);
+
+// A client's targets: cost per lead (under), leads per week and conversion rate (at least), and the monthly ad
+// budget. One of each type per client.
+export const GOAL_TYPES = ['cpl', 'leads', 'conv', 'budget'] as const;
+export const goalTypeEnum = pgEnum('goal_type', GOAL_TYPES);
+
+export const clientGoals = pgTable('client_goals', {
+  clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  agencyId: uuid('agency_id').notNull().references(() => agencies.id, { onDelete: 'cascade' }),
+  type: goalTypeEnum('type').notNull(),
+  target: doublePrecision('target').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.clientId, t.type] }), index('client_goals_agency_idx').on(t.agencyId)]);

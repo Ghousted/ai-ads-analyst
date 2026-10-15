@@ -26,23 +26,27 @@ export default async function Page() {
   ]);
   // Out of sample mode, the app works on the agency's own clients and connections.
   const live = agency.sampleMode ? null : await (async () => {
-    const [clients, conns, metrics, reports, flags] = await Promise.all([
+    const [clients, conns, metrics, reports, flags, goals] = await Promise.all([
       db.select().from(schema.clients).where(eq(schema.clients.agencyId, agency.id)).orderBy(asc(schema.clients.createdAt)),
       listIntegrations(agency.id),
       loadMetrics(agency.id),
       db.select().from(schema.reports).where(eq(schema.reports.agencyId, agency.id)).orderBy(desc(schema.reports.createdAt)).limit(100),
       db.select().from(schema.clientFlags).where(eq(schema.clientFlags.agencyId, agency.id)),
+      db.select().from(schema.clientGoals).where(eq(schema.clientGoals.agencyId, agency.id)),
     ]);
     // Who is flagged and why, with Claude's saved analysis while it still matches the numbers.
     const scored = scoreClients(metrics, clients, reports);
     const risk = Object.fromEntries(Object.entries(scored).map(([id, r]) => {
-      const f = flags.find(x => x.clientId === id);
+      const f = flags.find(x => x.clientId === id), wk = r.weeks.at(-1);
       return [id, { level: r.level, keys: r.keys, signals: r.signals.map(s => ({ key: s.key, label: s.label, detail: s.detail, say: s.say, act: s.act })),
-        lastReport: r.lastReport, weeks: r.weeks.map(w => w.leads), dismissed: !!r.keys && f?.dismissedKeys === r.keys, analysis: f?.analysis && f.signature === r.signature ? f.analysis : null }];
+        lastReport: r.lastReport, weeks: r.weeks.map(w => w.leads),
+        // This week's numbers, for goal progress.
+        week: wk ? { leads: wk.leads, sessions: wk.sessions, spend: wk.spend, metaLeads: wk.metaLeads, source: r.leadSource } : null, dismissed: !!r.keys && f?.dismissedKeys === r.keys, analysis: f?.analysis && f.signature === r.signature ? f.analysis : null }];
     }));
     return {
       clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email, contactName: c.contactName, schedule: c.schedule, tone: c.tone, industry: c.industry, createdAt: c.createdAt.toISOString() })),
       conns, metrics, risk,
+      goals: goals.map(g => ({ clientId: g.clientId, type: g.type, target: g.target })),
       reports: reports.map(r => ({ id: r.id, clientId: r.clientId, title: r.title, status: r.status, createdAt: r.createdAt.toISOString(), sentAt: r.sentAt?.toISOString() ?? null, sentTo: r.sentTo, shareToken: r.shareToken, viewCount: r.viewCount, lastViewedAt: r.lastViewedAt?.toISOString() ?? null, periodStart: r.periodStart, periodEnd: r.periodEnd, facts: r.facts, content: normalizeContent(r.content, r.facts as never) })),
     };
   })();

@@ -7,6 +7,7 @@ import { FEATURES } from './modules';
 import { clSplit, TCOLS, PEOPLE, DEF_TASKS, LOGOS, clientTools } from './data';
 import { makeMetrics, pct, fmtDay } from './metrics';
 import Confirm from './Confirm';
+import { goalsOf } from './modules/clients/clientGoals';
 import { askAnalystAction } from '@/app/actions/analyst';
 
 
@@ -53,7 +54,10 @@ class Logic extends React.Component {
   selRef = React.createRef();
   chartRef = React.createRef();
   rbChatRef = React.createRef();
-  componentDidUpdate() { this.autosize(); this.syncDoc?.(); this.positionSel?.(); const vr = this.viewRef.current; if (vr && this._viewHTML && vr.innerHTML !== this._viewHTML) vr.innerHTML = this._viewHTML; const el = this.chatRef.current, mk = (this.state.msgs || []).length + (this.state.typing ? 't' : ''); if (el && mk !== this._chatMk) { this._chatMk = mk; el.scrollTop = (this.state.msgs || []).length ? el.scrollHeight : 0; } const rc = this.rbChatRef.current; if (rc) rc.scrollTop = rc.scrollHeight; const c = this.chartRef.current; if (c && this._chartKey !== this._chartSeen) { this._chartSeen = this._chartKey; c.scrollLeft = c.scrollWidth; } }
+  componentDidUpdate(prev) {
+    // New goals from the server replace the ones edited here.
+    if (prev.live?.goals !== this.props.live?.goals && this.state.goals) this.setState({ goals: undefined });
+    this.autosize(); this.syncDoc?.(); this.positionSel?.(); const vr = this.viewRef.current; if (vr && this._viewHTML && vr.innerHTML !== this._viewHTML) vr.innerHTML = this._viewHTML; const el = this.chatRef.current, mk = (this.state.msgs || []).length + (this.state.typing ? 't' : ''); if (el && mk !== this._chatMk) { this._chatMk = mk; el.scrollTop = (this.state.msgs || []).length ? el.scrollHeight : 0; } const rc = this.rbChatRef.current; if (rc) rc.scrollTop = rc.scrollHeight; const c = this.chartRef.current; if (c && this._chartKey !== this._chartSeen) { this._chartSeen = this._chartKey; c.scrollLeft = c.scrollWidth; } }
   componentWillUnmount() { window.removeEventListener('beforeunload', this._bu); document.removeEventListener('mousedown', this._ctxClose); window.removeEventListener('resize', this._rp); document.removeEventListener('selectionchange', this._sc); window.removeEventListener('resize', this._rs); clearTimeout(this.gt); clearTimeout(this.ct); clearTimeout(this.gtT); clearTimeout(this.ctT); clearTimeout(this.rtT); clearTimeout(this.rbT); clearTimeout(this.rbA); clearTimeout(this.genT); }
   renderVals() {
     // The sidebar collapses while a report is being edited.
@@ -96,7 +100,7 @@ class Logic extends React.Component {
     // Live clients: who is flagged and why comes from the server's rules, with Claude's saved analysis.
     if (live && live.risk) C.forEach(c => { const r = c.extra && live.risk[c.extra.id]; if (!r) return;
       c.last = r.lastReport ? (r.lastReport.status === 'sent' ? 'Sent ' : 'Draft ') + fmtDay(r.lastReport.day) : 'No reports yet';
-      Object.assign(c, { s: r.level, flagKeys: r.keys, dismissed: r.dismissed, analysis: r.analysis, contact: c.extra.contactName, email: c.extra.email, tone: c.extra.tone || c.tone });
+      Object.assign(c, { s: r.level, week: r.week, flagKeys: r.keys, dismissed: r.dismissed, analysis: r.analysis, contact: c.extra.contactName, email: c.extra.email, tone: c.extra.tone || c.tone });
       // Leads follow the same source as the flags: GA4 key events, or Meta leads when GA4 has none.
       if (r.weeks.length === 6) Object.assign(c, { leads: r.weeks[5], delta: pct(r.weeks[5], r.weeks[4]), bars: r.weeks.map(x => x || 0.001) });
       if (r.signals.length) Object.assign(c, { signals: r.signals.map(x => [x.label, x.detail]), reasons: r.signals.map(x => x.say), action: r.signals[0].act + '.' }); });
@@ -195,7 +199,7 @@ class Logic extends React.Component {
         const GL = { cpl: 'Cost per lead under', leads: 'Leads per week at least', conv: 'Conversion rate at least', budget: 'Monthly budget' };
         const askLive = q => { const history = [...msgs.filter(m => !m.err), { me: true, text: q }].map(m => ({ me: m.me, text: m.text }));
           askAnalystAction({ messages: history, clientId: who && who.extra ? who.extra.id : null,
-            goals: (S.goals || []).filter(g => C[g.c]).map(g => ({ client: C[g.c].name, goal: GL[g.t] || g.t, target: g.v })),
+            goals: goalsOf(S, live, C).map(g => ({ client: C[g.c].name, goal: GL[g.t] || g.t, target: g.v })),
             tasks: tkSrc.slice(0, 200).map(t => ({ client: t.client || '', title: t.title, status: t.status })) })
             .then(r => this.setState(s => ({ typing: false, msgs: [...(s.msgs || []), r.error ? { me: false, err: true, text: r.error } : { me: false, text: r.reply, actions: r.actions }] })),
               () => this.setState(s => ({ typing: false, msgs: [...(s.msgs || []), { me: false, err: true, text: 'Couldn’t reach Analyst. Check your connection and try again.' }] }))); };
