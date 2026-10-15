@@ -172,19 +172,25 @@ export function GoalsView({ v }) {
             {" "}
             {(v.gFormOpen) ? (<>
               {" "}
-              <form onSubmit={v.gSave} noValidate={true} style={{ display: "flex", flexDirection: "column", gap: "18px", margin: "0 0 14px", padding: "20px", borderRadius: "0", background: "#ffffff" }}>
+              <div onClick={e => { if (e.target === e.currentTarget) v.gCancel(); }} onKeyDown={e => { if (e.key === "Escape") v.gCancel(); }} style={{ position: "fixed", inset: "0", zIndex: "70", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
+              <form role={"dialog"} aria-modal={"true"} aria-labelledby={"g-form-title"} onSubmit={v.gSave} noValidate={true} style={{ width: "min(600px,100%)", maxHeight: "calc(100vh - 48px)", overflowY: "auto", display: "flex", flexDirection: "column", gap: "20px", padding: "24px 28px 28px", borderRadius: "0", background: "#ffffff", boxShadow: "0 24px 64px -24px rgba(11,22,38,.45)" }}>
                 {" "}
-                <span style={{ fontWeight: "700", fontSize: "17px" }}>
-                  {v.gFormTitle}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                  <h2 id={"g-form-title"} style={{ margin: "0", fontSize: "24px", fontWeight: "700", letterSpacing: "-0.6px" }}>
+                    {v.gFormTitle}
+                  </h2>
+                  <button type={"button"} onClick={v.gCancel} aria-label={"Close"} style={{ width: "44px", height: "44px", marginRight: "-10px", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcf0b705f">
+                    <svg width={"18"} height={"18"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#45505f"} strokeWidth={"2.4"} strokeLinecap={"round"}><path d={"M6 6l12 12M18 6L6 18"}></path></svg>
+                  </button>
+                </div>
                 {" "}
-                <label style={{ display: "flex", flexDirection: "column", gap: "6px", maxWidth: "360px" }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   {" "}
                   <span style={{ fontSize: "14px", fontWeight: "600" }}>
                     {"Client"}
                   </span>
                   {" "}
-                  <select value={(v.gfClient) ?? ""} onChange={v.gSetClient} aria-invalid={v.gErrClient} style={{ height: "44px", padding: "0 12px", border: `1px solid ${v.gfClientBd ?? ""}`, borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", outline: "none" }} className="dc120a618">
+                  <select autoFocus={true} value={(v.gfClient) ?? ""} onChange={v.gSetClient} aria-invalid={v.gErrClient} style={{ height: "44px", padding: "0 12px", border: `1px solid ${v.gfClientBd ?? ""}`, borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", outline: "none" }} className="dc120a618">
                     <option value={""}>
                       {"Choose a client"}
                     </option>
@@ -230,7 +236,7 @@ export function GoalsView({ v }) {
                   {" "}
                 </div>
                 {" "}
-                <label style={{ display: "flex", flexDirection: "column", gap: "6px", maxWidth: "360px" }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   {" "}
                   <span style={{ fontSize: "14px", fontWeight: "600" }}>
                     {v.gTargetLabel}
@@ -264,19 +270,17 @@ export function GoalsView({ v }) {
                   {" "}
                 </label>
                 {" "}
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  {" "}
-                  <button type={"submit"} style={{ height: "44px", padding: "0 20px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">
-                    {v.gSaveLabel}
-                  </button>
-                  {" "}
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", flexWrap: "wrap" }}>
                   <button type={"button"} onClick={v.gCancel} style={{ height: "44px", padding: "0 18px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }} className="dcdda73d1">
                     {"Cancel"}
                   </button>
-                  {" "}
+                  <button type={"submit"} style={{ height: "44px", padding: "0 20px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">
+                    {v.gSaveLabel}
+                  </button>
                 </div>
                 {" "}
               </form>
+              </div>
               {" "}
             </>) : null}
             {" "}
