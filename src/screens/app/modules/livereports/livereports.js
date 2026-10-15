@@ -14,21 +14,31 @@ export function liveReportsVals(app, ctx) {
   const hasData = id => (live.metrics.accounts || []).some(a => a.clientId === id && a.through);
   const withData = clients.filter(c => hasData(c.id));
   const toast = t => { clearTimeout(app.lrT); app.setState({ lrToast: t }); app.lrT = setTimeout(() => app.setState({ lrToast: null }), 4000); };
-  const base = { ...off, lrModal: false, lrToast: !!S.lrToast, lrToastText: S.lrToast || '' };
+  const base = { ...off, lrModal: false, lrWriting: false, lrToast: !!S.lrToast, lrToastText: S.lrToast || '' };
+
+  // While a report is being written, and until the refreshed list contains it, a full-screen loading state shows.
+  const pending = !!S.lrPendingId && !reports.some(x => x.id === S.lrPendingId);
+  const writing = !!S.lrBusy || pending;
+  const MSGS = ['Reading the numbers\u2026', 'Comparing with the period before\u2026', 'Writing the summary\u2026', 'Checking every number\u2026'];
+  const startMsgs = () => { clearInterval(app.lrMsgT); app.setState({ lrMsg: 0 });
+    app.lrMsgT = setInterval(() => { const st = app.state, list = (app.props.live && app.props.live.reports) || [];
+      if (!st.lrBusy && !(st.lrPendingId && !list.some(x => x.id === st.lrPendingId))) { clearInterval(app.lrMsgT); return; }
+      app.setState({ lrMsg: Math.min((st.lrMsg || 0) + 1, MSGS.length - 1) }); }, 2600); };
+  const writingVals = { lrWriting: writing, lrWritingTitle: 'Writing ' + ((clients.find(c => c.id === (S.lrWritingFor || '')) || {}).name || 'the') + (S.lrWritingFor ? '\u2019s report' : ' report'), lrWritingMsg: MSGS[S.lrMsg || 0], lrWritingKey: String(S.lrMsg || 0) };
 
   // The write-a-report dialog, opened from the Reports header button.
   const modal = (() => {
     const pick = S.lrClient && withData.some(c => c.id === S.lrClient) ? S.lrClient : (S.sel != null && C[S.sel] && C[S.sel].extra && hasData(C[S.sel].extra.id) ? C[S.sel].extra.id : (withData[0] || {}).id || '');
     const days = S.lrDays || 7, busy = !!S.lrBusy, close = () => { if (!busy) app.setState({ lrModal: false, lrErr: null }); };
-    return { lrModal: !!S.lrModal && (v === 'templates' || v === 'reports'), lrClose: close, lrBackdrop: e => { if (e.target === e.currentTarget) close(); },
+    return { ...writingVals, lrModal: !!S.lrModal && !writing && (v === 'templates' || v === 'reports'), lrClose: close, lrBackdrop: e => { if (e.target === e.currentTarget) close(); },
       lrCanWrite: withData.length > 0,
       lrNoDataText: clients.length ? 'None of your clients has Google Analytics numbers yet. Link a property to a client in Integrations, and their numbers arrive within a minute.' : 'Add a client and link their Google Analytics property. Then Analyst can write their report from real numbers.',
       lrGoInt: () => app.setState({ lrModal: false, view: 'settings', stgTab: 'conn' }),
       lrClients: withData.map(c => ({ id: c.id, name: c.name })), lrClient: pick, lrSetClient: e => app.setState({ lrClient: e.target.value, lrErr: null }),
       lrDaysOpts: [[7, 'Last 7 days'], [14, 'Last 14 days'], [30, 'Last 30 days']].map(([d, label]) => ({ value: String(d), label })), lrDays: String(days), lrSetDays: e => app.setState({ lrDays: Number(e.target.value), lrErr: null }),
       lrBusy: busy, lrWriteLabel: busy ? 'Writing\u2026' : 'Write report', lrErr: S.lrErr || '', lrHasErr: !!S.lrErr,
-      lrWrite: e => { e.preventDefault(); if (busy || !pick) return; app.setState({ lrBusy: true, lrErr: null });
-        generateReportAction({ clientId: pick, days }).then(r => { if (r.error) return app.setState({ lrBusy: false, lrErr: r.error }); app.setState({ lrBusy: false, lrModal: false, view: 'lrep', lrId: r.id, lrDraft: null }); refresh(); },
+      lrWrite: e => { e.preventDefault(); if (busy || !pick) return; app.setState({ lrBusy: true, lrErr: null, lrWritingFor: pick }); startMsgs();
+        generateReportAction({ clientId: pick, days }).then(r => { if (r.error) return app.setState({ lrBusy: false, lrErr: r.error }); app.setState({ lrBusy: false, lrModal: false, lrPendingId: r.id, view: 'lrep', lrId: r.id, lrDraft: null }); refresh(); },
           () => app.setState({ lrBusy: false, lrErr: 'Writing the report failed. Try again.' })); } };
   })();
 
@@ -41,6 +51,7 @@ export function liveReportsVals(app, ctx) {
 
   if (v !== 'lrep') return base;
   const r = reports.find(x => x.id === S.lrId);
+  if (!r && S.lrPendingId === S.lrId) return { ...base, ...writingVals, lrWriting: true };
   if (!r) return { ...base, lrPage: true, lrMissing: true, lrBack: () => app.setState({ view: 'templates' }) };
   const f = r.facts, client = clients.find(x => x.id === r.clientId) || { name: 'Removed client' };
   const D = S.lrDraft && S.lrDraft.id === r.id ? S.lrDraft : { id: r.id, title: r.title, content: r.content };

@@ -131,7 +131,32 @@ export function LiveReportsView({ v }) {
 }
 
 // The write-a-report dialog. Same layout as the settings dialogs.
+// Same loading animation as the setup wizard: spinning ring around the breathing logo, a status line, a filling bar.
+const WRITING_CSS = '@keyframes clario-spin{to{transform:rotate(360deg)}}@keyframes clario-breathe{0%,100%{transform:scale(1)}50%{transform:scale(.9)}}@keyframes clario-fade-in{from{opacity:0}to{opacity:1}}@keyframes clario-fill{from{transform:scaleX(.04)}to{transform:scaleX(.9)}}';
+
+function Writing({ v }) {
+  return (
+    <div role="status" aria-live="polite" style={{ position: "fixed", inset: "0", zIndex: "70", background: "#ffffff", display: "grid", placeItems: "center", overflow: "hidden", animation: "clario-fade-in 300ms ease both" }}>
+      <style dangerouslySetInnerHTML={{ __html: WRITING_CSS }} />
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "28px", padding: "24px", textAlign: "center" }}>
+        <span style={{ position: "relative", width: "88px", height: "88px", display: "block" }}>
+          <span style={{ position: "absolute", inset: "-14px", borderRadius: "50%", border: "3px solid #eef1f6", borderTopColor: "#1f6be2", animation: "clario-spin 900ms linear infinite" }}></span>
+          <img src="/assets/clario-mark-v2.png" alt="" width="88" height="88" style={{ position: "absolute", inset: "0", width: "88px", height: "88px", display: "block", animation: "clario-breathe 1600ms ease-in-out infinite" }} />
+        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px", minHeight: "60px" }}>
+          <span style={{ fontSize: "22px", fontWeight: "700", letterSpacing: "-0.7px" }}>{v.lrWritingTitle}</span>
+          <span key={v.lrWritingKey} style={{ fontSize: "16px", color: "#5a6474", animation: "clario-fade-in 300ms ease both" }}>{v.lrWritingMsg}</span>
+        </div>
+        <span style={{ display: "block", width: "200px", height: "4px", borderRadius: "9999px", background: "#eef1f6", overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", background: "#1f6be2", borderRadius: "9999px", transformOrigin: "left", animation: "clario-fill 12s cubic-bezier(0.2,0.6,0.35,1) both" }}></span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function LiveReportsOverlay({ v }) {
+  if (v.lrWriting) return <Writing v={v} />;
   if (!v.lrModal) return null;
   return (
     <div onClick={v.lrBackdrop} style={{ position: "fixed", inset: "0", zIndex: "70", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
@@ -152,7 +177,6 @@ export function LiveReportsOverlay({ v }) {
             <span style={{ fontWeight: "600" }}>{"Period"}</span>
             <select value={v.lrDays} onChange={v.lrSetDays} disabled={v.lrBusy} style={select}>{v.lrDaysOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
           </label>
-          {v.lrBusy ? <div role="status" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px", background: "#f4f7fb" }}><span style={{ flex: "none", width: "20px", height: "20px", borderRadius: "50%", border: "3px solid #e6ebf2", borderTopColor: "#1f6be2", animation: "clario-spin 800ms linear infinite" }}></span>{"Reading the numbers and writing. This takes about half a minute."}</div> : null}
         </>) : null}
         {v.lrHasErr ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.lrErr}</span> : null}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
