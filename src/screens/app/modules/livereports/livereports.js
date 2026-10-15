@@ -1,7 +1,7 @@
 // Reports for live agencies: list, "write a report" with Claude, and the report page (numbers + editable text + Ask Analyst).
 import { generateReportAction, saveReportAction, rewritePartAction, deleteReportAction } from '@/app/actions/reports';
 import { fmtDay } from '../../metrics';
-import { TEMPLATES, layoutTemplate } from '@/lib/report-blocks';
+import { TEMPLATES, templateBlocks } from '@/lib/report-blocks';
 
 
 export function liveReportsVals(app, ctx) {
@@ -39,7 +39,7 @@ export function liveReportsVals(app, ctx) {
       tiles: [0, 1, 2, 3].map(j => ({ logo: '/assets/logo-ga4.png', c: j % 3 === 2 ? '#f6c9bb' : '#c9e8d3' })), rowsT: [{ w: '38%' }, { w: '28%' }, { w: '44%' }, { w: '32%' }] }));
     const CAT = { weekly: ['Traffic', 'Leads'], traffic: ['Traffic'], leads: ['Leads'] };
     const all = [{ id: 'blank', label: 'Blank', desc: 'An empty report. Add text, charts and tables from the client’s tools yourself.', prev: [], logos: [], cats: [] }]
-      .concat(TEMPLATES.map(t => ({ id: t.id, label: t.label, desc: t.desc + ' Analyst writes it from the numbers.', prev: prevOf(layoutTemplate(t.id, PH, null).blocks), logos: toolsOf(pick), cats: CAT[t.id] || [] })));
+      .concat(TEMPLATES.map(t => ({ id: t.id, label: t.label, desc: t.desc + ' Analyst writes it from the numbers.', prev: prevOf(templateBlocks(t.id, PH, null)), logos: toolsOf(pick), cats: CAT[t.id] || [] })));
     const cat = S.lrCat || 'All templates', q = (S.lrQ || '').trim().toLowerCase();
     const shown = all.filter(t => q ? (t.label + ' ' + t.desc).toLowerCase().includes(q) : cat === 'All templates' || t.id === 'blank' || t.cats.includes(cat));
     const clientName = (clients.find(c => c.id === pick) || {}).name || '';
