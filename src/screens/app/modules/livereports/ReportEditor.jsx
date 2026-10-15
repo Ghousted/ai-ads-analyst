@@ -171,14 +171,16 @@ export default function ReportEditor({ docKey, initialDoc, facts, color, onChang
     onUpdate: ({ editor: e }) => onChange(e.getJSON()),
   }, [docKey]);
 
-  const st = useEditorState({ editor, selector: ({ editor: e }) => {
+  // useEditorState stays null until the editor's first transaction, so read the state directly until then.
+  const selectState = ({ editor: e }) => {
     if (!e) return null;
     const sel = e.state.selection, data = sel instanceof NodeSelection && sel.node.type.name === 'dataBlock' ? { ...sel.node.attrs } : null;
     return { bold: e.isActive('bold'), italic: e.isActive('italic'), underline: e.isActive('underline'), strike: e.isActive('strike'), bullet: e.isActive('bulletList'), ordered: e.isActive('orderedList'),
       align: e.isActive({ textAlign: 'center' }) ? 'center' : e.isActive({ textAlign: 'right' }) ? 'right' : 'left',
       style: e.isActive('heading', { level: 1 }) ? 'h1' : e.isActive('heading', { level: 2 }) ? 'h2' : e.isActive('heading', { level: 3 }) ? 'h3' : 'p',
       canUndo: e.can().undo(), canRedo: e.can().redo(), data, focused: e.isFocused, text: currentText(e) };
-  } });
+  };
+  const st = useEditorState({ editor, selector: selectState }) || (editor ? selectState({ editor }) : null);
   if (!editor || !st) return <div style={{ minHeight: "400px" }} />;
 
   const chain = () => editor.chain().focus();
