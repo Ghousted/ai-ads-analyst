@@ -22,7 +22,7 @@ export function liveReportsVals(app, ctx) {
     if (app.state.lrSend && app.state.lrSend.id === id) app.setState({ lrSendPv: x.error ? '' : x.html, lrSendPvErr: x.error || '', lrSendReady: x.configured !== false }); }, () => {}), 400); };
   const openSend = (r, title) => { const cl = clients.find(x => x.id === r.clientId) || {}, first = (cl.contactName || '').trim().split(/\s+/)[0], me = ((S.me && S.me.name) || '').trim().split(/\s+/)[0];
     const message = 'Hi ' + (first || 'there') + ',\n\nHere\u2019s your report for ' + fmtDay(r.periodStart) + ' \u2013 ' + fmtDay(r.periodEnd) + '. The highlights are below, and the full report is one click away.\n\n' + (me || S.agName);
-    app.setState({ lrSend: { id: r.id, to: cl.email || '', subject: (title || r.title) + ' from ' + S.agName, message }, lrSendErr: null, lrSendDone: null, lrSendPv: '', lrSendPvErr: '' }); preview(r.id, message); };
+    app.setState({ lrSend: { id: r.id, to: cl.email || '', subject: (title || r.title) + ' from ' + S.agName, message, pdf: true }, lrSendErr: null, lrSendDone: null, lrSendPv: '', lrSendPvErr: '' }); preview(r.id, message); };
   const sendVals = (() => { const sd = S.lrSend, r = sd && reports.find(x => x.id === sd.id); if (!sd || !r) return { lrSendOpen: false };
     const cl = clients.find(x => x.id === r.clientId) || { name: 'this client' }, to = sd.to.split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
     const set = o => app.setState(s => ({ lrSend: { ...s.lrSend, ...o }, lrSendErr: null }));
@@ -30,7 +30,8 @@ export function liveReportsVals(app, ctx) {
     return { lrSendOpen: true, lrSendDone: !!S.lrSendDone, lrSendDoneText: S.lrSendDone || '', lrSendTitle: (r.status === 'sent' ? 'Send again to ' : 'Send to ') + cl.name,
       lrSendTo: sd.to, lrSendSubject: sd.subject, lrSendMsg: sd.message, lrSendErr: S.lrSendErr || '', lrSending: !!S.lrSending,
       lrSendPv: S.lrSendPv || '', lrSendPvLoading: !S.lrSendPv && !S.lrSendPvErr, lrSendPvErr: S.lrSendPvErr || '', lrSendNotReady: S.lrSendReady === false,
-      lrSendConfirm: to.length ? 'Sends \u201c' + (r.title) + '\u201d to ' + to.join(', ') + ' from ' + S.agName + '. Replies go to you.' : 'Add who it goes to.',
+      lrSendConfirm: to.length ? 'Sends \u201c' + (r.title) + '\u201d' + (sd.pdf ? ' with the PDF attached' : '') + ' to ' + to.join(', ') + ' from ' + S.agName + '. Replies go to you.' : 'Add who it goes to.',
+      lrSendPdf: !!sd.pdf, lrTogglePdf: () => set({ pdf: !sd.pdf }), lrSendingLabel: sd.pdf ? 'Making the PDF\u2026' : 'Sending\u2026',
       lrSendClose: close, lrSendBackdrop: e => { if (e.target === e.currentTarget) close(); },
       lrSetTo: e => set({ to: e.target.value }), lrSetSubject: e => set({ subject: e.target.value }), lrSetMsg: e => { set({ message: e.target.value }); preview(sd.id, e.target.value); },
       lrSendGo: e => { e.preventDefault();
@@ -39,7 +40,7 @@ export function liveReportsVals(app, ctx) {
         if (to.some(x => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x))) return app.setState({ lrSendErr: 'Check the email addresses. Separate several with commas.' });
         if (!sd.subject.trim()) return app.setState({ lrSendErr: 'Add a subject.' });
         app.setState({ lrSending: true, lrSendErr: null });
-        sendReportAction({ id: r.id, to, subject: sd.subject, message: sd.message }).then(x => { if (x.error) return app.setState({ lrSending: false, lrSendErr: x.error }); app.setState({ lrSending: false, lrSendDone: to.join(', ') }); refresh(); },
+        sendReportAction({ id: r.id, to, subject: sd.subject, message: sd.message, attachPdf: !!sd.pdf }).then(x => { if (x.error) return app.setState({ lrSending: false, lrSendErr: x.error }); app.setState({ lrSending: false, lrSendDone: to.join(', ') }); refresh(); },
           () => app.setState({ lrSending: false, lrSendErr: 'Couldn\u2019t reach the server. Try again.' })); } };
   })();
   const base = { ...off, ...sendVals, lrModal: false, lrWriting: false, lrToast: !!S.lrToast, lrToastText: S.lrToast || '' };
@@ -134,7 +135,13 @@ export function liveReportsVals(app, ctx) {
     lrClientLink: r.shareToken ? '/r/' + r.shareToken + '?preview=1' : '',
     lrSend: () => { if (S.lrSaving) return; if (dirty) save().then(ok => ok && openSend(r, D.title)); else openSend(r, D.title); },
     lrDiscard: () => app.setState(s => ({ lrDraft: null, lrEditorKey: (s.lrEditorKey || 0) + 1 })),
-    lrPdf: () => { if (document.activeElement) document.activeElement.blur(); setTimeout(() => window.print(), 50); },
+    // Download PDF: the saved report, printed on the server the way the client sees it. Unsaved edits are saved first.
+    lrPdfBusy: !!S.lrPdfBusy, lrPdfLabel: S.lrPdfBusy ? 'Preparing PDF\u2026' : 'Download PDF',
+    lrPdf: () => { if (S.lrPdfBusy || S.lrSaving) return; const go = () => { app.setState({ lrPdfBusy: true });
+      fetch('/api/reports/' + r.id + '/pdf').then(async res => { if (!res.ok) throw new Error(await res.text()); const b = await res.blob(), name = decodeURIComponent((res.headers.get('Content-Disposition') || '').split("''")[1] || 'report.pdf');
+        const url = URL.createObjectURL(b), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); app.setState({ lrPdfBusy: false }); })
+        .catch(e => { app.setState({ lrPdfBusy: false }); toast(e.message || 'The PDF couldn\u2019t be made. Try again.'); }); };
+      if (dirty) save().then(ok => ok && go()); else go(); },
     lrDelete: () => { if (S.lrDelAsk !== r.id) { app.setState({ lrDelAsk: r.id }); clearTimeout(app.lrDT); app.lrDT = setTimeout(() => app.setState({ lrDelAsk: null }), 4000); return; }
       deleteReportAction(r.id).then(x => { if (x.error) return toast(x.error); app.setState({ view: 'templates', lrDelAsk: null, lrDraft: null, lrPendingId: null }); refresh(); }); },
     lrDeleteLabel: S.lrDelAsk === r.id ? 'Click again to delete' : 'Delete',

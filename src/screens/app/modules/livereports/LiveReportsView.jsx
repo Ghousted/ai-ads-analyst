@@ -85,7 +85,7 @@ export function LiveReportsView({ v }) {
         actions={(<>
           {v.lrToast ? <span role="status" style={{ fontSize: "14px", fontWeight: "600", color: "#1d6b3a", whiteSpace: "nowrap" }}>{v.lrToastText}</span> : null}
           <button onClick={v.lrDelete} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", color: "#a3330c" }} className="dce60d758">{v.lrDeleteLabel}</button>
-          <button onClick={v.lrPdf} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px" }} className="dce60d758">{"Download PDF"}</button>
+          <button onClick={v.lrPdf} disabled={v.lrPdfBusy} aria-busy={v.lrPdfBusy} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", opacity: v.lrPdfBusy ? 0.6 : 1 }} className="dce60d758">{v.lrPdfLabel}</button>
           {v.lrDirty ? <button onClick={v.lrDiscard} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px" }} className="dce60d758">{"Discard edits"}</button> : null}
           <button onClick={v.lrSave} disabled={!v.lrDirty || v.lrSaving} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", opacity: v.lrDirty ? 1 : 0.5, cursor: v.lrDirty ? "pointer" : "default" }} className="dce60d758">{v.lrSaving ? "Saving\u2026" : v.lrDirty ? "Save changes" : "Saved"}</button>
           {v.lrClientLink ? <a href={v.lrClientLink} target="_blank" rel="noopener" style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", display: "inline-flex", alignItems: "center", textDecoration: "none" }} className="dce60d758">{"Client view"}</a> : null}
@@ -317,6 +317,10 @@ function SendDialog({ v }) {
                 <span style={{ fontWeight: "600" }}>{"Message"}</span>
                 <textarea value={v.lrSendMsg} onChange={v.lrSetMsg} rows={8} maxLength={3000} style={{ ...field, height: "auto", padding: "10px 14px", lineHeight: "1.5", resize: "vertical" }} className="dc120a618" />
               </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "44px", cursor: "pointer" }}>
+                <input type="checkbox" checked={v.lrSendPdf} onChange={v.lrTogglePdf} style={{ width: "18px", height: "18px", accentColor: "#1f6be2", margin: "0" }} />
+                <span style={{ display: "flex", flexDirection: "column" }}><span style={{ fontWeight: "600" }}>{"Attach the report as a PDF"}</span><span style={{ fontSize: "13px", color: "#5a6474" }}>{"The full report, as it looks in the client view."}</span></span>
+              </label>
             </div>
             <section aria-label="Email preview" style={{ flex: "1.4 1 420px", display: "flex", flexDirection: "column", gap: "6px", minWidth: "0" }}>
               <span style={{ fontWeight: "600" }}>{"What they\u2019ll receive"}</span>
@@ -330,7 +334,7 @@ function SendDialog({ v }) {
             <span style={{ flex: "1 1 320px", fontSize: "14px", color: v.lrSendErr || v.lrSendNotReady ? "#a3330c" : "#45505f", fontWeight: v.lrSendErr ? "600" : "400", textWrap: "pretty" }} role={v.lrSendErr ? "alert" : undefined}>{v.lrSendErr || (v.lrSendNotReady ? "Email isn\u2019t set up on this server yet, so this can\u2019t send." : v.lrSendConfirm)}</span>
             <span style={{ display: "flex", gap: "8px" }}>
               <button type="button" onClick={v.lrSendClose} style={{ height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{"Cancel"}</button>
-              <button type="submit" disabled={v.lrSending || v.lrSendNotReady} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: v.lrSending || v.lrSendNotReady ? "default" : "pointer", opacity: v.lrSending || v.lrSendNotReady ? 0.6 : 1 }} className="dc9482609">{v.lrSending ? "Sending\u2026" : "Send report"}</button>
+              <button type="submit" disabled={v.lrSending || v.lrSendNotReady} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: v.lrSending || v.lrSendNotReady ? "default" : "pointer", opacity: v.lrSending || v.lrSendNotReady ? 0.6 : 1 }} className="dc9482609">{v.lrSending ? v.lrSendingLabel : "Send report"}</button>
             </span>
           </div>
         </form>

@@ -8,6 +8,8 @@ import { loadMetrics } from '@/lib/metrics';
 import { normalizeContent } from '@/lib/report-blocks';
 
 export const metadata: Metadata = { title: 'AI Ads Analyst' };
+// Sending a report can print its PDF first, which takes a few seconds.
+export const maxDuration = 60;
 
 const cap = (r: string) => r[0].toUpperCase() + r.slice(1);
 

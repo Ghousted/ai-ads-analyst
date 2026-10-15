@@ -4,7 +4,7 @@ import 'server-only';
 // set. The agency's name goes in front of the address, and replies go to whoever sent the email.
 export const emailConfigured = () => !!process.env.RESEND_API_KEY && !!process.env.EMAIL_FROM;
 
-export async function sendEmail(o: { fromName: string; replyTo?: string; to: string[]; subject: string; html: string; text: string; tag?: string }) {
+export async function sendEmail(o: { fromName: string; replyTo?: string; to: string[]; subject: string; html: string; text: string; tag?: string; attachments?: { filename: string; content: Buffer }[] }) {
   const key = process.env.RESEND_API_KEY, from = process.env.EMAIL_FROM;
   if (!key || !from) throw new Error('Email isn’t set up on this server yet. Add RESEND_API_KEY and EMAIL_FROM.');
   const address = from.match(/<([^>]+)>/)?.[1] || from.trim();
@@ -13,7 +13,8 @@ export async function sendEmail(o: { fromName: string; replyTo?: string; to: str
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: `"${name}" <${address}>`, to: o.to, reply_to: o.replyTo, subject: o.subject, html: o.html, text: o.text, tags: o.tag ? [{ name: 'kind', value: o.tag }] : undefined }),
+    body: JSON.stringify({ from: `"${name}" <${address}>`, to: o.to, reply_to: o.replyTo, subject: o.subject, html: o.html, text: o.text, tags: o.tag ? [{ name: 'kind', value: o.tag }] : undefined,
+      attachments: o.attachments?.map(a => ({ filename: a.filename, content: a.content.toString('base64') })) }),
   });
   const body = await res.json().catch(() => ({})) as { id?: string; message?: string; name?: string };
   if (!res.ok) {

@@ -7,6 +7,7 @@ import { randomBytes } from 'node:crypto';
 import { requireAgency } from '@/lib/auth';
 import { emailConfigured, sendEmail } from '@/lib/email';
 import { reportEmail } from '@/lib/report-email';
+import { pdfName, reportPdf } from '@/lib/report-pdf';
 import { aiErrorMessage, aiModel, recordAiUsage, takeAiQuota } from '@/lib/ai';
 import { buildFacts, rewritePart, writeReport } from '@/lib/report-writer';
 import { blankContent, Content, docText, layoutTemplate, normalizeContent, TEMPLATES, type Doc } from '@/lib/report-blocks';
@@ -114,9 +115,9 @@ export async function previewReportEmailAction(input: { id: string; message: str
 }
 
 // Sends the saved report to the client: an email with the headline, key numbers and a private link to the full report.
-export async function sendReportAction(input: { id: string; to: string[]; subject: string; message: string }) {
+export async function sendReportAction(input: { id: string; to: string[]; subject: string; message: string; attachPdf?: boolean }) {
   const { user, agency } = await requireAgency();
-  const p = z.object({ id: Id, to: z.array(z.string().trim().email()).min(1).max(5), subject: z.string().trim().min(1).max(200), message: z.string().trim().max(3000) }).safeParse(input);
+  const p = z.object({ id: Id, to: z.array(z.string().trim().email()).min(1).max(5), subject: z.string().trim().min(1).max(200), message: z.string().trim().max(3000), attachPdf: z.boolean().optional() }).safeParse(input);
   if (!p.success) return { error: 'Check the email addresses (up to 5) and the subject.' };
   if (!emailConfigured()) return { error: 'Email isn’t set up on this server yet. Add RESEND_API_KEY and EMAIL_FROM.' };
   const r = await emailFor(agency.id, p.data.id);
@@ -124,8 +125,15 @@ export async function sendReportAction(input: { id: string; to: string[]; subjec
   if (!(await takeAiQuota(agency.id, 'email'))) return { error: 'You’ve reached today’s limit for sending reports. It resets within 24 hours.' };
   const token = r.report.shareToken || randomBytes(18).toString('base64url');
   const { html, text } = buildEmail(agency, r, p.data.message, token);
+  // The PDF is printed from the report's private page, so the link has to exist before it's made.
+  let attachments: { filename: string; content: Buffer }[] | undefined;
+  if (p.data.attachPdf) {
+    if (!r.report.shareToken) await db.update(schema.reports).set({ shareToken: token }).where(eq(schema.reports.id, r.report.id));
+    try { attachments = [{ filename: pdfName(r.client.name, r.report.title), content: await reportPdf(token) }]; }
+    catch (e) { console.error('[pdf]', e); return { error: 'The PDF couldn’t be made, so nothing was sent. Try again, or send without the PDF.' }; }
+  }
   try {
-    await sendEmail({ fromName: agency.name, replyTo: user.email, to: p.data.to, subject: p.data.subject, html, text, tag: 'report' });
+    await sendEmail({ fromName: agency.name, replyTo: user.email, to: p.data.to, subject: p.data.subject, html, text, tag: 'report', attachments });
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Sending failed. Try again.' };
   }

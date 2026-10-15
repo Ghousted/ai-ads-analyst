@@ -46,7 +46,7 @@ export default function ReportReader({ doc, facts, color }) {
   return (
     <div style={{ fontSize: "17px", lineHeight: "1.65", color: "#0b1626" }}>
       {rows.map((r, i) => r.data ? (
-        <div key={i} style={{ display: "flex", gap: "24px", flexWrap: "wrap", margin: "8px 0 22px" }}>
+        <div key={i} style={{ display: "flex", gap: "24px", flexWrap: "wrap", margin: "8px 0 22px", breakInside: "avoid" }}>
           {r.items.map((n, j) => <div key={j} style={{ flex: "1 1 " + Math.round((Number(n.attrs?.w) || 1) * 100 - 4) + "%", minWidth: "240px" }}>{facts ? <DataBody a={n.attrs || {}} f={facts} color={color} /> : null}</div>)}
         </div>
       ) : block(r.items[0], i))}

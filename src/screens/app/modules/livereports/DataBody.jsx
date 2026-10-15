@@ -58,8 +58,8 @@ export function DataBody({ a, f, color }) {
       <span style={caption}>{t.caption}</span>
       {t.rows.length === 0 ? <span style={{ fontSize: "15px", color: "#5a6474" }}>{"No data for this period."}</span> : (
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "15px", fontVariantNumeric: "tabular-nums" }}>
-          <thead><tr style={{ color: "#5a6474", fontSize: "13px" }}>{t.cols.map((c, k) => <th key={c} style={{ textAlign: k ? "right" : "left", fontWeight: "600", padding: "6px 0" }}>{c}</th>)}</tr></thead>
-          <tbody>{t.rows.map((row, ri) => <tr key={ri} style={{ borderTop: "1px solid #eef1f6" }}>{row.map((cell, k) => <td key={k} style={{ padding: "8px 0", textAlign: k ? "right" : "left", fontWeight: k ? "500" : "600", overflowWrap: "anywhere", color: k === t.changeCol ? DV.tint(cell) : "inherit" }}>{cell}</td>)}</tr>)}</tbody>
+          <thead><tr style={{ color: "#5a6474", fontSize: "13px" }}>{t.cols.map((c, k) => <th key={c} style={{ textAlign: k ? "right" : "left", fontWeight: "600", padding: k ? "6px 0 6px 16px" : "6px 0", whiteSpace: "nowrap" }}>{c}</th>)}</tr></thead>
+          <tbody>{t.rows.map((row, ri) => <tr key={ri} style={{ borderTop: "1px solid #eef1f6" }}>{row.map((cell, k) => <td key={k} style={{ padding: k ? "8px 0 8px 16px" : "8px 0", textAlign: k ? "right" : "left", fontWeight: k ? "500" : "600", overflowWrap: "anywhere", color: k === t.changeCol ? DV.tint(cell) : "inherit" }}>{cell}</td>)}</tr>)}</tbody>
         </table>
       )}
     </section>

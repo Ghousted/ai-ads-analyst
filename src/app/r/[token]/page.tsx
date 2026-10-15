@@ -24,15 +24,16 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   return { title: r ? r.report.title + ' · ' + r.agency.name : 'Report not found', robots: { index: false, follow: false } };
 }
 
-export default async function Page({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ preview?: string }> }) {
+export default async function Page({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ preview?: string; print?: string }> }) {
   const [{ token }, q] = await Promise.all([params, searchParams]);
   const r = await load(token);
   if (!r) notFound();
   if (q.preview !== '1') await db.update(schema.reports).set({ viewCount: sql`${schema.reports.viewCount} + 1`, firstViewedAt: sql`coalesce(${schema.reports.firstViewedAt}, now())`, lastViewedAt: new Date() }).where(eq(schema.reports.id, r.report.id));
-  const color = r.agency.brandColor || '#1f6be2', content = normalizeContent(r.report.content, r.report.facts as never);
+  const print = q.print === '1', color = r.agency.brandColor || '#1f6be2', content = normalizeContent(r.report.content, r.report.facts as never);
   return (
-    <main style={{ minHeight: '100vh', background: '#f4f7fb', padding: '32px 16px 64px', fontFamily: "'DM Sans',ui-sans-serif,system-ui,sans-serif", letterSpacing: '-0.4px' }}>
-      <article style={{ maxWidth: '860px', margin: '0 auto', background: '#ffffff', padding: 'clamp(24px,5vw,48px)' }}>
+    // print=1: the layout the PDF is made from, white and edge to edge (the PDF adds its own margins).
+    <main style={{ minHeight: '100vh', background: print ? '#ffffff' : '#f4f7fb', padding: print ? '0' : '32px 16px 64px', fontFamily: "'DM Sans',ui-sans-serif,system-ui,sans-serif", letterSpacing: '-0.4px' }}>
+      <article style={{ maxWidth: print ? 'none' : '860px', margin: '0 auto', background: '#ffffff', padding: print ? '0' : 'clamp(24px,5vw,48px)' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '28px', fontSize: '14px', color: '#5a6474' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {r.agency.brandLogo ? <img src={r.agency.brandLogo} alt={r.agency.name + ' logo'} style={{ height: '36px', maxWidth: '180px', objectFit: 'contain', display: 'block' }} /> : null}
