@@ -70,6 +70,7 @@ export function GoalsView({ v }) {
               {" "}
             </div>
             {" "}
+            {(v.gpHasTrend) ? (
             <section style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {" "}
               <h3 style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>
@@ -97,6 +98,7 @@ export function GoalsView({ v }) {
               </div>
               {" "}
             </section>
+            ) : null}
             {" "}
             <section style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               {" "}
