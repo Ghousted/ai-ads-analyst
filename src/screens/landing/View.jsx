@@ -1556,10 +1556,10 @@ export default function View({ v }) {
                               </svg>
                             </span>
                             <span style={{ flex: "1", minWidth: "0", fontWeight: "500" }}>
-                              {"Slow replies"}
+                              {"Portal not visited"}
                             </span>
                             <span style={{ fontSize: "14px", letterSpacing: "-0.52px", color: "#5a6474", textAlign: "right" }}>
-                              {"3.8 days, usually 1"}
+                              {"Last visit Sep 12"}
                             </span>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 0", borderTop: "1px solid #eef1f6" }}>
@@ -1570,7 +1570,7 @@ export default function View({ v }) {
                               </svg>
                             </span>
                             <span style={{ flex: "1", minWidth: "0", fontWeight: "500" }}>
-                              {"Report unopened"}
+                              {"Report not viewed"}
                             </span>
                             <span style={{ fontSize: "14px", letterSpacing: "-0.52px", color: "#5a6474", textAlign: "right" }}>
                               {"Sent Sep 26"}
@@ -1618,7 +1618,7 @@ export default function View({ v }) {
                         <span style={{ color: "#1f6be2" }}>
                           {"Clario"}
                         </span>
-                        {" will track each client's results and how quickly they reply. When a client looks likely to cancel, "}
+                        {" will track each client's results and whether they look at their reports. When a client looks likely to cancel, "}
                         <span style={{ color: "#1f6be2" }}>
                           {"Clario"}
                         </span>
