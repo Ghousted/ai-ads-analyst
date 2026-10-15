@@ -86,12 +86,14 @@ export function dashboardVals(app, ctx) {
             client: ['No GA4 property is linked to ' + (selC ? selC.name : ''), 'Link their property in Integrations and their results show up here.', 'Link a property', null],
             waiting: ['Your numbers are on the way', linked + (linked === 1 ? ' property is' : ' properties are') + ' linked to clients. Results appear here after the first data pull from Google Analytics.', 'Open integrations', null],
           }[st];
-          const liveTools = ['an-all', 'an-ga4'].map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === (av === 'an-ga4' ? 'an-ga4' : 'an-all'), bg: key === (av === 'an-ga4' ? 'an-ga4' : 'an-all') ? '#ffffff' : 'transparent', fw: key === av ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
+          // All sources only makes sense once two or more platforms are connected (two Google logins are one platform).
+          const showAll = new Set(live.conns.map(c => c.provider)).size >= 2, curKey = showAll && av !== 'an-ga4' ? 'an-all' : 'an-ga4';
+          const liveTools = (showAll ? ['an-all', 'an-ga4'] : ['an-ga4']).map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === curKey, bg: key === curKey ? '#ffffff' : 'transparent', fw: key === curKey ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
           if (T) return { ...blank, anTools: liveTools, anEmpty: true, anEmptyLive: true, anEmptyLogo: L.ga4, anEmptyTool: 'Google Analytics 4', anEmptyTitle: T[0], anEmptyLiveText: T[1], anEmptyBtn: T[2],
             anEmptyGo: T[3] || (() => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), ga4: true } }))) };
           // Viewing all clients: tables say which client each row belongs to.
           const per = selC ? null : live.clients.map(c => ({ name: c.name, accts: M.accountsFor(c.id) })).filter(c => c.accts.length);
-          LV = { M, accts, per: per && per.length > 1 ? per : null, tools: liveTools, key: av === 'an-ga4' ? 'an-ga4' : 'an-all' };
+          LV = { M, accts, per: per && per.length > 1 ? per : null, tools: liveTools, key: curKey };
         }
         const A = LV ? liveView(LV, S, { '7 days': 7, '14 days': 14, '30 days': 30 }[S.range || '14 days']) : A0;
         if (LV) av = LV.key;
