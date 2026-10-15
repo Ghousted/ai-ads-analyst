@@ -6,6 +6,7 @@ import View, { css } from './View';
 import { FEATURES } from './modules';
 import { clSplit, TCOLS, PEOPLE, DEF_TASKS, LOGOS, clientTools } from './data';
 import { makeMetrics, pct, fmtDay } from './metrics';
+import { askAnalystAction } from '@/app/actions/analyst';
 
 
 class Logic extends React.Component {
@@ -38,7 +39,7 @@ class Logic extends React.Component {
   selRef = React.createRef();
   chartRef = React.createRef();
   rbChatRef = React.createRef();
-  componentDidUpdate() { this.autosize(); this.syncDoc?.(); this.positionSel?.(); const vr = this.viewRef.current; if (vr && this._viewHTML && vr.innerHTML !== this._viewHTML) vr.innerHTML = this._viewHTML; const el = this.chatRef.current; if (el) el.scrollTop = el.scrollHeight; const rc = this.rbChatRef.current; if (rc) rc.scrollTop = rc.scrollHeight; const c = this.chartRef.current; if (c && this._chartKey !== this._chartSeen) { this._chartSeen = this._chartKey; c.scrollLeft = c.scrollWidth; } }
+  componentDidUpdate() { this.autosize(); this.syncDoc?.(); this.positionSel?.(); const vr = this.viewRef.current; if (vr && this._viewHTML && vr.innerHTML !== this._viewHTML) vr.innerHTML = this._viewHTML; const el = this.chatRef.current, mk = (this.state.msgs || []).length + (this.state.typing ? 't' : ''); if (el && mk !== this._chatMk) { this._chatMk = mk; el.scrollTop = (this.state.msgs || []).length ? el.scrollHeight : 0; } const rc = this.rbChatRef.current; if (rc) rc.scrollTop = rc.scrollHeight; const c = this.chartRef.current; if (c && this._chartKey !== this._chartSeen) { this._chartSeen = this._chartKey; c.scrollLeft = c.scrollWidth; } }
   componentWillUnmount() { document.removeEventListener('mousedown', this._ctxClose); window.removeEventListener('resize', this._rp); document.removeEventListener('selectionchange', this._sc); window.removeEventListener('resize', this._rs); clearTimeout(this.gt); clearTimeout(this.ct); clearTimeout(this.gtT); clearTimeout(this.ctT); clearTimeout(this.rtT); clearTimeout(this.rbT); clearTimeout(this.rbA); clearTimeout(this.genT); }
   renderVals() {
     // The sidebar collapses while a report is being edited.
@@ -116,7 +117,7 @@ class Logic extends React.Component {
       const single = id === 'reporting' || id === 'monitoring' || id === 'clients' || id === 'kpis' || id === 'workflow' || id === 'risk';
       return { label, open, multi: !single, aria: single && hasActive ? 'page' : undefined, icon: icons[id], rows: open && !single ? '1fr' : '0fr', chev: open ? 'rotate(180deg)' : 'rotate(0deg)',
         bg: single && hasActive ? '#eef3fd' : 'transparent', iconBg: 'transparent', iconC: hasActive ? '#1f6be2' : '#5a6474',
-        hasBadge: id === 'workflow' && rkCount > 0, badge: String(rkCount),
+        hasBadge: false, badge: '',
         toggle: () => { if (S.navC) { this.setState({ navC: false }); try { localStorage.setItem('clario-nav-collapsed', '0'); } catch (er) {} } if (id === 'clients') { this.setState({ view: 'clients', clList: true, cForm: null, pfDraft: null }); return; } if (id === 'reporting' && S.view !== 'templates') { this.setState({ view: 'templates' }); return; } if (!hasActive) this.setState({ view: items[0][2] ? items[0][2][0][0] : items[0][0] }); },
         items: items.map(([v, l, kids]) => {
           if (kids) {
@@ -174,22 +175,39 @@ class Logic extends React.Component {
         const reply = q => {
           const t = q.toLowerCase(), name = who ? who.name : 'your clients';
           if (/task|todo|remind/.test(t)) { const title = q.replace(/^(add|create)( a)? task( to)?:?\s*/i, '') || 'Follow up'; this.setState(s => ({ tasks: [{ title: title.charAt(0).toUpperCase() + title.slice(1), meta: (who ? who.name : 'No client') + ' · Due this week', who: 'AR', done: false }, ...(s.tasks || defTasks)] })); return 'Added to Tasks: "' + title + '"' + (who ? ' for ' + who.name : '') + ', due this week.'; }
-          // Live agencies: answers about numbers come once data is pulled and Claude writes them. Until then, say so.
-          if (live) return 'I can\'t read your clients\' numbers yet. They appear once Google Analytics data is pulled for a linked property. For now I can add tasks: try "Add task: call ' + (who ? who.name : 'a client') + '".';
           if (/report/.test(t)) return 'I drafted a ' + (who ? who.tone.toLowerCase() : 'reassuring') + ' report for ' + name + ':\n1. Headline result\n2. Key numbers\n3. What happened and why\n4. Next steps\nIt is waiting in Reporting for you to review before it sends.';
           if (/alert|notify|tell me/.test(t)) return 'Done. I will email you when ' + name + (who ? ' gets' : ' get') + ' 20% fewer leads than usual or goes over the cost per lead target.';
           if (/why|drop|down|worse|risk|attention/.test(t)) { const c = who || clients.find(x => x.s === 'r'); return c.name + ' is ' + c.status.toLowerCase() + ' because: ' + c.signals.map(s => s.t.toLowerCase()).join(', ') + '.' + (c.action ? ' I suggest you ' + c.action : ''); }
           return who ? who.name + ' got ' + who.leads + ' leads this week (' + who.delta + '). ' + who.signals[0].t + '. Ask me to draft a report, set an alert or add a task.' : 'This week: 533 leads across 5 clients, up 6%. Northside Physio needs attention. Ask me to draft a report, set an alert or add a task.';
         };
-        const send = text => { const q = (text || '').trim(); if (!q || S.typing) return; this.setState(s => ({ msgs: [...(s.msgs || []), { me: true, text: q }], chatInput: '', typing: true })); clearTimeout(this.ct); this.ct = setTimeout(() => { const a = reply(q); this.setState(s => ({ typing: false, msgs: [...(s.msgs || []), { me: false, text: a }] })); }, 900); };
-        const greet = { me: false, text: who ? 'What should I do for ' + who.name + '?' : 'Hi ' + (S.me?.name || '').split(/\s+/)[0] + '. Tell me what you need and I will take care of it.' };
+        // Live agencies: Claude answers from the agency's data and suggests actions. Sample agencies get the scripted replies.
+        const GL = { cpl: 'Cost per lead under', leads: 'Leads per week at least', conv: 'Conversion rate at least', budget: 'Monthly budget' };
+        const askLive = q => { const history = [...msgs.filter(m => !m.err), { me: true, text: q }].map(m => ({ me: m.me, text: m.text }));
+          askAnalystAction({ messages: history, clientId: who && who.extra ? who.extra.id : null,
+            goals: (S.goals || []).filter(g => C[g.c]).map(g => ({ client: C[g.c].name, goal: GL[g.t] || g.t, target: g.v })),
+            tasks: tkSrc.slice(0, 200).map(t => ({ client: t.client || '', title: t.title, status: t.status })) })
+            .then(r => this.setState(s => ({ typing: false, msgs: [...(s.msgs || []), r.error ? { me: false, err: true, text: r.error } : { me: false, text: r.reply, actions: r.actions }] })),
+              () => this.setState(s => ({ typing: false, msgs: [...(s.msgs || []), { me: false, err: true, text: 'Couldn’t reach Analyst. Check your connection and try again.' }] }))); };
+        const send = text => { const q = (text || '').trim(); if (!q || S.typing) return; this.setState(s => ({ msgs: [...(s.msgs || []), { me: true, text: q }], chatInput: '', typing: true }));
+          if (live) return askLive(q);
+          clearTimeout(this.ct); this.ct = setTimeout(() => { const a = reply(q); this.setState(s => ({ typing: false, msgs: [...(s.msgs || []), { me: false, text: a }] })); }, 900); };
+        // A suggested action: add the task, or open the write-report dialog with the client and template picked.
+        const doAction = (mi, ai) => { const m = msgs[mi], x = m && m.actions && m.actions[ai]; if (!x || x.done) return;
+          const mark = () => this.setState(s => ({ msgs: (s.msgs || []).map((mm, k) => k !== mi ? mm : { ...mm, actions: mm.actions.map((aa, j) => j !== ai ? aa : { ...aa, done: true }) }) }));
+          if (x.kind === 'task') { this.setState(s => ({ tasks: [{ title: x.title, desc: x.why, client: x.client, status: 'todo', sub: [0, 0], due: 'This week', who: ['AR'], cm: 0 }, ...(s.tasks || defTasks)] })); mark(); return; }
+          const c = live && live.clients.find(cc => cc.name === x.client); if (!c) return;
+          (this.leaveGuard ? f => this.leaveGuard(f) : f => f())(() => { this.setState({ view: 'templates', lrModal: true, lrTpl: x.template, lrClient: c.id, lrDays: x.days, lrName: '', lrErr: null, lrPrev: null }); mark(); }); };
+        const greet = { me: false, text: live ? (who ? 'Ask me anything about ' + who.name + ': their numbers, their flags, or what to do next.' : 'Hi ' + (S.me?.name || '').split(/\s+/)[0] + '. Ask me about your clients\u2019 numbers, who needs attention, or what to do this week.') : who ? 'What should I do for ' + who.name + '?' : 'Hi ' + (S.me?.name || '').split(/\s+/)[0] + '. Tell me what you need and I will take care of it.' };
         return {
           chatOpen: open, chatO: open ? 1 : 0, chatT: open ? 'scale(1)' : 'scale(0.96) translateY(8px)', chatPe: open ? 'auto' : 'none', chatVis: open ? 'visible' : 'hidden',
-          chatBtn: open ? 'Close' : 'Ask Analyst', toggleChat: () => this.setState(s => ({ chatOpen: !s.chatOpen })),
+          chatBtn: open ? 'Close' : 'Ask Analyst', chatBadge: !open && rkCount > 0, chatBadgeText: String(rkCount), chatBadgeLabel: rkCount + (rkCount === 1 ? ' client needs' : ' clients need') + ' attention',
+          chatFlagsTitle: rkCount + (rkCount === 1 ? ' client needs attention' : ' clients need attention'), toggleChat: () => this.setState(s => ({ chatOpen: !s.chatOpen })),
           chatScope: who ? 'Working on ' + who.name : 'Working across all clients', chatRef: this.chatRef,
-          chatMsgs: [greet, ...msgs].map(m => ({ text: m.text, align: m.me ? 'flex-end' : 'flex-start', bg: m.me ? '#1f6be2' : '#f4f7fb', c: m.me ? '#ffffff' : '#0b1626' })),
+          chatMsgs: [greet, ...msgs].map((m, k) => ({ text: m.text, align: m.me ? 'flex-end' : 'flex-start', bg: m.me ? '#1f6be2' : m.err ? '#fde2d6' : '#f4f7fb', c: m.me ? '#ffffff' : m.err ? '#a3330c' : '#0b1626',
+            acts: (m.actions || []).map((x, j) => ({ title: x.title, why: x.why, btn: x.done ? (x.kind === 'task' ? 'Added' : 'Opened') : x.kind === 'task' ? 'Add task' : 'Write report', done: !!x.done, go: () => doAction(k - 1, j), label: (x.kind === 'task' ? 'Add task: ' : 'Write report: ') + x.title })) })),
+          chatCanClear: msgs.length > 0 && !S.typing, chatClear: () => this.setState({ msgs: [], chatInput: '' }),
           chatTyping: !!S.typing, chatFresh: msgs.length === 0,
-          chatIdeas: (who ? ['Why is ' + who.name + ' ' + who.status.toLowerCase() + '?', 'Draft this week\'s report', 'Add a task to call them Friday'] : ['Which clients need attention?', 'Draft reports for all clients', 'Alert me when leads drop']).map(label => ({ label, use: () => send(label) })),
+          chatIdeas: (live ? (who ? ['How is ' + who.name + ' doing?', 'What should I do for ' + who.name + '?', 'Where do ' + who.name + '\u2019s leads come from?'] : ['Which clients need attention?', 'What should I do this week?', 'Which client grew the most?']) : who ? ['Why is ' + who.name + ' ' + who.status.toLowerCase() + '?', 'Draft this week\'s report', 'Add a task to call them Friday'] : ['Which clients need attention?', 'Draft reports for all clients', 'Alert me when leads drop']).map(label => ({ label, use: () => send(label) })),
           chatInput: S.chatInput || '', setChatInput: e => this.setState({ chatInput: e.target.value }), sendChat: e => { e.preventDefault(); send(S.chatInput); }
         };
       })(),
