@@ -8,7 +8,8 @@ export function tasksVals(app, ctx) {
   return {
       ...(() => { const gone = S.rkGone || {}; const list = C.map((c, i) => ({ c, i })).filter(({ c }) => c.s !== 'h' && !c.dismissed && !gone[c.name]);
         const PILL = { r: ['#fde2d6', '#a3330c', 'At risk', '#e0481a'], n: ['#fff6c2', '#7a5a00', 'Needs attention', '#e8a33a'] };
-        const hide = c => { app.setState(s => ({ rkGone: { ...(s.rkGone || {}), [c.name]: true } })); if (live && c.extra) dismissFlagAction({ clientId: c.extra.id, keys: c.flagKeys || '' }); };
+        const hide = c => app.confirm({ title: 'Dismiss the flag for ' + c.name + '?', body: 'It leaves your Flags list. Analyst flags them again if their numbers change.', confirm: 'Dismiss flag',
+          onConfirm: () => { app.setState(s => ({ rkGone: { ...(s.rkGone || {}), [c.name]: true }, rkOpen: null })); if (live && c.extra) dismissFlagAction({ clientId: c.extra.id, keys: c.flagKeys || '' }); } });
         const fl = S.tkView === 'flagged';
         // Claude's analysis of a flag: saved with the client (live), built in (sample), or being written now.
         const AI = S.flagAi || {}, setAi = (n, o) => app.setState(s => ({ flagAi: { ...(s.flagAi || {}), [n]: { ...((s.flagAi || {})[n] || {}), ...o } } }));
@@ -37,7 +38,7 @@ export function tasksVals(app, ctx) {
             rpCopyLabel: S.flagCopied === cur.name ? 'Copied' : 'Copy message',
             rpCopy: () => { const done = () => { app.setState({ flagCopied: cur.name }); clearTimeout(app.fcT); app.fcT = setTimeout(() => app.setState({ flagCopied: null }), 2000); }; navigator.clipboard ? navigator.clipboard.writeText(an.message).then(done, () => {}) : done(); },
             rpMailHref: an && cc.email ? 'mailto:' + encodeURIComponent(cc.email) + '?subject=' + encodeURIComponent('Quick check-in') + '&body=' + encodeURIComponent(an.message) : '', rpHasMail: !!(an && cc.email),
-            rpCreate: () => { cur.create(); app.setState({ rkOpen: null }); }, rpAsk: () => { cur.ask(); app.setState({ rkOpen: null }); }, rpDismiss: () => { cur.dismiss(); app.setState({ rkOpen: null }); },
+            rpCreate: () => { cur.create(); app.setState({ rkOpen: null }); }, rpAsk: () => { cur.ask(); app.setState({ rkOpen: null }); }, rpDismiss: () => cur.dismiss(),
             rpProfile: () => app.setState({ rkOpen: null, pfPanel: true, pfI: ci, cid: ci, pfDraft: null }) }
           : { rpOn: false, rpO: 0, rpPe: 'none', rpX: '100%', rpVis: 'hidden', rpReasons: [], rpBars: [], rpFacts: [], rpCauses: [], rpSteps: [] };
         return { ...rp, rpClose: () => app.setState({ rkOpen: null }), rkList: rows, rkHas: fl && list.length > 0, rkNone: fl && list.length === 0, rkMail: !live, rkTitle: clSplit('Analyst flagged ' + list.length + (list.length === 1 ? ' client' : ' clients')) }; })(),
@@ -46,7 +47,9 @@ export function tasksVals(app, ctx) {
         const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const dueTxt = W.due ? MO[+W.due.slice(5, 7) - 1] + ' ' + (+W.due.slice(8, 10)) : '';
         const addItem = () => { const t = (W.itemVal || '').trim(); if (!t) return; set({ items: [...W.items, t], itemVal: '' }); };
-        const close = () => app.setState({ tw: null, twErr: null });
+        // Closing the new-task form after typing in it asks first.
+        const close = () => { const done = () => app.setState({ tw: null, twErr: null }); if (!((W.title || '').trim() || (W.desc || '').trim() || W.items.length)) return done();
+          app.confirm({ title: 'Discard this task?', body: 'You started writing ' + ((W.title || '').trim() ? '\u201c' + W.title.trim() + '\u201d' : 'a new task') + '. If you close it now, it isn\u2019t saved.', confirm: 'Discard', tone: 'danger', cancel: 'Keep editing', onConfirm: done }); };
         return { twOpen: true, twStep: String(st), twBars: [1, 2, 3].map(n => ({ c: n <= st ? '#1f6be2' : '#e6ebf2' })), twS1: st === 1, twS2: st === 2, twS3: st === 3,
           twClose: close, twBackdrop: e => { if (e.target === e.currentTarget) close(); },
           twBack: () => st > 1 ? set({ step: st - 1 }) : close(), twBackLabel: st > 1 ? 'Back' : 'Cancel',
@@ -103,6 +106,6 @@ export function tasksVals(app, ctx) {
                   dragEnd: () => { app._tkDrag = null; app.setState({ tkDragI: null, tkOver: null }); },
                   open: e => { if (e.target.closest('button, [role=menu]')) return; app.setState({ tkOpen: t.i, tkMenu: null, tkCmVal: '' }); }, menuOn: S.tkMenu === t.i, toggleMenu: () => app.setState({ tkMenu: S.tkMenu === t.i ? null : t.i }),
                   moves: TCOLS.filter(c => c[0] !== k).map(([mk, ml]) => ({ label: ml, go: () => moveTask(t.i, mk) })),
-                  remove: () => setTasks(arr => arr.splice(t.i, 1)) }; }) }; }) }; })(), newTask: S.newTask, setNewTask: e => app.setState({ newTask: e.target.value }),
+                  remove: () => { app.setState({ tkMenu: null }); app.confirm({ title: 'Delete this task?', body: '\u201c' + t.title + '\u201d' + (t.client ? ' for ' + t.client : '') + ' is removed from the board, with its checklist and comments.', confirm: 'Delete task', tone: 'danger', onConfirm: () => setTasks(arr => arr.splice(t.i, 1)) }); } }; }) }; }) }; })(), newTask: S.newTask, setNewTask: e => app.setState({ newTask: e.target.value }),
   };
 }

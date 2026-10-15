@@ -115,11 +115,12 @@ export function liveReportsVals(app, ctx) {
   // The editor holds the document; every change lands here as an unsaved draft. Discard reloads the saved version.
   const D = S.lrDraft && S.lrDraft.id === r.id ? S.lrDraft : { id: r.id, title: r.title, content: r.content };
   const dirty = !!(S.lrDraft && S.lrDraft.id === r.id);
-  // Saving resolves true when it worked, so sending can wait for it.
+  // Saving resolves true when it worked, so leaving the page or sending can wait for it.
   const save = () => { app.setState({ lrSaving: true }); return saveReportAction({ id: r.id, title: D.title, content: D.content }).then(x => { app.setState({ lrSaving: false }); if (x.error) { toast(x.error); return false; } app.setState({ lrDraft: null }); toast('Report saved'); refresh(); return true; }); };
+  app._lrSave = save;
   const setDraft = o => app.setState(s => ({ lrDraft: { ...(s.lrDraft && s.lrDraft.id === r.id ? s.lrDraft : { id: r.id, title: r.title, content: r.content }), ...o } }));
   return { ...base, lrPage: true, lrMissing: false,
-    lrBack: () => app.setState({ view: 'templates', lrDraft: null }),
+    lrBack: () => app.leaveGuard(() => app.setState({ view: 'templates', lrDraft: null })),
     lrStatus: r.status === 'sent' ? 'Sent' : 'Draft', lrDate: 'Written ' + fmtDay(r.createdAt.slice(0, 10)),
     lrAgency: S.agName, lrLogo: S.brandLogo || '', lrPeriod: fmtDay(f.start) + ' \u2013 ' + fmtDay(f.end), lrClientName: client.name, lrColor: S.brandColor || '#1f6be2',
     lrTitle: D.title, lrSetTitle: e => setDraft({ title: e.target.value }),
@@ -134,7 +135,8 @@ export function liveReportsVals(app, ctx) {
     lrSentNote: r.status === 'sent' && r.sentAt ? 'Sent ' + fmtDay(r.sentAt.slice(0, 10)) + (r.sentTo ? ' to ' + r.sentTo : '') + ' \u00b7 ' + (r.viewCount ? 'Viewed ' + (r.viewCount === 1 ? 'once' : r.viewCount + ' times') + ', last ' + fmtDay(r.lastViewedAt.slice(0, 10)) : 'Not viewed yet') : '',
     lrClientLink: r.shareToken ? '/r/' + r.shareToken + '?preview=1' : '',
     lrSend: () => { if (S.lrSaving) return; if (dirty) save().then(ok => ok && openSend(r, D.title)); else openSend(r, D.title); },
-    lrDiscard: () => app.setState(s => ({ lrDraft: null, lrEditorKey: (s.lrEditorKey || 0) + 1 })),
+    lrDiscard: () => app.confirm({ title: 'Discard your edits?', body: 'The report goes back to how it was last saved. Your changes since then are lost.', confirm: 'Discard edits', tone: 'danger', cancel: 'Keep editing',
+      onConfirm: () => app.setState(s => ({ lrDraft: null, lrEditorKey: (s.lrEditorKey || 0) + 1 })) }),
     // Download PDF: the saved report, printed on the server the way the client sees it. Unsaved edits are saved first.
     lrPdfBusy: !!S.lrPdfBusy, lrPdfLabel: S.lrPdfBusy ? 'Preparing PDF\u2026' : 'Download PDF',
     lrPdf: () => { if (S.lrPdfBusy || S.lrSaving) return; const go = () => { app.setState({ lrPdfBusy: true });
@@ -142,8 +144,8 @@ export function liveReportsVals(app, ctx) {
         const url = URL.createObjectURL(b), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); app.setState({ lrPdfBusy: false }); })
         .catch(e => { app.setState({ lrPdfBusy: false }); toast(e.message || 'The PDF couldn\u2019t be made. Try again.'); }); };
       if (dirty) save().then(ok => ok && go()); else go(); },
-    lrDelete: () => { if (S.lrDelAsk !== r.id) { app.setState({ lrDelAsk: r.id }); clearTimeout(app.lrDT); app.lrDT = setTimeout(() => app.setState({ lrDelAsk: null }), 4000); return; }
-      deleteReportAction(r.id).then(x => { if (x.error) return toast(x.error); app.setState({ view: 'templates', lrDelAsk: null, lrDraft: null, lrPendingId: null }); refresh(); }); },
-    lrDeleteLabel: S.lrDelAsk === r.id ? 'Click again to delete' : 'Delete',
+    lrDelete: () => app.confirm({ title: 'Delete this report?', body: '\u201c' + D.title + '\u201d for ' + client.name + ' is deleted for good. This can\u2019t be undone.', confirm: 'Delete report', busy: 'Deleting\u2026', tone: 'danger',
+      onConfirm: () => deleteReportAction(r.id).then(x => { if (x.error) { toast(x.error); return false; } app.setState({ view: 'templates', lrDraft: null, lrPendingId: null }); refresh(); return true; }) }),
+    lrDeleteLabel: 'Delete',
   };
 }

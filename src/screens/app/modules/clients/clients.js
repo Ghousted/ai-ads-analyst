@@ -20,7 +20,10 @@ export function clientsVals(app, ctx) {
         const cpl = [12.9, 10.6, 8.73, 7.4, 9.1][i] ?? 0, spend = [1170, 1968, 960, 1280, 696][i] ?? 0;
         const keys = [['contact', 'Contact person'], ['email', 'Contact email'], ['schedule', 'Report schedule']];
         const cgToast = t => { clearTimeout(app.ctT); app.setState({ cToast: t }); app.ctT = setTimeout(() => app.setState({ cToast: null }), 4000); };
-        return { ...clientGoalVals(app, { S, live, C }, i, cgToast),
+        const cg = clientGoalVals(app, { S, live, C }, i, cgToast);
+        // Closing the profile with unsaved details, budget or goal edits asks first.
+        app._pfDirty = (!!D && keys.some(([k]) => (D[k] || '') !== (info[k] || ''))) || cg.cgDirty; app._pfName = c.name;
+        return { ...cg,
           pfSub: industry + ' · Client since ' + since,
           pfView: !D, pfEditing: !!D,
           pfFields: [{ k: 'Contact person', v: info.contact }, { k: 'Contact email', v: info.email }, { k: 'Industry', v: industry }, { k: 'Report tone', v: c.tone }, { k: 'Report schedule', v: info.schedule }],
@@ -43,9 +46,13 @@ export function clientsVals(app, ctx) {
           pfKpisSel: (ex ? ['Leads', 'Cost per lead', 'Spend this month', 'Conversions'].map(label => ({ label, value: '—', note: 'Connect accounts to see this', c: '#5a6474' })) : [{ label: 'Leads', value: String(c.leads), note: c.delta + ' vs last week', c: c.delta.startsWith('+') ? '#1d6b3a' : '#a3330c' }, { label: 'Cost per lead', value: '$' + cpl.toFixed(2), note: i < 2 ? '+9% vs last week' : '−6% vs last week', c: i < 2 ? '#1d6b3a' : '#a3330c' }, { label: 'Spend this month', value: '$' + spend.toLocaleString(), note: 'Day 20 of 31', c: '#5a6474' }, { label: 'Conversions', value: String(Math.round(c.leads * 1.15)), note: '+4% vs last week', c: '#1d6b3a' }]),
         };
       })(),
-      pfPanelOn: !!S.pfPanel, pfO: S.pfPanel ? 1 : 0, pfPe: S.pfPanel ? 'auto' : 'none', pfX: S.pfPanel ? '0' : '100%', pfVis: S.pfPanel ? 'visible' : 'hidden', pfClose: () => app.setState({ pfPanel: false, pfDraft: null }),
+      pfPanelOn: !!S.pfPanel, pfO: S.pfPanel ? 1 : 0, pfPe: S.pfPanel ? 'auto' : 'none', pfX: S.pfPanel ? '0' : '100%', pfVis: S.pfPanel ? 'visible' : 'hidden', pfClose: () => { const close = () => app.setState({ pfPanel: false, pfDraft: null, pfErr: {}, cgForm: null, cgBudgetDraft: null, cgBudgetErr: null }); if (!app._pfDirty) return close();
+        app.confirm({ title: 'Discard your changes?', body: 'You have unsaved changes to ' + app._pfName + '\u2019s profile. If you close it now, they\u2019re lost.', confirm: 'Discard changes', tone: 'danger', cancel: 'Keep editing', onConfirm: close }); },
       vClients: v === 'clients', ...(() => {
         const F = S.cForm, E = S.cErr || {}, extra = S.extraClients || [];
+        // Leaving the new-client form after typing in it asks first.
+        const leaveForm = () => { const close = () => app.setState({ cForm: null, cErr: {} }); if (!F || !((F.name || '').trim() || (F.email || '').trim())) return close();
+          app.confirm({ title: 'Discard this new client?', body: 'You started adding ' + ((F.name || '').trim() || 'a client') + '. If you leave now, what you entered is lost.', confirm: 'Discard', tone: 'danger', cancel: 'Keep editing', onConfirm: close }); };
         // Accounts no client uses yet. An account belongs to at most one client.
         const free = TOOL_ORDER.flatMap(k => toolAccts(S, k).filter(x => !x.client).map(x => ({ ...x, k, key: acctKey(x.conn.id, x.j) })));
         // Loose name match for suggesting accounts: "Onnit" matches "onnit.com" and "Onnit · Main".
@@ -69,14 +76,14 @@ export function clientsVals(app, ctx) {
           cPlats: free.map(({ k, a, key }) => { const on = !!(F && F.plats.includes(key)); return { label: a[0], desc: TOOL_NAMES[k] + ' · ' + a[1], logo: L[k], on, bd: on ? '#1f6be2' : '#d3dbe6', bg: on ? '#eef3fd' : '#ffffff', chk: on ? '#1f6be2' : '#ffffff', toggle: () => app.setState(s => ({ cForm: { ...s.cForm, plats: on ? s.cForm.plats.filter(p => p !== key) : [...s.cForm.plats, key] } })) }; }),
           cSetName: e => { const val = e.target.value; app.setState(s => ({ cForm: { ...s.cForm, name: val }, cErr: { ...(s.cErr || {}), name: false } })); },
           cSetEmail: e => { const val = e.target.value; app.setState(s => ({ cForm: { ...s.cForm, email: val }, cErr: { ...(s.cErr || {}), email: false } })); },
-          cCancel: () => app.setState({ cForm: null, cErr: {} }),
-          cBackdrop: e => { if (e.target === e.currentTarget) app.setState({ cForm: null, cErr: {} }); },
+          cCancel: () => leaveForm(),
+          cBackdrop: e => { if (e.target === e.currentTarget) leaveForm(); },
           cStep: F ? F.step || 1 : 1, cS1: !!F && (F.step || 1) === 1, cS2: !!F && F.step === 2, cS3: !!F && F.step === 3,
           cBars: ['Business', 'Contact', 'Accounts'].map((label, i) => { const st = F ? F.step || 1 : 1; return { label, bg: i < st ? '#1f6be2' : '#e6ebf2', fw: i + 1 === st ? 700 : 500, c: i < st ? '#0b1626' : '#5a6474' }; }),
           cBackVis: F && (F.step || 1) > 1 ? 'visible' : 'hidden', cNextLabel: F && F.step === 3 ? 'Add client' : 'Next',
           cHead: F ? ({ 1: "Let's add a new client.", 2: 'Where should ' + (F.name.trim() || 'their') + (F.name.trim() ? "'s" : '') + ' reports go?', 3: 'Which of your accounts belong to ' + (F.name.trim() || 'this client') + '?' })[F.step || 1] : '',
           ...[1, 2, 3].reduce((o, n) => { const st = F ? F.step || 1 : 1; o['cW' + n] = { done: n < st, cur: n === st, todo: n > st, sum: n === 1 ? (F ? F.name : '') : n === 2 ? (F ? F.email : '') : '', go: () => app.setState(s => ({ cForm: { ...s.cForm, step: n }, cErr: {} })) }; return o; }, {}),
-          cBackOrClose: () => { const st = F ? F.step || 1 : 1; if (st > 1) app.setState(s => ({ cForm: { ...s.cForm, step: st - 1 }, cErr: {} })); else app.setState({ cForm: null, cErr: {} }); },
+          cBackOrClose: () => { const st = F ? F.step || 1 : 1; if (st > 1) app.setState(s => ({ cForm: { ...s.cForm, step: st - 1 }, cErr: {} })); else leaveForm(); },
           cBack: () => app.setState(s => ({ cForm: { ...s.cForm, step: Math.max(1, (s.cForm.step || 1) - 1) }, cErr: {} })),
           cNext: e => { e.preventDefault(); const st = F.step || 1; if (st === 1) { if (!F.name.trim()) { app.setState({ cErr: { name: true } }); return; } app.setState(s => ({ cForm: { ...s.cForm, step: 2 }, cErr: {} })); return; } if (st === 2) { if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(F.email.trim())) { app.setState({ cErr: { email: true } }); return; } const nm = norm(F.name), guess = nm.length > 2 ? free.filter(x => { const an = norm(x.a[0]); return an.length > 2 && (an.includes(nm) || nm.includes(an)); }).map(x => x.key) : []; app.setState(s => ({ cForm: { ...s.cForm, step: 3, plats: s.cForm.plats.length ? s.cForm.plats : guess }, cErr: {} })); return; } addClient(); },
           cSave: e => { e.preventDefault(); const err = { name: !F.name.trim(), email: !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(F.email.trim()) }; if (err.name || err.email) { app.setState({ cErr: err }); return; } addClient(); }

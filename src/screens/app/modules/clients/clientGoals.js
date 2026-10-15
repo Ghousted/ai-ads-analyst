@@ -59,11 +59,15 @@ export function clientGoalVals(app, { S, live, C }, i, toast) {
     if (cur != null) { now = 'Now ' + T.fmt(cur); if (T.op === 'under') { w = Math.min(cur / (g.v * 1.5), 1); st = cur <= g.v ? 'good' : 'bad'; status = st === 'good' ? 'On track' : 'Over target'; } else { w = Math.min(cur / (g.v * 1.25), 1); st = cur >= g.v ? 'good' : 'bad'; status = st === 'good' ? 'On track' : 'Below target'; } }
     return { id: g.id, label: T.label, target: (T.op === 'under' ? 'Under ' : 'At least ') + T.fmt(g.v) + (g.t === 'leads' ? ' a week' : ''), now, status, w: Math.round(w * 100) + '%', mk: T.op === 'under' ? '66.7%' : '80%', col: tone[st][0], pBg: tone[st][1], pC: tone[st][2],
       edit: () => app.setState({ cgForm: { c: i, id: g.id, type: g.t, target: String(g.v) }, cgErr: {} }), editLabel: 'Edit ' + T.label.toLowerCase() + ' goal',
-      remove: () => { setGoals(gs => gs.filter(x => x.id !== g.id)); toast('Goal removed'); }, removeLabel: 'Remove ' + T.label.toLowerCase() + ' goal' };
+      remove: () => app.confirm({ title: 'Remove the ' + T.label.toLowerCase() + ' goal?', body: 'Analyst stops tracking ' + T.label.toLowerCase() + ' for ' + c.name + ' and won\u2019t alert you about it.', confirm: 'Remove goal', tone: 'danger',
+        onConfirm: () => { setGoals(gs => gs.filter(x => x.id !== g.id)); toast('Goal removed'); } }), removeLabel: 'Remove ' + T.label.toLowerCase() + ' goal' };
   });
   const fT = F ? GT[F.type] : null;
 
+  const editing = F && F.id ? mine.find(g => g.id === F.id) : null;
   return {
+    // Unsaved edits in this section, so closing the profile can ask first.
+    cgDirty: (BD != null && BD !== (b != null ? String(b) : '')) || (!!F && !!F.target && (!editing || F.target !== String(editing.v) || F.type !== editing.t)),
     cgHasBudget: b != null, cgShowBar: b != null && !sp.none, cgBudget: b != null ? money(b) + ' a month' : 'No budget yet',
     cgBudgetNote: sp.none ? 'No ad spend for ' + c.name + ' yet. Pacing shows once Meta or Google Ads spend arrives for them.' : b != null ? money(spent) + ' spent by ' + MON[tm - 1] + ' ' + td + ', on course for ' + money(fc) + '.' : money(spent) + ' spent by ' + MON[tm - 1] + ' ' + td + '. Set a budget and Analyst tells you when spending drifts.',
     cgBudgetStatus: { good: 'On pace', bad: 'Spending fast', warn: 'Spending slow', none: '' }[bst], cgBPBg: tone[bst][1], cgBPC: tone[bst][2], cgBCol: tone[bst][0],
