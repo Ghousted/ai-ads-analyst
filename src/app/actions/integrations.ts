@@ -5,9 +5,10 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
 import { requireAgency, canManage } from '@/lib/auth';
-import { decrypt } from '@/lib/crypto';
+import { decrypt, encrypt } from '@/lib/crypto';
 import { revokeToken, GoogleError } from '@/lib/google';
-import { syncGoogleAccounts } from '@/lib/integrations';
+import { syncGoogleAccounts, syncMetaAccounts } from '@/lib/integrations';
+import { checkToken, tokenProblem } from '@/lib/meta';
 import { syncGa4Account } from '@/lib/ga4';
 
 const Id = z.string().uuid();
@@ -50,7 +51,27 @@ export async function disconnectAction(connectionId: string) {
   return { ok: true };
 }
 
-// Re-reads which properties a login can see, e.g. after a client shared a new one.
+// Connects Meta with a Business Manager system user token. Pasting a new token for the same system user replaces the old one,
+// and its ad accounts keep their clients.
+export async function connectMetaAction(token: string) {
+  const m = await managerAgency().catch(() => null);
+  if (!m) return { error: 'Only the owner and admins can connect tools.' };
+  const t = (token || '').trim();
+  if (!/^[A-Za-z0-9_-]{40,}$/.test(t)) return { error: 'Paste the whole token. It is a long string of letters and numbers.' };
+  let who;
+  try { who = await checkToken(t); } catch (e) { return { error: tokenProblem(e) }; }
+  const values = { agencyId: m.agency.id, provider: 'meta' as const, login: who.name, connectedBy: m.user.id, accessToken: encrypt(t), accessTokenExpiresAt: who.expiresAt, refreshToken: null, status: 'ok' as const, error: null };
+  const [conn] = await db.insert(schema.connections).values(values)
+    .onConflictDoUpdate({ target: [schema.connections.agencyId, schema.connections.provider, schema.connections.login], set: values }).returning();
+  let found;
+  try { found = await syncMetaAccounts(conn); } catch (e) { revalidatePath('/app'); return { error: 'The token works, but listing ad accounts failed. ' + tokenProblem(e) }; }
+  // The first real connection takes the agency out of sample mode.
+  if (m.agency.sampleMode) await db.update(schema.agencies).set({ sampleMode: false }).where(eq(schema.agencies.id, m.agency.id));
+  revalidatePath('/app');
+  return { ok: true, login: who.name, found };
+}
+
+// Re-reads which properties or ad accounts a login can see, e.g. after a client shared a new one.
 export async function refreshAccountsAction(connectionId: string) {
   const { agency } = await managerAgency().catch(() => ({ agency: null }));
   if (!agency) return { error: 'Only the owner and admins can refresh tools.' };
@@ -58,10 +79,11 @@ export async function refreshAccountsAction(connectionId: string) {
   const [conn] = await db.select().from(schema.connections).where(and(eq(schema.connections.id, connectionId), eq(schema.connections.agencyId, agency.id)));
   if (!conn) return { error: 'That connection was removed.' };
   try {
-    const n = await syncGoogleAccounts(conn);
+    const n = conn.provider === 'meta' ? await syncMetaAccounts(conn) : await syncGoogleAccounts(conn);
     revalidatePath('/app');
     return { ok: true, found: n };
   } catch (e) {
+    if (conn.provider === 'meta') { revalidatePath('/app'); return { error: tokenProblem(e) }; }
     return { error: e instanceof GoogleError && e.code === 'invalid_grant' ? 'Google signed this login out. Connect it again.' : 'Google didn’t answer. Try again in a minute.' };
   }
 }

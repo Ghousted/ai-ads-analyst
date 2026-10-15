@@ -285,7 +285,7 @@ export function SettingsOverlay({ v }) {
         </div>
         {v.dlgHasInput ? (
           <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}><span style={{ fontWeight: "600" }}>{v.dlgInputLabel}</span>
-            <input autoFocus type={v.dlgInputType} value={v.dlgVal} onChange={v.dlgSetVal} placeholder={v.dlgPlaceholder} aria-invalid={v.dlgHasErr} style={{ height: "48px", padding: "0 14px", border: `1px solid ${v.dlgInputBd}`, borderRadius: "0", font: "inherit", letterSpacing: "inherit", color: "#0b1626", outline: "none" }} />
+            <input autoFocus type={v.dlgInputType} value={v.dlgVal} onChange={v.dlgSetVal} placeholder={v.dlgPlaceholder} aria-invalid={v.dlgHasErr} autoComplete={v.dlgSecret ? "off" : undefined} spellCheck={v.dlgSecret ? false : undefined} style={{ height: "48px", padding: "0 14px", border: `1px solid ${v.dlgInputBd}`, borderRadius: "0", font: "inherit", letterSpacing: "inherit", color: "#0b1626", outline: "none" }} />
           </label>
         ) : null}
         {v.dlgHasRoles ? (
