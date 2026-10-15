@@ -288,17 +288,115 @@ export function TasksView({ v }) {
               ))}
             </dl>
             {" "}
-            <section style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "16px", background: "#f4f7fb" }}>
-              {" "}
-              <h3 style={{ margin: "0", fontSize: "15px", fontWeight: "700" }}>
-                {"Suggested next step"}
-              </h3>
-              {" "}
-              <p style={{ margin: "0", lineHeight: "1.5", textWrap: "pretty" }}>
-                {v.rpAction}
-              </p>
-              {" "}
+            <section aria-busy={v.rpAiBusy ? "true" : "false"} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", minHeight: "44px", marginBottom: "-8px" }}>
+                <h3 style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>
+                  <span style={{ color: "#1f6be2" }}>
+                    {"Analyst"}
+                  </span>
+                  {"’s read"}
+                </h3>
+                {(v.rpAiHas && v.rpAiRefresh) ? (
+                  <button onClick={v.rpAiRefresh} style={{ height: "44px", padding: "0 12px", marginRight: "-12px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#1f6be2", cursor: "pointer" }} className="dc20c6b10">
+                    {"Write again"}
+                  </button>
+                ) : null}
+              </div>
+              {(v.rpAiBusy) ? (<>
+                <p role={"status"} style={{ margin: "0", color: "#5a6474" }}>
+                  {"Reading " + v.rpName + "’s numbers…"}
+                </p>
+                <span aria-hidden={"true"} style={{ height: "12px", width: "100%", background: "#eef1f6" }}></span>
+                <span aria-hidden={"true"} style={{ height: "12px", width: "92%", background: "#eef1f6" }}></span>
+                <span aria-hidden={"true"} style={{ height: "12px", width: "64%", background: "#eef1f6" }}></span>
+              </>) : null}
+              {(v.rpAiErr) ? (<>
+                <p role={"alert"} style={{ margin: "0", color: "#a3330c", lineHeight: "1.5" }}>
+                  {v.rpAiErr}
+                </p>
+                <button onClick={v.rpAiRetry} style={{ alignSelf: "flex-start", height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
+                  {"Try again"}
+                </button>
+              </>) : null}
+              {(v.rpAiNone) ? (
+                <button onClick={v.rpAiRetry} style={{ alignSelf: "flex-start", height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
+                  {"Explain this flag"}
+                </button>
+              ) : null}
+              {(v.rpAiHas) ? (<>
+                <p style={{ margin: "0", lineHeight: "1.5", textWrap: "pretty" }}>
+                  {v.rpSummary}
+                </p>
+                {(v.rpHasCauses) ? (
+                  <ul aria-label={"Likely causes"} style={{ margin: "0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "6px", color: "#45505f", lineHeight: "1.5" }}>
+                    {((v.rpCauses) || []).map((cs, $index) => (
+                      <li key={$index} style={{ textWrap: "pretty" }}>
+                        {cs}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>) : null}
+              {(v.rpAiRefreshErr) ? (
+                <p role={"alert"} style={{ margin: "0", fontSize: "14px", color: "#a3330c" }}>
+                  {v.rpAiRefreshErr}
+                </p>
+              ) : null}
             </section>
+            {" "}
+            {(v.rpAiHas) ? (<>
+              <section style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <h3 style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>
+                  {"What to do"}
+                </h3>
+                <ol style={{ margin: "0", padding: "0", listStyle: "none", display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {((v.rpSteps) || []).map((st, $index) => (
+                    <li key={$index} style={{ display: "grid", gridTemplateColumns: "20px minmax(0,1fr) auto", gap: "4px 10px", alignItems: "center" }}>
+                      <span aria-hidden={"true"} style={{ alignSelf: "start", paddingTop: "1px", fontWeight: "700", color: "#5a6474", fontVariantNumeric: "tabular-nums" }}>
+                        {st?.n}
+                      </span>
+                      <span style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: "0" }}>
+                        <span style={{ fontWeight: "600", textWrap: "pretty" }}>
+                          {st?.action}
+                        </span>
+                        <span style={{ fontSize: "14px", color: "#45505f", lineHeight: "1.45", textWrap: "pretty" }}>
+                          {st?.why}
+                        </span>
+                      </span>
+                      <button onClick={st?.add} aria-label={st?.addAria} aria-disabled={st?.added ? "true" : "false"} style={{ height: "44px", padding: "0 10px", marginRight: "-10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: st?.added ? "#1d6b3a" : "#1f6be2", cursor: st?.added ? "default" : "pointer", whiteSpace: "nowrap" }} className="dc20c6b10">
+                        {st?.addLabel}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+              {" "}
+              <section style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "16px", background: "#f4f7fb" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <h3 style={{ margin: "0", fontSize: "15px", fontWeight: "700" }}>
+                    {"Check-in message"}
+                  </h3>
+                  {(v.rpMsgTo) ? (
+                    <span style={{ fontSize: "13px", color: "#5a6474" }}>
+                      {v.rpMsgTo}
+                    </span>
+                  ) : null}
+                </div>
+                <p style={{ margin: "0", lineHeight: "1.5", whiteSpace: "pre-wrap", textWrap: "pretty" }}>
+                  {v.rpMsg}
+                </p>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "4px" }}>
+                  <button onClick={v.rpCopy} aria-live={"polite"} style={{ height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
+                    {v.rpCopyLabel}
+                  </button>
+                  {(v.rpHasMail) ? (
+                    <a href={v.rpMailHref} style={{ height: "44px", padding: "0 16px", display: "inline-flex", alignItems: "center", border: "1px solid #d3dbe6", background: "#ffffff", fontWeight: "600", color: "#0b1626", textDecoration: "none" }} className="dce60d758">
+                      {"Open in email"}
+                    </a>
+                  ) : null}
+                </div>
+              </section>
+            </>) : null}
             {" "}
           </div>
           {" "}
@@ -341,9 +439,11 @@ export function TasksView({ v }) {
                 {v.rkTitle?.c}
               </h2>
               {" "}
-              <span style={{ fontSize: "14px", color: "#5a6474" }}>
-                {"Also emailed to alex@riveradigital.com"}
-              </span>
+              {(v.rkMail) ? (
+                <span style={{ fontSize: "14px", color: "#5a6474" }}>
+                  {"Also emailed to alex@riveradigital.com"}
+                </span>
+              ) : null}
               {" "}
             </div>
             {" "}

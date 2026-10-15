@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import View, { css } from './View';
 import { FEATURES } from './modules';
 import { clSplit, TCOLS, PEOPLE, DEF_TASKS, LOGOS, clientTools } from './data';
-import { makeMetrics, pct } from './metrics';
+import { makeMetrics, pct, fmtDay } from './metrics';
 
 
 class Logic extends React.Component {
@@ -49,9 +49,17 @@ class Logic extends React.Component {
     const live = this.props.live || null;
     const C = live ? [] : [
       { name: 'Northside Physio', i: 'NP', s: 'r', leads: 44, delta: '−6%', bars: [61, 55, 47, 44, 46, 44], last: 'Sent Sep 26, not viewed', tone: 'Reassuring',
-        signals: [['Leads down 3 weeks', '−9%, −14%, −6%'], ['Portal not visited', 'Last visit Sep 12'], ['Last report not viewed', 'Sent Sep 26']], action: 'book a 15-minute call before the Oct 15 invoice.', draft: 'Hi Dana, leads have dipped the last few weeks. I have an idea for fixing it. Do you have 15 minutes on Thursday?' },
+        signals: [['Leads down 3 weeks', '−9%, −14%, −6%'], ['Portal not visited', 'Last visit Sep 12'], ['Last report not viewed', 'Sent Sep 26']], action: 'book a 15-minute call before the Oct 15 invoice.', draft: 'Hi Dana, leads have dipped the last few weeks. I have an idea for fixing it. Do you have 15 minutes on Thursday?',
+        analysis: { summary: 'Northside is the client most likely to leave. Leads have fallen three weeks running, from 55 to 44 a week, and Dana hasn\'t opened the portal or the last report. Falling results nobody is talking about is the usual pattern before a cancellation, and their invoice is due Oct 15.',
+          causes: ['The drop is steady rather than sudden, which points to tired ads or a seasonal dip rather than broken tracking.', 'Dana hasn\'t opened the portal since Sep 12 or the Sep 26 report, so the dip may first come up when the invoice arrives.'],
+          steps: [{ action: 'Book a 15-minute call with Dana before Oct 15', why: 'They haven\'t opened the last report and the invoice is due Oct 15.' }, { action: 'Refresh the ads that have run the longest', why: 'Leads fell 9%, 14% and 6% with no change in budget.' }, { action: 'Resend the Sep 26 report with a two-line summary', why: 'It was never opened, so Dana hasn\'t seen what you are already doing.' }],
+          message: 'Hi Dana, leads have dipped over the last few weeks and I want to get ahead of it. I have a couple of changes in mind for your ads that should bring them back up. Do you have 15 minutes on Thursday to go through them?' } },
       { name: 'Kalye Streetwear', i: 'KS', s: 'n', leads: 188, delta: '−7%', bars: [210, 238, 201, 196, 190, 188], last: 'Sent Oct 6, viewed', tone: 'Straightforward',
-        signals: [['Cost per lead rising', '+18% in 2 weeks'], ['Budget pacing ahead', '82% spent, day 20'], ['Reports viewed', 'Within a day']], action: 'refresh the TikTok creative this week.', draft: 'Hi Marco, costs crept up on TikTok. I am swapping in fresh videos this week to bring them back down.' },
+        signals: [['Cost per lead rising', '+18% in 2 weeks'], ['Budget pacing ahead', '82% spent, day 20'], ['Reports viewed', 'Within a day']], action: 'refresh the TikTok creative this week.', draft: 'Hi Marco, costs crept up on TikTok. I am swapping in fresh videos this week to bring them back down.',
+        analysis: { summary: 'Kalye needs attention but isn\'t at risk. Leads are only 7% down, but each lead costs 18% more than two weeks ago and 82% of the month\'s budget is spent with 11 days to go. Marco still reads every report, so a short heads-up will land well.',
+          causes: ['Cost per lead rose while spend ran ahead, which usually means the same TikTok videos are reaching the same people too often.'],
+          steps: [{ action: 'Swap in fresh TikTok videos this week', why: 'Cost per lead is up 18% in two weeks.' }, { action: 'Lower daily spend to finish the month on budget', why: '82% of the budget is gone on day 20.' }],
+          message: 'Hi Marco, costs per lead crept up on TikTok over the last two weeks. I\'m swapping in fresh videos this week and easing the daily spend so we finish the month on budget. I\'ll show you the effect in Monday\'s report.' } },
       { name: 'Harbor & Pine Dental', i: 'HP', s: 'h', leads: 142, delta: '−3%', bars: [131, 140, 146, 138, 144, 142], last: 'Sent Oct 6, viewed', tone: 'Reassuring',
         signals: [['Leads steady', '142 this week'], ['Cost per lead down', '−11%'], ['Views every report', 'Last 6 of 6']] },
       { name: 'Mara Skincare', i: 'MS', s: 'h', leads: 119, delta: '+14%', bars: [88, 96, 104, 99, 110, 119], last: 'Sent Oct 6, viewed', tone: 'Detailed',
@@ -70,6 +78,13 @@ class Logic extends React.Component {
         c.leads = Math.round(M.sum(a, 'keyEvents', 7)); c.delta = pct(c.leads, M.sum(a, 'keyEvents', 7, 1));
         c.bars = [5, 4, 3, 2, 1, 0].map(w => M.sum(a, 'keyEvents', 7, w) || 0.001); });
     }
+    // Live clients: who is flagged and why comes from the server's rules, with Claude's saved analysis.
+    if (live && live.risk) C.forEach(c => { const r = c.extra && live.risk[c.extra.id]; if (!r) return;
+      c.last = r.lastReport ? (r.lastReport.status === 'sent' ? 'Sent ' : 'Draft ') + fmtDay(r.lastReport.day) : 'No reports yet';
+      Object.assign(c, { s: r.level, flagKeys: r.keys, dismissed: r.dismissed, analysis: r.analysis, contact: c.extra.contactName, email: c.extra.email, tone: c.extra.tone || c.tone });
+      // Leads follow the same source as the flags: GA4 key events, or Meta leads when GA4 has none.
+      if (r.weeks.length === 6) Object.assign(c, { leads: r.weeks[5], delta: pct(r.weeks[5], r.weeks[4]), bars: r.weeks.map(x => x || 0.001) });
+      if (r.signals.length) Object.assign(c, { signals: r.signals.map(x => [x.label, x.detail]), reasons: r.signals.map(x => x.say), action: r.signals[0].act + '.' }); });
     const card = (c, idx) => {
       const [status, bg, col] = ST[c.s], mx = Math.max(...c.bars);
       return { ...c, initials: c.i, status, bg, c: col, dc: c.delta.startsWith('+') ? '#1d6b3a' : '#5a6474',
@@ -94,7 +109,7 @@ class Logic extends React.Component {
       ['workflow', 'Tasks', [['tasks', 'Tasks']]],
       ['kpis', 'KPIs & goals', [['kpi', 'KPIs & goals']]],
     ];
-    const rkCount = C.filter(c => c.s !== 'h' && !(S.rkGone || {})[c.name]).length;
+    const rkCount = C.filter(c => c.s !== 'h' && !c.dismissed && !(S.rkGone || {})[c.name]).length;
     const activeView = S.view === 'client' ? 'clients' : (S.view === 'builder' || S.view === 'repview' || S.view === 'reports' || S.view === 'lrep') ? 'templates' : S.view;
     const modules = M.map(([id, label, items]) => {
       const hasActive = items.some(x => x[0] === activeView || (x[2] && x[2].some(y => y[0] === activeView))), open = hasActive;
