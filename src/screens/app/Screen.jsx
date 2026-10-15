@@ -41,8 +41,8 @@ class Logic extends React.Component {
   componentDidUpdate() { this.autosize(); this.syncDoc?.(); this.positionSel?.(); const vr = this.viewRef.current; if (vr && this._viewHTML && vr.innerHTML !== this._viewHTML) vr.innerHTML = this._viewHTML; const el = this.chatRef.current; if (el) el.scrollTop = el.scrollHeight; const rc = this.rbChatRef.current; if (rc) rc.scrollTop = rc.scrollHeight; const c = this.chartRef.current; if (c && this._chartKey !== this._chartSeen) { this._chartSeen = this._chartKey; c.scrollLeft = c.scrollWidth; } }
   componentWillUnmount() { document.removeEventListener('mousedown', this._ctxClose); window.removeEventListener('resize', this._rp); document.removeEventListener('selectionchange', this._sc); window.removeEventListener('resize', this._rs); clearTimeout(this.gt); clearTimeout(this.ct); clearTimeout(this.gtT); clearTimeout(this.ctT); clearTimeout(this.rtT); clearTimeout(this.rbT); clearTimeout(this.rbA); clearTimeout(this.genT); }
   renderVals() {
-    // The sidebar collapses while a full-width task is open: the add-client form, or a report being edited.
-    const S = (this.state.cForm || this.state.view === 'lrep') && !this.state.navC ? { ...this.state, navC: true } : this.state, go = (view, extra = {}) => () => this.setState({ view, ...extra });
+    // The sidebar collapses while a report is being edited.
+    const S = this.state.view === 'lrep' && !this.state.navC ? { ...this.state, navC: true } : this.state, go = (view, extra = {}) => () => this.setState({ view, ...extra });
     const ST = { h: ['Healthy', '#e3f3e8', '#1d6b3a'], n: ['Needs attention', '#fff6c2', '#7a5a00'], r: ['At risk', '#fde2d6', '#a3330c'] };
     const L = LOGOS;
     // Live agencies see their own clients (from the server); sample agencies see the built-in examples.

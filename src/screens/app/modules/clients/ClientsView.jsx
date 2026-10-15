@@ -14,45 +14,21 @@ export function ClientsView({ v }) {
         {" "}
         {(v.cFormOpen) ? (<>
           {" "}
-          <div style={{ position: "fixed", top: "0", right: "0", bottom: "0", left: "74px", zIndex: "60", background: "#f4f7fb", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-            {" "}
-            <div style={{ flex: "none", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "12px", padding: "20px clamp(16px,4vw,48px)" }}>
-              {" "}
-              <span>
-                <button type={"button"} onClick={v.cBackOrClose} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "12px", background: "#ffffff", font: "inherit", fontSize: "15px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
-                  <svg width={"18"} height={"18"} viewBox={"0 0 24 24"} fill={"none"} stroke={"currentColor"} strokeWidth={"2.2"} strokeLinecap={"round"} strokeLinejoin={"round"}>
-                    <path d={"M19 12H5M11 18l-6-6 6-6"}></path>
-                  </svg>
-                  {"Back"}
-                </button>
-              </span>
-              {" "}
-              <span style={{ fontSize: "15px", fontWeight: "600", color: "#5a6474" }}>
-                {"New client"}
-              </span>
-              {" "}
-              <span style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button type={"button"} onClick={v.cCancel} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "12px", background: "#ffffff", font: "inherit", fontSize: "15px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
-                  {"Cancel"}
-                  <svg width={"16"} height={"16"} viewBox={"0 0 24 24"} fill={"none"} stroke={"currentColor"} strokeWidth={"2.4"} strokeLinecap={"round"}>
-                    <path d={"M6 6l12 12M18 6L6 18"}></path>
-                  </svg>
-                </button>
-              </span>
-              {" "}
+          <div onClick={v.cBackdrop} style={{ position: "fixed", inset: "0", zIndex: "70", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="cw-title" style={{ width: "min(640px,100%)", maxHeight: "calc(100vh - 48px)", overflowY: "auto", background: "#ffffff", padding: "28px", display: "flex", flexDirection: "column", gap: "16px", boxShadow: "0 30px 80px -30px rgba(11,22,38,.5)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+              <span style={{ fontSize: "14px", fontWeight: "600", color: "#5a6474" }}>{"New client \u00b7 Step " + v.cStep + " of 3"}</span>
+              <button type="button" onClick={v.cCancel} aria-label="Cancel" style={{ width: "44px", height: "44px", margin: "-10px -10px -10px 0", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcceddbc1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#45505f" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
             </div>
-            {" "}
-            <form onSubmit={v.cNext} noValidate={true} aria-labelledby={"cw-title"} style={{ flex: "1", width: "min(640px,100%)", margin: "0 auto", padding: "clamp(24px,8vh,96px) 16px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "28px" }}>
+            <form onSubmit={v.cNext} noValidate={true} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               {" "}
-              <h1 id={"cw-title"} style={{ margin: "0", fontSize: "clamp(28px,4vw,40px)", fontWeight: "700", letterSpacing: "-1.4px", lineHeight: "1.15", textAlign: "center", textWrap: "balance" }}>
+              <h2 id={"cw-title"} style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px", lineHeight: "1.2", textWrap: "balance" }}>
                 {v.cHead}
-              </h1>
+              </h2>
               {" "}
-              <div style={{ width: "100%", background: "#ffffff", borderRadius: "20px", boxShadow: "0 0 0 1px #e6ebf2,0 12px 32px -24px rgba(11,22,38,.3)" }}>
+              <div style={{ width: "100%", margin: "0 -10px" }}>
                 {" "}
-                <div style={{ padding: "16px 22px", borderBottom: "1px solid #eef1f6", fontSize: "13px", fontWeight: "600", color: "#5a6474" }}>
-                  {"New client"}
-                </div>
+                
                 {" "}
                 <div style={{ padding: "10px", display: "flex", flexDirection: "column", gap: "2px" }}>
                   {" "}
@@ -325,19 +301,17 @@ export function ClientsView({ v }) {
                 {" "}
               </div>
               {" "}
-              <button type={"submit"} style={{ display: "flex", alignItems: "center", gap: "8px", height: "52px", padding: "0 28px", border: "0", borderRadius: "14px", background: "#1f6be2", color: "#ffffff", font: "inherit", fontSize: "16px", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer", transition: "background-color 160ms ease,transform 120ms ease" }} className="dc9482609 dcadff8cd">
-                {v.cNextLabel}
-                <svg width={"18"} height={"18"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#ffffff"} strokeWidth={"2.4"} strokeLinecap={"round"} strokeLinejoin={"round"}>
-                  <path d={"M5 12h14M13 6l6 6-6 6"}></path>
-                </svg>
-              </button>
-              {" "}
-              <span aria-label={`Step ${v.cStep ?? ""} of 3`} style={{ marginTop: "auto", padding: "8px 18px", borderRadius: "9999px", background: "#e6ebf2", fontSize: "16px", fontWeight: "600", color: "#45505f", fontVariantNumeric: "tabular-nums" }}>
-                {v.cStep}{" / 3"}
-              </span>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
+                <button type="button" onClick={v.cBackOrClose} style={{ visibility: v.cBackVis, height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }} className="dcceddbc1">{"Back"}</button>
+                <span style={{ display: "flex", gap: "8px" }}>
+                  <button type="button" onClick={v.cCancel} style={{ height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }} className="dcceddbc1">{"Cancel"}</button>
+                  <button type="submit" style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{v.cNextLabel}</button>
+                </span>
+              </div>
               {" "}
             </form>
             {" "}
+          </div>
           </div>
           {" "}
         </>) : null}
