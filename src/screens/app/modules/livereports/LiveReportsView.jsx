@@ -279,6 +279,11 @@ export function LiveReportsOverlay({ v }) {
                 <span style={{ fontWeight: "600" }}>{"Period"}</span>
                 <select value={v.lrDays} onChange={v.lrSetDays} style={select}>{(v.lrDaysOpts || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
               </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <span style={{ fontWeight: "600" }}>{"Report name "}<span style={{ fontWeight: "500", color: "#5a6474" }}>{"(optional)"}</span></span>
+                <input type="text" value={v.lrName} onChange={v.lrSetName} maxLength={160} placeholder={v.lrNamePh} style={{ height: "44px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", outline: "none" }} className="dc120a618" />
+                <span style={{ fontSize: "13px", color: "#5a6474" }}>{"Leave it empty to name it after the period. You can rename it later in the report."}</span>
+              </label>
               {v.lrHasErr ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.lrErr}</span> : null}
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
                 <button type="button" onClick={v.lrClose} style={ghost}>{"Cancel"}</button>
