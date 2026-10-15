@@ -6,6 +6,36 @@ const select = { height: "44px", padding: "0 36px 0 14px", border: "0", borderRa
 // Text the agency edits in place: looks like the report, not like a form.
 const field = { width: "100%", padding: "4px 6px", margin: "0 -6px", border: "1px solid transparent", borderRadius: "0", background: "transparent", font: "inherit", letterSpacing: "inherit", color: "inherit", resize: "none", outline: "none", fieldSizing: "content" };
 
+// One editable part of the report. Clicking into it shows the Analyst button at its right; pressing that opens a small
+// box to ask Analyst to change just this part.
+function Part({ p, children }) {
+  return (
+    <div onFocusCapture={p.focus} onMouseDown={p.focus} style={{ position: "relative" }}>
+      {children}
+      {p.active ? (
+        <button type="button" onClick={p.openAsk} aria-label="Ask Analyst to change this part" aria-expanded={p.open} title="Ask Analyst to change this part" className="clario-noprint" style={{ position: "absolute", top: "0", right: "-56px", width: "44px", height: "44px", padding: "0", border: "0", borderRadius: "50%", background: p.open ? "#eef3fd" : "#ffffff", boxShadow: "0 4px 14px -6px rgba(11,22,38,.35)", display: "grid", placeItems: "center", cursor: "pointer" }}>
+          <img src="/assets/clario-mark-v2.png" alt="" width="26" height="26" style={{ width: "26px", height: "26px", display: "block", animation: p.busy ? "clario-spin 900ms linear infinite" : "none" }} />
+        </button>
+      ) : null}
+      {p.open ? (
+        <form onSubmit={p.submit} className="clario-noprint" style={{ position: "absolute", zIndex: "20", top: "52px", right: "-56px", width: "min(360px,80vw)", background: "#ffffff", padding: "14px", display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 18px 40px -18px rgba(11,22,38,.45)", fontSize: "15px", lineHeight: "1.4" }}>
+          <span style={{ fontWeight: "700" }}>{"Ask "}<span style={{ color: "#1f6be2" }}>{"Analyst"}</span>{" to change this part"}</span>
+          <input autoFocus value={p.ask} onChange={p.setAsk} disabled={p.busy} placeholder="e.g. Mention the courses page" aria-label="What should Analyst change?" style={{ height: "44px", padding: "0 12px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", letterSpacing: "inherit", outline: "none" }} />
+          <span style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {p.ideas.map(x => <button type="button" key={x.label} onClick={x.use} disabled={p.busy} style={{ height: "36px", padding: "0 10px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{x.label}</button>)}
+          </span>
+          {p.err ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{p.err}</span> : null}
+          {p.busy ? <span role="status" style={{ fontSize: "14px", color: "#5a6474" }}>{"Rewriting this part\u2026"}</span> : null}
+          <span style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+            <button type="button" onClick={p.close} disabled={p.busy} style={{ height: "40px", padding: "0 12px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{"Cancel"}</button>
+            <button type="submit" disabled={p.busy} style={{ height: "40px", padding: "0 16px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer", opacity: p.busy ? 0.8 : 1 }} className="dc9482609">{"Rewrite"}</button>
+          </span>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
 export function LiveReportsView({ v }) {
   if (v.lrList) return (
     <>
@@ -47,17 +77,6 @@ export function LiveReportsView({ v }) {
         {v.lrDirty ? <button onClick={v.lrDiscard} style={btn}>{"Discard edits"}</button> : null}
         <button onClick={v.lrSave} disabled={!v.lrDirty || v.lrSaving} style={{ ...primary, opacity: v.lrDirty ? 1 : 0.5, cursor: v.lrDirty ? "pointer" : "default" }} className="dc9482609">{v.lrSaving ? "Saving…" : v.lrDirty ? "Save changes" : "Saved"}</button>
       </div>
-      <form onSubmit={v.lrAskSend} style={{ background: "#ffffff", padding: "16px 22px", display: "flex", flexDirection: "column", gap: "10px" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <span style={{ fontWeight: "700" }}>{"Ask "}<span style={{ color: "#1f6be2" }}>{"Analyst"}</span></span>
-          <input value={v.lrAsk} onChange={v.lrSetAsk} placeholder="Tell Analyst what to change in the writing" style={{ flex: "1 1 280px", height: "44px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", letterSpacing: "inherit", outline: "none" }} />
-          <button type="submit" disabled={v.lrAskBusy} style={{ ...primary, opacity: v.lrAskBusy ? 0.8 : 1 }} className="dc9482609">{v.lrAskLabel}</button>
-        </label>
-        <span style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          {v.lrAskIdeas.map(x => <button type="button" key={x.label} onClick={x.use} style={{ height: "36px", padding: "0 12px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{x.label}</button>)}
-        </span>
-        {v.lrHasAskErr ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.lrAskErr}</span> : null}
-      </form>
       <div style={{ padding: "8px 0 64px" }}>
         <article className="clario-print" style={{ width: "100%", maxWidth: "816px", margin: "0 auto", background: "#ffffff", boxShadow: "0 1px 2px rgba(11,22,38,.06)" }}>
           <div style={{ height: "8px", background: v.lrColor }}></div>
@@ -67,10 +86,10 @@ export function LiveReportsView({ v }) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               <input aria-label="Report title" value={v.lrTitle} onChange={v.lrSetTitle} style={{ ...field, fontSize: "14px", fontWeight: "600", color: "#5a6474" }} />
-              <textarea aria-label="Headline" rows={1} value={v.lrHeadline} onChange={v.lrSetHeadline} style={{ ...field, fontSize: "34px", fontWeight: "700", letterSpacing: "-1px", lineHeight: "1.2" }} />
+              <Part p={v.lrHeadlineP}><textarea aria-label="Headline" rows={1} value={v.lrHeadline} onChange={v.lrSetHeadline} style={{ ...field, fontSize: "34px", fontWeight: "700", letterSpacing: "-1px", lineHeight: "1.2" }} /></Part>
               <span style={{ fontSize: "15px", color: "#5a6474" }}>{"Prepared for " + v.lrClientName}</span>
             </div>
-            <textarea aria-label="Summary" value={v.lrSummary} onChange={v.lrSetSummary} style={{ ...field, fontSize: "18px" }} />
+            <Part p={v.lrSummaryP}><textarea aria-label="Summary" value={v.lrSummary} onChange={v.lrSetSummary} style={{ ...field, fontSize: "18px" }} /></Part>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "8px" }}>
               {v.lrKpis.map(k => (
                 <div key={k.label} style={{ background: "#f4f7fb", padding: "12px 14px", display: "flex", flexDirection: "column", lineHeight: "1.3" }}>
@@ -91,11 +110,11 @@ export function LiveReportsView({ v }) {
             </figure>
             {v.lrSections.map((s, i) => (
               <section key={i} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Part p={s.headingP}><span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <input aria-label="Section heading" value={s.heading} onChange={s.setHeading} style={{ ...field, fontSize: "22px", fontWeight: "700", letterSpacing: "-0.5px" }} />
                   <button type="button" onClick={s.remove} aria-label={"Remove section " + s.heading} style={{ flex: "none", width: "44px", height: "44px", border: "0", background: "transparent", color: "#97a2b2", cursor: "pointer" }}>{"×"}</button>
-                </span>
-                <textarea aria-label={s.heading} value={s.body} onChange={s.setBody} style={field} />
+                </span></Part>
+                <Part p={s.bodyP}><textarea aria-label={s.heading} value={s.body} onChange={s.setBody} style={field} /></Part>
               </section>
             ))}
             {v.lrHasChannels ? (
@@ -111,10 +130,10 @@ export function LiveReportsView({ v }) {
               <h2 style={{ margin: "0", fontSize: "22px", letterSpacing: "-0.5px" }}>{"Next steps"}</h2>
               <ol style={{ margin: "0", paddingLeft: "22px", display: "flex", flexDirection: "column", gap: "4px" }}>
                 {v.lrSteps.map((s, i) => (
-                  <li key={i}><span style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                  <li key={i}><Part p={s.p}><span style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
                     <textarea aria-label={"Next step " + (i + 1)} rows={1} value={s.text} onChange={s.set} style={field} />
                     <button type="button" onClick={s.remove} aria-label={"Remove step " + (i + 1)} style={{ flex: "none", width: "44px", height: "36px", border: "0", background: "transparent", color: "#97a2b2", cursor: "pointer" }}>{"×"}</button>
-                  </span></li>
+                  </span></Part></li>
                 ))}
               </ol>
             </section>

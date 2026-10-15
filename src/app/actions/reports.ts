@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { db, schema } from '@/db';
 import { requireAgency } from '@/lib/auth';
 import { aiErrorMessage, aiModel, recordAiUsage, takeAiQuota } from '@/lib/ai';
-import { buildFacts, ReportContent, writeReport } from '@/lib/report-writer';
+import { buildFacts, getPart, PART, ReportContent, rewritePart, writeReport } from '@/lib/report-writer';
 
 const Id = z.string().uuid();
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -45,24 +45,24 @@ export async function saveReportAction(input: { id: string; title: string; conte
   return { ok: true };
 }
 
-// Ask Analyst: Claude revises the written report following the agency's instruction. Numbers stay the saved snapshot.
-export async function reviseReportAction(input: { id: string; instruction: string }) {
+// Ask Analyst on one part of the report. Works on the agency's current (possibly unsaved) text and returns the new text
+// for that part; the page applies it as an edit the agency can save or discard. Numbers stay the saved snapshot.
+export async function rewritePartAction(input: { id: string; path: string; instruction: string; content: unknown }) {
   const { agency } = await requireAgency();
-  const p = z.object({ id: Id, instruction: z.string().trim().min(2).max(1000) }).safeParse(input);
+  const p = z.object({ id: Id, path: z.string().regex(PART), instruction: z.string().trim().min(2).max(1000), content: ReportContent }).safeParse(input);
   if (!p.success) return { error: 'Tell Analyst what to change.' };
+  if (getPart(p.data.content, p.data.path) === undefined) return { error: 'That part of the report was removed.' };
   const [r] = await db.select({ report: schema.reports, client: schema.clients }).from(schema.reports)
     .innerJoin(schema.clients, eq(schema.clients.id, schema.reports.clientId))
     .where(and(eq(schema.reports.id, p.data.id), eq(schema.reports.agencyId, agency.id)));
   if (!r) return { error: 'That report was deleted.' };
-  if (!(await takeAiQuota(agency.id, 'revise'))) return { error: 'You’ve reached today’s limit for AI edits. It resets within 24 hours.' };
+  if (!(await takeAiQuota(agency.id, 'revise'))) return { error: 'You\u2019ve reached today\u2019s limit for AI edits. It resets within 24 hours.' };
   try {
-    const { content, usage } = await writeReport(r.report.facts as never, { client: r.client.name, agency: agency.name, tone: r.client.tone }, p.data.instruction, r.report.content as ReportContent);
+    const { text, usage } = await rewritePart(r.report.facts as never, { client: r.client.name, agency: agency.name, tone: r.client.tone }, p.data.content, p.data.path, p.data.instruction);
     await recordAiUsage(agency.id, 'revise', usage);
-    await db.update(schema.reports).set({ content, updatedAt: new Date() }).where(eq(schema.reports.id, r.report.id));
-    revalidatePath('/app');
-    return { ok: true, content };
+    return { ok: true, text };
   } catch (e) {
-    console.error('[revise]', e);
+    console.error('[rewrite part]', e);
     return { error: e instanceof Error && !('status' in e) ? e.message : aiErrorMessage(e) };
   }
 }

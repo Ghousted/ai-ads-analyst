@@ -1,5 +1,5 @@
 // Reports for live agencies: list, "write a report" with Claude, and the report page (numbers + editable text + Ask Analyst).
-import { generateReportAction, saveReportAction, reviseReportAction, deleteReportAction } from '@/app/actions/reports';
+import { generateReportAction, saveReportAction, rewritePartAction, deleteReportAction } from '@/app/actions/reports';
 import { fmtDay, fmtNum, pct } from '../../metrics';
 
 const rate = (a, b) => (b ? (a / b) * 100 : 0);
@@ -68,17 +68,30 @@ export function liveReportsVals(app, ctx) {
   const n = f.periodDays, curD = f.daily.slice(n), prevD = f.daily.slice(0, n), mx = Math.max(1, ...f.daily.map(d => d.sessions)) * 1.15;
   const path = arr => arr.map((d, i) => (i ? 'L' : 'M') + Math.round((i / Math.max(1, n - 1)) * 600) + ' ' + Math.round(160 - (d.sessions / mx) * 150)).join(' ');
   const busy = !!S.lrAskBusy;
+  // Ask Analyst on one part: clicking a part shows the Analyst button beside it; pressing it opens a small ask box.
+  const setPart = (c, path, text) => { const [a, i, b] = path.split('.'); if (a === 'headline' || a === 'summary') c[a] = text; else if (a === 'sections') c.sections[Number(i)][b] = text; else if (a === 'nextSteps') c.nextSteps[Number(i)] = text; };
+  const part = path => { const open = S.lrPart === path, closeAsk = () => app.setState({ lrPart: null, lrAsk: '', lrAskErr: null });
+    const send = text => { const q = (text || '').trim(); if (!q || busy) return; app.setState({ lrAskBusy: true, lrAskErr: null });
+      rewritePartAction({ id: r.id, path, instruction: q, content: D.content }).then(x => { if (x.error) return app.setState({ lrAskBusy: false, lrAskErr: x.error });
+        edit(d => setPart(d.content, path, x.text)); app.setState({ lrAskBusy: false, lrPart: null, lrAsk: '' }); toast('Analyst rewrote this part. Save to keep it.'); },
+        () => app.setState({ lrAskBusy: false, lrAskErr: 'Rewriting failed. Try again.' })); };
+    return { active: S.lrFocus === path || open, open, focus: () => { if (S.lrFocus !== path) app.setState({ lrFocus: path }); },
+      openAsk: () => app.setState({ lrPart: open ? null : path, lrAsk: '', lrAskErr: null }), close: closeAsk,
+      ask: open ? S.lrAsk || '' : '', setAsk: e => app.setState({ lrAsk: e.target.value, lrAskErr: null }), busy: open && busy, err: open ? S.lrAskErr || '' : '',
+      ideas: ['Make it shorter', 'Use simpler words', 'Sound more reassuring'].map(label => ({ label, use: () => send(label) })),
+      submit: e => { e.preventDefault(); send(S.lrAsk); } }; };
   return { ...base, lrPage: true, lrMissing: false,
     lrBack: () => app.setState({ view: 'templates', lrDraft: null }),
     lrStatus: r.status === 'sent' ? 'Sent' : 'Draft', lrDate: 'Written ' + fmtDay(r.createdAt.slice(0, 10)),
     lrAgency: S.agName, lrPeriod: fmtDay(f.start) + ' – ' + fmtDay(f.end), lrClientName: client.name, lrColor: S.wlColor || '#1f6be2',
+    lrHeadlineP: part('headline'), lrSummaryP: part('summary'),
     lrTitle: D.title, lrSetTitle: e => { const x = e.target.value; edit(d => { d.title = x; }); },
     lrHeadline: ct.headline, lrSetHeadline: e => { const x = e.target.value; edit(d => { d.content.headline = x; }); },
     lrSummary: ct.summary, lrSetSummary: e => { const x = e.target.value; edit(d => { d.content.summary = x; }); },
-    lrSections: ct.sections.map((s, i) => ({ heading: s.heading, body: s.body, setHeading: e => { const x = e.target.value; edit(d => { d.content.sections[i].heading = x; }); }, setBody: e => { const x = e.target.value; edit(d => { d.content.sections[i].body = x; }); },
+    lrSections: ct.sections.map((s, i) => ({ heading: s.heading, body: s.body, headingP: part('sections.' + i + '.heading'), bodyP: part('sections.' + i + '.body'), setHeading: e => { const x = e.target.value; edit(d => { d.content.sections[i].heading = x; }); }, setBody: e => { const x = e.target.value; edit(d => { d.content.sections[i].body = x; }); },
       remove: () => edit(d => { d.content.sections.splice(i, 1); }) })),
     lrAddSection: () => edit(d => { d.content.sections.push({ heading: 'New section', body: '' }); }),
-    lrSteps: ct.nextSteps.map((s, i) => ({ text: s, set: e => { const x = e.target.value; edit(d => { d.content.nextSteps[i] = x; }); }, remove: () => edit(d => { d.content.nextSteps.splice(i, 1); }) })),
+    lrSteps: ct.nextSteps.map((s, i) => ({ text: s, p: part('nextSteps.' + i), set: e => { const x = e.target.value; edit(d => { d.content.nextSteps[i] = x; }); }, remove: () => edit(d => { d.content.nextSteps.splice(i, 1); }) })),
     lrAddStep: () => edit(d => { d.content.nextSteps.push(''); }),
     lrKpis: kpis.map(([label, value, note]) => ({ label, value, note: note + ' vs previous ' + n + ' days', c: tint(note) })),
     lrLine: path(curD), lrPrevLine: path(prevD), lrArea: path(curD) + ' L600 160 L0 160 Z', lrFrom: fmtDay(f.start), lrTo: fmtDay(f.end),
@@ -91,12 +104,5 @@ export function liveReportsVals(app, ctx) {
     lrDelete: () => { if (S.lrDelAsk !== r.id) { app.setState({ lrDelAsk: r.id }); clearTimeout(app.lrDT); app.lrDT = setTimeout(() => app.setState({ lrDelAsk: null }), 4000); return; }
       deleteReportAction(r.id).then(x => { if (x.error) return toast(x.error); app.setState({ view: 'templates', lrDelAsk: null, lrDraft: null }); refresh(); }); },
     lrDeleteLabel: S.lrDelAsk === r.id ? 'Click again to delete' : 'Delete',
-    lrAsk: S.lrAsk || '', lrSetAsk: e => app.setState({ lrAsk: e.target.value, lrAskErr: null }), lrAskBusy: busy, lrAskLabel: busy ? 'Rewriting…' : 'Rewrite',
-    lrAskErr: S.lrAskErr || '', lrHasAskErr: !!S.lrAskErr,
-    lrAskIdeas: ['Make it shorter', 'Explain the drop in plain words', 'Sound more reassuring'].map(label => ({ label, use: () => app.setState({ lrAsk: label }) })),
-    lrAskSend: e => { e.preventDefault(); const q = (S.lrAsk || '').trim(); if (!q || busy) return; if (dirty) return app.setState({ lrAskErr: 'Save or discard your edits first, so Analyst works on the latest version.' });
-      app.setState({ lrAskBusy: true, lrAskErr: null });
-      reviseReportAction({ id: r.id, instruction: q }).then(x => { if (x.error) return app.setState({ lrAskBusy: false, lrAskErr: x.error }); app.setState({ lrAskBusy: false, lrAsk: '' }); toast('Analyst rewrote the report'); refresh(); },
-        () => app.setState({ lrAskBusy: false, lrAskErr: 'Rewriting failed. Try again.' })); },
   };
 }

@@ -65,33 +65,77 @@ Rules:
 - Next steps are concrete things the agency will do in the coming period, based on the data.
 - Small numbers are noisy. If a change is based on a handful of sessions or leads, say so instead of overstating it.`;
 
-export async function writeReport(facts: NonNullable<Facts>, ctx: { client: string; agency: string; tone: string }, instruction?: string, current?: ReportContent) {
-  const claude = getClaude();
-  if (!claude) throw new Error('AI is not configured on this server.');
-  const brief = `Client: ${ctx.client}
+type Ctx = { client: string; agency: string; tone: string };
+const clip = (s: string, n: number) => s.trim().slice(0, n);
+
+// The client, tone, period and numbers, shared by every writing request.
+function briefFor(facts: NonNullable<Facts>, ctx: Ctx) {
+  return `Client: ${ctx.client}
 Agency: ${ctx.agency}
 Tone: ${TONES[ctx.tone] || TONES.Friendly}
 Period: ${facts.start} to ${facts.end} (${facts.periodDays} days), compared with ${facts.prevStart} to ${facts.prevEnd}.
 
 Data (JSON):
 ${JSON.stringify({ ...facts, daily: undefined })}`;
-  const messages: { role: 'user'; content: string }[] = [{ role: 'user', content: current && instruction
-    ? `${brief}\n\nHere is the current report (JSON):\n${JSON.stringify(current)}\n\nRevise it following this request from the agency, keeping everything else accurate: ${instruction}`
-    : `${brief}\n\nWrite the report.` }];
-  const res = await claude.messages.parse({
+}
+
+function claudeOrThrow() {
+  const claude = getClaude();
+  if (!claude) throw new Error('AI is not configured on this server.');
+  return claude;
+}
+
+export async function writeReport(facts: NonNullable<Facts>, ctx: Ctx) {
+  const res = await claudeOrThrow().messages.parse({
     model: aiModel(),
     max_tokens: 16000,
     system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
     output_config: { effort: 'medium', format: zodOutputFormat(ReportContent) },
-    messages,
+    messages: [{ role: 'user', content: `${briefFor(facts, ctx)}\n\nWrite the report.` }],
   });
   if (res.stop_reason === 'refusal') throw new Error('The AI declined to write this report.');
   if (!res.parsed_output) throw new Error('The AI returned an incomplete report. Try again.');
   const c = res.parsed_output;
   // Trim and cap what goes into the database.
-  const clip = (s: string, n: number) => s.trim().slice(0, n);
   return {
     content: { headline: clip(c.headline, 160), summary: clip(c.summary, 1200), sections: c.sections.slice(0, 5).map(s => ({ heading: clip(s.heading, 120), body: clip(s.body, 2000) })), nextSteps: c.nextSteps.slice(0, 6).map(s => clip(s, 400)) },
     usage: res.usage,
   };
+}
+
+// A part of the written report: "headline", "summary", "sections.0.heading", "sections.0.body" or "nextSteps.0".
+export const PART = /^(headline|summary|sections\.\d+\.(heading|body)|nextSteps\.\d+)$/;
+export function getPart(c: ReportContent, path: string): string | undefined {
+  const [a, i, b] = path.split('.');
+  if (a === 'headline' || a === 'summary') return c[a];
+  if (a === 'sections') return c.sections[Number(i)]?.[b as 'heading' | 'body'];
+  if (a === 'nextSteps') return c.nextSteps[Number(i)];
+}
+const PART_NAMES: Record<string, string> = { headline: 'the headline', summary: 'the summary', heading: 'a section heading', body: 'a section\'s text', nextSteps: 'one next step' };
+const LIMITS: Record<string, number> = { headline: 160, summary: 1200, heading: 120, body: 2000, nextSteps: 400 };
+
+// Ask Analyst on one part: Claude rewrites only that part, keeping it true to the numbers and consistent with the rest.
+export async function rewritePart(facts: NonNullable<Facts>, ctx: Ctx, content: ReportContent, path: string, instruction: string) {
+  const current = getPart(content, path) ?? '';
+  const kind = path.startsWith('sections') ? path.split('.')[2] : path.split('.')[0];
+  const res = await claudeOrThrow().messages.parse({
+    model: aiModel(),
+    max_tokens: 8000,
+    system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+    output_config: { effort: 'low', format: zodOutputFormat(z.object({ text: z.string().describe('The new text for that part only, with no heading or label.') })) },
+    messages: [{ role: 'user', content: `${briefFor(facts, ctx)}
+
+The full report as it stands (JSON):
+${JSON.stringify(content)}
+
+Rewrite only ${PART_NAMES[kind] || 'this part'}. Its current text:
+"""${current}"""
+
+The agency's request: ${instruction}
+
+Keep it accurate to the data and consistent with the rest of the report. Return only the new text for this part.` }],
+  });
+  if (res.stop_reason === 'refusal') throw new Error('The AI declined to rewrite this part.');
+  if (!res.parsed_output?.text?.trim()) throw new Error('The AI returned nothing. Try again.');
+  return { text: clip(res.parsed_output.text, LIMITS[kind] || 1200), usage: res.usage };
 }
