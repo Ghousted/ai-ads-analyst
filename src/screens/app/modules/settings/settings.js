@@ -118,8 +118,8 @@ function dialogVals(app, S, { toast, me, agency, members, conns, C }) {
   const picked = k === 'invite' ? D.role || 'Member' : D.who || (radios[0] || [])[0];
   return { ...base,
     dlgTitle: done ? (D.another ? added.who : TOOL_NAMES[D.tool]) + ' is connected' : T[0],
-    dlgText: done ? found + (found === 1 ? ' account' : ' accounts') + ' found. Assign each one to a client below.' : T[1],
-    dlgSubmitLabel: signing ? 'Signing in…' : done ? 'Assign accounts' : T[2],
+    dlgText: done ? found + (found === 1 ? ' account' : ' accounts') + ' found. ' + (D.from ? 'Pick the ones that belong to this client.' : 'Assign each one to a client below.') : T[1],
+    dlgSubmitLabel: signing ? 'Signing in…' : done ? (D.from ? 'Back to the client' : 'Assign accounts') : T[2],
     dlgDanger: k === 'disconnect', dlgSubmitBg: k === 'disconnect' ? '#a3330c' : '#1f6be2',
     dlgSubmit: done ? e => { e.preventDefault(); app.setState(s => ({ stgOpen: { ...(s.stgOpen || {}), [D.tool]: true } })); close(); } : submit,
     dlgShowCancel: k !== 'invoices' && !done,

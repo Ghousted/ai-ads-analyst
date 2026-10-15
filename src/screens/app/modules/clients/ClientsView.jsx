@@ -260,7 +260,7 @@ export function ClientsView({ v }) {
                             {"Accounts"}
                           </span>
                           <span style={{ fontSize: "14px", color: "#5a6474" }}>
-                            {"The tools this client already uses"}
+                            {"Their ad accounts and properties"}
                           </span>
                         </span>
                         {" "}
@@ -274,8 +274,9 @@ export function ClientsView({ v }) {
                             <React.Fragment key={$index}>
                               <button type={"button"} role={"checkbox"} aria-checked={p?.on} onClick={p?.toggle} style={{ display: "flex", alignItems: "center", gap: "10px", minHeight: "48px", padding: "0 12px", border: `1.5px solid ${p?.bd ?? ""}`, borderRadius: "12px", background: p?.bg, font: "inherit", fontSize: "15px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left", transition: "border-color 160ms ease,background-color 160ms ease" }}>
                                 <span aria-hidden={"true"} style={{ flex: "none", display: "block", width: "20px", height: "20px", background: `url('${p?.logo ?? ""}') center / contain no-repeat` }}></span>
-                                <span style={{ flex: "1" }}>
-                                  {p?.label}
+                                <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", lineHeight: "1.3", padding: "6px 0" }}>
+                                  <span>{p?.label}</span>
+                                  <span style={{ fontSize: "13px", fontWeight: "500", color: "#5a6474" }}>{p?.desc}</span>
                                 </span>
                                 <span aria-hidden={"true"} style={{ flex: "none", width: "18px", height: "18px", borderRadius: "5px", border: `2px solid ${p?.bd ?? ""}`, background: p?.chk, display: "grid", placeItems: "center" }}>
                                   <svg width={"11"} height={"11"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#ffffff"} strokeWidth={"3.5"} strokeLinecap={"round"} strokeLinejoin={"round"}>
@@ -288,8 +289,16 @@ export function ClientsView({ v }) {
                           {" "}
                         </div>
                         {" "}
-                        <span style={{ fontSize: "14px", color: "#5a6474" }}>
-                          {"Optional. You'll pick their ad accounts from your agency's integrations."}
+                        {(v.cPlatsNone) ? (<>
+                          <span style={{ color: "#45505f" }}>
+                            {"Every connected account is already linked to a client."}
+                          </span>
+                        </>) : null}
+                        <span style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px 12px", fontSize: "14px", color: "#5a6474" }}>
+                          {"Optional. Accounts already linked to another client are not shown."}
+                          <button type={"button"} onClick={v.cConnectTool} style={{ minHeight: "44px", padding: "0", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#1f6be2", cursor: "pointer" }}>
+                            {"Connect a new tool"}
+                          </button>
                         </span>
                         {" "}
                       </div>
@@ -624,6 +633,19 @@ export function ClientsView({ v }) {
                 {" "}
               </div>
               {" "}
+              <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", padding: "16px 0 12px", borderTop: "1px solid #eef1f6" }}>
+                <span style={{ flex: "1 1 220px", minWidth: "0", display: "flex", flexDirection: "column", lineHeight: "1.3" }}>
+                  <span style={{ fontWeight: "600" }}>
+                    {v.pfAskTitle}
+                  </span>
+                  <span style={{ fontSize: "14px", color: "#5a6474", textWrap: "pretty" }}>
+                    {v.pfAskText}
+                  </span>
+                </span>
+                <button onClick={v.pfAsk} style={{ height: "40px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", whiteSpace: "nowrap" }}>
+                  {v.pfAskCopied ? "Copied" : v.pfAskBtn}
+                </button>
+              </div>
             </section>
             {" "}
           </>) : null}

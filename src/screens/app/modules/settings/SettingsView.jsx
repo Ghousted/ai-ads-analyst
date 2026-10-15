@@ -244,7 +244,7 @@ export function SettingsOverlay({ v }) {
   // Dialogs opened from settings rows: profile, integrations, agency, team and billing
   if (!v.dlgOpen) return null;
   return (
-    <div onClick={v.dlgBackdrop} style={{ position: "fixed", inset: "0", zIndex: "60", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
+    <div onClick={v.dlgBackdrop} style={{ position: "fixed", inset: "0", zIndex: "70", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
       <form role="dialog" aria-modal="true" aria-labelledby="dlg-title" onSubmit={v.dlgSubmit} noValidate style={{ width: "min(560px,100%)", maxHeight: "calc(100vh - 48px)", overflowY: "auto", background: "#ffffff", borderRadius: "0", padding: "28px", display: "flex", flexDirection: "column", gap: "20px", boxShadow: "0 30px 80px -30px rgba(11,22,38,.5)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
