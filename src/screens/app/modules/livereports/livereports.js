@@ -27,14 +27,15 @@ export function liveReportsVals(app, ctx) {
       app.setState({ lrMsg: Math.min((st.lrMsg || 0) + 1, MSGS.length - 1) }); }, 2600); };
   const writingVals = { lrWriting: writing, lrWritingTitle: 'Writing ' + ((clients.find(c => c.id === (S.lrWritingFor || '')) || {}).name || 'the') + (S.lrWritingFor ? '\u2019s report' : ' report'), lrWritingMsg: S.lrWritingBlank ? 'Setting up a blank report\u2026' : MSGS[S.lrMsg || 0], lrWritingKey: String(S.lrMsg || 0) };
 
-  // The new-report wizard, opened from the Reports header button: 1. client and period, 2. template (the design's gallery).
+  // The Reports page shows the template gallery above the recent reports. Picking a template opens a short dialog for
+  // the client and period, then Analyst writes it (or a blank report is set up).
   const modal = (() => {
     const pick = S.lrClient && withData.some(c => c.id === S.lrClient) ? S.lrClient : (S.sel != null && C[S.sel] && C[S.sel].extra && hasData(C[S.sel].extra.id) ? C[S.sel].extra.id : (withData[0] || {}).id || '');
-    const days = S.lrDays || 7, step = S.lrStep || 1, busy = !!S.lrBusy;
-    const close = () => { if (!busy) app.setState({ lrModal: false, lrErr: null, lrStep: 1, lrQ: '', lrCat: null }); };
-    const toolsOf = id => { const t = new Set((live.metrics.accounts || []).filter(a => a.clientId === id).map(a => a.tool)); return [...t].map(x => x === 'ga4' ? '/assets/logo-ga4.png' : '/assets/logo-meta.png'); };
+    const days = S.lrDays || 7, busy = !!S.lrBusy, tplId = S.lrTpl || 'blank';
+    const close = () => { if (!busy) app.setState({ lrModal: false, lrErr: null }); };
+    const toolsOf = id => { const t = new Set((live.metrics.accounts || []).filter(a => (id == null ? a.clientId : a.clientId === id)).map(a => a.tool)); return [...t].map(x => x === 'ga4' ? '/assets/logo-ga4.png' : '/assets/logo-meta.png'); };
     const create = tpl => { if (busy || !pick) return; app.setState({ lrBusy: true, lrErr: null, lrWritingFor: pick, lrWritingBlank: tpl === 'blank' }); if (tpl !== 'blank') startMsgs();
-      generateReportAction({ clientId: pick, days, template: tpl }).then(r => { if (r.error) return app.setState({ lrBusy: false, lrErr: r.error }); app.setState({ lrBusy: false, lrModal: false, lrStep: 1, lrQ: '', lrCat: null, lrPendingId: r.id, view: 'lrep', lrId: r.id, lrDraft: null }); refresh(); },
+      generateReportAction({ clientId: pick, days, template: tpl }).then(r => { if (r.error) return app.setState({ lrBusy: false, lrErr: r.error }); app.setState({ lrBusy: false, lrModal: false, lrPendingId: r.id, view: 'lrep', lrId: r.id, lrDraft: null }); refresh(); },
         () => app.setState({ lrBusy: false, lrErr: 'Writing the report failed. Try again.' })); };
     // Template cards: a small preview drawn from the blocks each template lays out.
     const PH = { headline: 'x', summary: 'x', sections: [{ heading: 'x', body: 'x' }], nextSteps: ['x'] };
@@ -42,24 +43,22 @@ export function liveReportsVals(app, ctx) {
       tiles: [0, 1, 2, 3].map(j => ({ logo: '/assets/logo-ga4.png', c: j % 3 === 2 ? '#f6c9bb' : '#c9e8d3' })), rowsT: [{ w: '38%' }, { w: '28%' }, { w: '44%' }, { w: '32%' }] }));
     const CAT = { weekly: ['Traffic', 'Leads'], traffic: ['Traffic'], leads: ['Leads'] };
     const all = [{ id: 'blank', label: 'Blank', desc: 'An empty report. Add text, charts and tables from the client’s tools yourself.', prev: [], logos: [], cats: [] }]
-      .concat(TEMPLATES.map(t => ({ id: t.id, label: t.label, desc: t.desc + ' Analyst writes it from the numbers.', prev: prevOf(templateBlocks(t.id, PH, null)), logos: toolsOf(pick), cats: CAT[t.id] || [] })));
+      .concat(TEMPLATES.map(t => ({ id: t.id, label: t.label, desc: t.desc + ' Analyst writes it from the numbers.', prev: prevOf(templateBlocks(t.id, PH, null)), logos: toolsOf(null), cats: CAT[t.id] || [] })));
     const cat = S.lrCat || 'All templates', q = (S.lrQ || '').trim().toLowerCase();
     const shown = all.filter(t => q ? (t.label + ' ' + t.desc).toLowerCase().includes(q) : cat === 'All templates' || t.id === 'blank' || t.cats.includes(cat));
-    const clientName = (clients.find(c => c.id === pick) || {}).name || '';
+    const tpl = all.find(t => t.id === tplId) || all[0];
     return { ...writingVals, lrModal: writing || (!!S.lrModal && (v === 'templates' || v === 'reports')), lrClose: close, lrBackdrop: e => { if (e.target === e.currentTarget) close(); },
-      lrStep1: step === 1, lrStep2: step === 2, lrStepLabel: 'Step ' + step + ' of 2', lrBar2: step === 2 ? '#1f6be2' : '#e6ebf2', lrW: step === 2 && !writing ? '920px' : '560px', lrH: step === 2 && !writing ? '760px' : 'auto',
       lrCanWrite: withData.length > 0,
       lrNoDataText: clients.length ? 'None of your clients has Google Analytics numbers yet. Link a property to a client in Integrations, and their numbers arrive within a minute.' : 'Add a client and link their Google Analytics property. Then Analyst can write their report from real numbers.',
       lrGoInt: () => app.setState({ lrModal: false, view: 'settings', stgTab: 'conn' }),
       lrClients: withData.map(c => ({ id: c.id, name: c.name, logos: toolsOf(c.id), on: c.id === pick, bd: c.id === pick ? '#1f6be2' : '#d3dbe6', bg: c.id === pick ? '#eef3fd' : '#ffffff', pick: () => app.setState({ lrClient: c.id, lrErr: null }) })),
       lrDaysOpts: [[7, 'Last 7 days'], [14, 'Last 14 days'], [30, 'Last 30 days']].map(([d, label]) => ({ value: String(d), label })), lrDays: String(days), lrSetDays: e => app.setState({ lrDays: Number(e.target.value), lrErr: null }),
-      lrNext: e => { e.preventDefault(); if (pick) app.setState({ lrStep: 2, lrErr: null }); }, lrBackStep: () => app.setState({ lrStep: 1, lrErr: null }),
-      lrClientName: clientName,
+      lrSubmit: e => { e.preventDefault(); create(tplId); }, lrTplLabel: tpl.label, lrGoLabel: tplId === 'blank' ? 'Create blank report' : 'Write report',
       lrCats: ['All templates', 'Traffic', 'Leads'].map(c => ({ label: c, count: String(all.filter(t => c === 'All templates' || t.id === 'blank' || t.cats.includes(c)).length), aria: c === cat ? 'true' : undefined, bg: c === cat ? '#eef3fd' : 'transparent', fw: c === cat ? 700 : 500, pick: () => app.setState({ lrCat: c }) })),
       lrQ: S.lrQ || '', lrSetQ: e => app.setState({ lrQ: e.target.value }), lrClearQ: () => app.setState({ lrQ: '' }), lrNoMatch: !!q && shown.length === 0,
-      lrTpls: shown.map(t => ({ ...t, blank: t.id === 'blank', btn: t.id === 'blank' ? 'Start blank' : 'Use template', create: () => create(t.id) })),
+      lrTpls: shown.map(t => ({ ...t, blank: t.id === 'blank', btn: t.id === 'blank' ? 'Start blank' : 'Use template', create: () => app.setState({ lrModal: true, lrTpl: t.id, lrErr: null }) })),
       lrNoBrand: !S.brandLogo && !S.lrBrandSkip, lrSkipBrand: () => app.setState({ lrBrandSkip: true }),
-      lrSetBrand: () => app.setState({ lrModal: false, lrStep: 1, view: 'settings', stgTab: 'agency' }),
+      lrSetBrand: () => app.setState({ lrModal: false, view: 'settings', stgTab: 'agency' }),
       lrBusy: busy, lrErr: S.lrErr || '', lrHasErr: !!S.lrErr };
   })();
 

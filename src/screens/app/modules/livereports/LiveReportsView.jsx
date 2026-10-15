@@ -11,14 +11,47 @@ const COLS = 'minmax(0,1.6fr) minmax(0,1.2fr) minmax(0,1fr) 90px 110px';
 
 export function LiveReportsView({ v }) {
   if (v.lrList) return (
-    <>
-      <section aria-label="Reports" style={{ background: "#ffffff", display: "flex", flexDirection: "column" }}>
-        {v.lrNoReports ? (
-          <div style={{ padding: "32px 22px", color: "#5a6474" }}>{"No reports yet. Click Write report and Analyst drafts one from the client's real numbers for you to review."}</div>
-        ) : (<>
-          <div role="row" style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", padding: "10px 22px", background: "#f4f7fb", fontSize: "13px", fontWeight: "600", color: "#5a6474" }}>
-            <span role="columnheader">{"Report"}</span><span role="columnheader">{"Period"}</span><span role="columnheader">{"Client"}</span><span role="columnheader">{"Status"}</span><span role="columnheader" style={{ textAlign: "right" }}>{"Written"}</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
+      <section aria-labelledby="lr-tpl-h" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <h2 id="lr-tpl-h" style={{ margin: "0", fontSize: "20px", fontWeight: "700", letterSpacing: "-0.4px" }}>{"Write a report"}</h2>
+          <span style={{ color: "#5a6474", textWrap: "pretty" }}>{"Pick a template and Analyst writes it from the client’s numbers, or start blank. You can change everything after."}</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+          <div role="tablist" aria-label="Template categories" style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+            {(v.lrCats || []).map(c => (
+              <button key={c.label} type="button" role="tab" aria-selected={c.aria ? "true" : "false"} onClick={c.pick} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 14px", border: "0", borderRadius: "0", background: c.bg, font: "inherit", fontSize: "15px", fontWeight: c.fw, letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dc20c6b10">
+                <span>{c.label}</span><span style={{ fontSize: "13px", fontWeight: "500", color: "#97a2b2" }}>{c.count}</span>
+              </button>
+            ))}
           </div>
+          <label style={{ position: "relative", display: "block", flex: "0 1 260px" }}>
+            <span style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0 0 0 0)" }}>{"Search templates"}</span>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a6474" strokeWidth="2.4" strokeLinecap="round" style={{ position: "absolute", left: "12px", top: "14px" }}><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <input type="search" value={v.lrQ} onChange={v.lrSetQ} placeholder="Search templates" style={{ width: "100%", height: "44px", padding: "0 12px 0 36px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "15px", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
+          </label>
+        </div>
+        {v.lrNoMatch ? (
+          <div style={{ padding: "32px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", textAlign: "center" }}>
+            <span style={{ fontWeight: "700" }}>{"No templates match \"" + v.lrQ + "\""}</span>
+            <span style={{ color: "#5a6474" }}>{"Try another word, or start from Blank."}</span>
+            <button type="button" onClick={v.lrClearQ} style={{ ...btn, marginTop: "6px", height: "40px", padding: "0 14px", fontSize: "14px" }} className="dce60d758">{"Clear search"}</button>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,240px),1fr))", gap: "16px" }}>
+            {(v.lrTpls || []).map(t => <TemplateCard key={t.id} t={t} />)}
+          </div>
+        )}
+      </section>
+      <section aria-labelledby="lr-recent-h" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <h2 id="lr-recent-h" style={{ margin: "0", fontSize: "20px", fontWeight: "700", letterSpacing: "-0.4px" }}>{"Recent reports"}</h2>
+        <div style={{ background: "#ffffff", display: "flex", flexDirection: "column" }}>
+          {v.lrNoReports ? (
+            <div style={{ padding: "32px 22px", color: "#5a6474" }}>{"No reports yet. Pick a template above and Analyst drafts one from the client’s real numbers for you to review."}</div>
+          ) : (<>
+            <div role="row" style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", padding: "10px 22px", background: "#f4f7fb", fontSize: "13px", fontWeight: "600", color: "#5a6474" }}>
+              <span role="columnheader">{"Report"}</span><span role="columnheader">{"Period"}</span><span role="columnheader">{"Client"}</span><span role="columnheader">{"Status"}</span><span role="columnheader" style={{ textAlign: "right" }}>{"Written"}</span>
+            </div>
           {v.lrRows.map((r, i) => (
             <button key={i} role="row" onClick={r.open} style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", alignItems: "center", minHeight: "60px", padding: "10px 22px", border: "0", borderTop: i ? "1px solid #eef1f6" : "0", borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }} className="dcbbe0dc7">
               <span style={{ fontWeight: "600", minWidth: "0", overflowWrap: "anywhere" }}>{r.title}</span>
@@ -28,9 +61,10 @@ export function LiveReportsView({ v }) {
               <span style={{ fontSize: "14px", color: "#5a6474", textAlign: "right" }}>{r.date}</span>
             </button>
           ))}
-        </>)}
+          </>)}
+        </div>
       </section>
-    </>
+    </div>
   );
   if (!v.lrPage) return null;
   if (v.lrMissing) return (
@@ -208,18 +242,12 @@ export function LiveReportsOverlay({ v }) {
   const go = { height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" };
   return (
     <div onClick={v.lrBackdrop} style={{ position: "fixed", inset: "0", zIndex: "70", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
-      <div role="dialog" aria-modal="true" aria-labelledby={v.lrWriting ? undefined : "lr-title"} aria-label={v.lrWriting ? v.lrWritingTitle : undefined} style={{ width: `min(${v.lrW},100%)`, height: v.lrH, maxHeight: "calc(100vh - 48px)", overflowX: "hidden", overflowY: v.lrStep2 && !v.lrWriting ? "hidden" : "auto", background: "#ffffff", padding: "28px", display: "flex", flexDirection: "column", gap: "20px", boxShadow: "0 30px 80px -30px rgba(11,22,38,.5)" }}>
+      <div role="dialog" aria-modal="true" aria-labelledby={v.lrWriting ? undefined : "lr-title"} aria-label={v.lrWriting ? v.lrWritingTitle : undefined} style={{ width: "min(560px,100%)", maxHeight: "calc(100vh - 48px)", overflowX: "hidden", overflowY: "auto", background: "#ffffff", padding: "28px", display: "flex", flexDirection: "column", gap: "20px", boxShadow: "0 30px 80px -30px rgba(11,22,38,.5)" }}>
         {v.lrWriting ? <Writing v={v} /> : (<>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-            <span style={{ fontSize: "14px", fontWeight: "600", color: "#5a6474" }}>{v.lrCanWrite ? "New report \u00b7 " + v.lrStepLabel : "New report"}</span>
+            <span style={{ fontSize: "14px", fontWeight: "600", color: "#5a6474" }}>{v.lrCanWrite ? "New report \u00b7 " + v.lrTplLabel : "New report"}</span>
             <button type="button" onClick={v.lrClose} aria-label="Cancel and go back" style={{ width: "44px", height: "44px", margin: "-10px -10px -10px 0", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#45505f" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
           </div>
-          {v.lrCanWrite ? (
-            <div style={{ display: "flex", gap: "6px" }}>
-              <span style={{ flex: "1", height: "4px", background: "#1f6be2" }}></span>
-              <span style={{ flex: "1", height: "4px", background: v.lrBar2, transition: "background-color 200ms ease" }}></span>
-            </div>
-          ) : null}
           {!v.lrCanWrite ? (<>
             <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"No client has numbers yet"}</h2>
             <p style={{ margin: "0", color: "#5a6474", textWrap: "pretty" }}>{v.lrNoDataText}</p>
@@ -227,8 +255,8 @@ export function LiveReportsOverlay({ v }) {
               <button type="button" onClick={v.lrClose} style={ghost}>{"Cancel"}</button>
               <button type="button" onClick={v.lrGoInt} style={go} className="dc9482609">{"Open integrations"}</button>
             </div>
-          </>) : !v.lrStep2 ? (
-            <form onSubmit={v.lrNext} noValidate style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          </>) : (
+            <form onSubmit={v.lrSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"Which client is this report for?"}</h2>
               {v.lrNoBrand ? (
                 <div role="note" style={{ display: "flex", alignItems: "center", gap: "8px 16px", flexWrap: "wrap", padding: "12px 14px", background: "#fff6c2", color: "#5c4400" }}>
@@ -251,43 +279,13 @@ export function LiveReportsOverlay({ v }) {
                 <span style={{ fontWeight: "600" }}>{"Period"}</span>
                 <select value={v.lrDays} onChange={v.lrSetDays} style={select}>{(v.lrDaysOpts || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
               </label>
+              {v.lrHasErr ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.lrErr}</span> : null}
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
                 <button type="button" onClick={v.lrClose} style={ghost}>{"Cancel"}</button>
-                <button type="submit" style={go} className="dc9482609">{"Next"}</button>
+                <button type="submit" disabled={v.lrBusy} style={{ ...go, opacity: v.lrBusy ? 0.6 : 1 }} className="dc9482609">{v.lrGoLabel}</button>
               </div>
             </form>
-          ) : (<>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"What kind of report for " + v.lrClientName + "?"}</h2>
-              <span style={{ color: "#5a6474" }}>{"Pick a template and Analyst writes it from the numbers, or start blank. You can add, remove and resize everything after."}</span>
-            </div>
-            {v.lrHasErr ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.lrErr}</span> : null}
-            <div style={{ flex: "1 1 auto", minHeight: "0", overflowY: "auto", margin: "0 -28px", padding: "2px 28px 8px", display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
-              <nav aria-label="Template categories" style={{ flex: "0 0 180px", position: "sticky", top: "0", alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: "2px", background: "#ffffff" }}>
-                <label style={{ position: "relative", display: "block", marginBottom: "8px" }}>
-                  <span style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0 0 0 0)" }}>{"Search templates"}</span>
-                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a6474" strokeWidth="2.4" strokeLinecap="round" style={{ position: "absolute", left: "12px", top: "14px" }}><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-                  <input type="search" value={v.lrQ} onChange={v.lrSetQ} placeholder="Search templates" style={{ width: "100%", height: "44px", padding: "0 12px 0 36px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", fontSize: "15px", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
-                </label>
-                {(v.lrCats || []).map(c => (
-                  <button key={c.label} type="button" onClick={c.pick} aria-current={c.aria} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", minHeight: "42px", padding: "0 12px", border: "0", borderRadius: "0", background: c.bg, font: "inherit", fontSize: "16px", fontWeight: c.fw, letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }}>
-                    <span>{c.label}</span><span style={{ fontSize: "13px", fontWeight: "500", color: "#97a2b2" }}>{c.count}</span>
-                  </button>
-                ))}
-                <button type="button" onClick={v.lrBackStep} style={{ marginTop: "12px", height: "44px", padding: "0 12px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "15px", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer", textAlign: "left" }}>{"Back to client"}</button>
-              </nav>
-              <div role="radiogroup" aria-label="Report template" style={{ flex: "1", minWidth: "260px", display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: "16px", alignContent: "start" }}>
-                {v.lrNoMatch ? (
-                  <div style={{ gridColumn: "1 / -1", padding: "48px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", textAlign: "center" }}>
-                    <span style={{ fontWeight: "700" }}>{"No templates match \"" + v.lrQ + "\""}</span>
-                    <span style={{ color: "#5a6474" }}>{"Try another word, or start from Blank."}</span>
-                    <button type="button" onClick={v.lrClearQ} style={{ marginTop: "6px", height: "40px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }}>{"Clear search"}</button>
-                  </div>
-                ) : null}
-                {(v.lrTpls || []).map(t => <TemplateCard key={t.id} t={t} />)}
-              </div>
-            </div>
-          </>)}
+          )}
         </>)}
       </div>
     </div>
