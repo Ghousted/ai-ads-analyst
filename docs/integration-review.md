@@ -1,9 +1,32 @@
 # Integration review: does the design work with real APIs?
 
 This review checks the Clario design (`design/App.dc.html`, `design/Setup.dc.html`, `design/Landing Page.dc.html`)
-against how each ad and analytics platform actually grants access. The prototype in `src/` copies the
-design as it is. Nothing below has been changed in the UI yet, except where the prototype needed working
-buttons. Each item says what the design assumes, what the platform does, and what to change.
+against how each ad and analytics platform actually grants access. Each item says what the design assumes,
+what the platform does, and what to change. The prototype now applies most of the changes. The status table
+below says what changed and what is still open.
+
+## Status in the prototype
+
+| Finding | Status | Where |
+|---|---|---|
+| 1. Integrations under Account | Done. Integrations is under Workspace. Each connection shows who made it and can be reconnected by you, an admin, or a Meta system user without unassigning accounts | Settings › Integrations |
+| 2. One connection per platform | Done. GA4, Google Ads, Search Console and Business Profile take another Google login. The account list says which login reads each account | Settings › Integrations |
+| 3. Client connects their own account | Done. "Ask {client} to connect" sends a link and marks unlinked tools as waiting | Client profile › Tools |
+| 4. Tools from two places | Done. Assignments are the only source. Wizard step 3 picks the agency's unassigned accounts and can connect a new tool | Clients, Screen.jsx |
+| 5. "Connect" when only the link is missing | Done. The empty state says "Link an account" when the agency is connected | Dashboard › Analytics |
+| 6. Slack per person | Done. Slack is a workspace connection with a channel. Notifications keep a personal "direct messages" toggle | Settings |
+| Instagram listed twice | Done. Meta covers Facebook and Instagram everywhere | Setup, landing, settings, clients |
+| Read-only promise | Done. Copy states the policy, not read-only access | Setup, connect dialog, info pages |
+| Combined leads double counted | Done. Leads come from GA4 key events. Platform counts are shown as "leads they report" | Dashboard › All sources |
+| Risk signals | Done. Reply time and email opens are replaced by portal visits and report views | Shell sample data, Tasks › Flagged, landing |
+| Templates with no source | Done. Ecommerce, calls, CRM, email and organic social templates are hidden | Reporting |
+| Booking funnel | Partly. The title says it comes from the site's GA4 events. Picking the steps is not built | Dashboard › GA4 |
+| Freshness | Done. Each analytics view and the report editor say "data up to" with the platform's delay | Dashboard, report editor |
+| Send-from domain | Done. "Verify domain" shows SPF and DKIM records and checks them | Report editor › Design |
+| Team roles | Partly. The invite dialog says who manages integrations. Per-client visibility is not built | Settings › Team |
+| Token expiry | Partly. Every connection has Reconnect. The prototype has no in-app alert list to put a button on | Settings › Integrations |
+| Backfill | Copy only. Setup says the import runs in the background | Setup |
+| Approvals (Meta, Google, TikTok) | Not a UI change. Start them now | |
 
 Severity: **Blocker** means the screen cannot work as drawn. **High** means it works for some agencies and
 breaks for others. **Medium** means the copy or numbers would mislead. **Low** means polish.
