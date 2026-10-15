@@ -9,6 +9,8 @@ import { scoreClients } from '@/lib/risk';
 import { normalizeContent } from '@/lib/report-blocks';
 
 export const metadata: Metadata = { title: 'AI Ads Analyst' };
+// Sending a report can print its PDF first, which takes a few seconds.
+export const maxDuration = 60;
 
 const cap = (r: string) => r[0].toUpperCase() + r.slice(1);
 
@@ -41,7 +43,7 @@ export default async function Page() {
     return {
       clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email, contactName: c.contactName, schedule: c.schedule, tone: c.tone })),
       conns, metrics, risk,
-      reports: reports.map(r => ({ id: r.id, clientId: r.clientId, title: r.title, status: r.status, createdAt: r.createdAt.toISOString(), periodStart: r.periodStart, periodEnd: r.periodEnd, facts: r.facts, content: normalizeContent(r.content, r.facts as never) })),
+      reports: reports.map(r => ({ id: r.id, clientId: r.clientId, title: r.title, status: r.status, createdAt: r.createdAt.toISOString(), sentAt: r.sentAt?.toISOString() ?? null, sentTo: r.sentTo, shareToken: r.shareToken, viewCount: r.viewCount, lastViewedAt: r.lastViewedAt?.toISOString() ?? null, periodStart: r.periodStart, periodEnd: r.periodEnd, facts: r.facts, content: normalizeContent(r.content, r.facts as never) })),
     };
   })();
   const team = members.map(m => ({ id: m.id, name: m.name || m.email.split('@')[0], email: m.email, role: cap(m.role), pending: false }))
