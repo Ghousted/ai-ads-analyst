@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '@/db';
@@ -28,7 +29,10 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const [{ token }, q] = await Promise.all([params, searchParams]);
   const r = await load(token);
   if (!r) notFound();
-  if (q.preview !== '1') await db.update(schema.reports).set({ viewCount: sql`${schema.reports.viewCount} + 1`, firstViewedAt: sql`coalesce(${schema.reports.firstViewedAt}, now())`, lastViewedAt: new Date() }).where(eq(schema.reports.id, r.report.id));
+  // Mail scanners and link previews open links too. They don't count as the client viewing the report.
+  const ua = (await headers()).get('user-agent') || '';
+  const bot = !ua || /bot|crawl|spider|preview|scan|fetch|curl|wget|python|java\/|go-http|okhttp|headless|lighthouse|facebookexternalhit|slack|whatsapp|telegram|discord|skype|googleimageproxy|proofpoint|mimecast|barracuda|safelinks|outlook-ios|ms office|microsoft office|bingpreview/i.test(ua);
+  if (q.preview !== '1' && !bot) await db.update(schema.reports).set({ viewCount: sql`${schema.reports.viewCount} + 1`, firstViewedAt: sql`coalesce(${schema.reports.firstViewedAt}, now())`, lastViewedAt: new Date() }).where(eq(schema.reports.id, r.report.id));
   const print = q.print === '1', color = r.agency.brandColor || '#1f6be2', content = normalizeContent(r.report.content, r.report.facts as never);
   return (
     // print=1: the layout the PDF is made from, white and edge to edge (the PDF adds its own margins).
