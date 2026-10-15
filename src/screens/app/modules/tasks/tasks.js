@@ -1,6 +1,7 @@
 // Tasks: board, list, flagged clients and the new-task wizard.
 import { clSplit } from '../../data';
 import { analyzeFlagAction, dismissFlagAction } from '@/app/actions/flags';
+import { clientGoalVals } from '../clients/clientGoals';
 
 export function tasksVals(app, ctx) {
   // eslint-disable-next-line no-unused-vars
@@ -8,7 +9,7 @@ export function tasksVals(app, ctx) {
   return {
       ...(() => { const gone = S.rkGone || {}; const list = C.map((c, i) => ({ c, i })).filter(({ c }) => c.s !== 'h' && !c.dismissed && !gone[c.name]);
         const PILL = { r: ['#fde2d6', '#a3330c', 'At risk', '#e0481a'], n: ['#fff6c2', '#7a5a00', 'Needs attention', '#e8a33a'] };
-        const hide = c => app.confirm({ title: 'Dismiss the flag for ' + c.name + '?', body: 'It leaves your Flags list. Analyst flags them again if their numbers change.', confirm: 'Dismiss flag',
+        const hide = c => app.confirm({ title: 'Dismiss the flag for ' + c.name + '?', body: 'It leaves Ask Analyst. Analyst flags them again if their numbers change.', confirm: 'Dismiss flag',
           onConfirm: () => { app.setState(s => ({ rkGone: { ...(s.rkGone || {}), [c.name]: true }, rkOpen: null })); if (live && c.extra) dismissFlagAction({ clientId: c.extra.id, keys: c.flagKeys || '' }); } });
         const fl = S.tkView === 'flagged';
         // Claude's analysis of a flag: saved with the client (live), built in (sample), or being written now.
@@ -41,7 +42,30 @@ export function tasksVals(app, ctx) {
             rpCreate: () => { cur.create(); app.setState({ rkOpen: null }); }, rpAsk: () => { cur.ask(); app.setState({ rkOpen: null }); }, rpDismiss: () => cur.dismiss(),
             rpProfile: () => app.setState({ rkOpen: null, pfPanel: true, pfI: ci, cid: ci, pfDraft: null }) }
           : { rpOn: false, rpO: 0, rpPe: 'none', rpX: '100%', rpVis: 'hidden', rpReasons: [], rpBars: [], rpFacts: [], rpCauses: [], rpSteps: [] };
-        return { ...rp, rpClose: () => app.setState({ rkOpen: null }), rkList: rows, rkHas: fl && list.length > 0, rkNone: fl && list.length === 0, rkMail: !live, rkTitle: clSplit('Analyst flagged ' + list.length + (list.length === 1 ? ' client' : ' clients')) }; })(),
+        // Suggested by Analyst, on the Tasks board: steps for flagged clients (Claude's, or the rule's until Claude has
+        // read the flag), goals and budgets that are off track, and tasks Ask Analyst suggested. Nothing already on the
+        // board, and nothing the agency added or dismissed here.
+        const sug = (() => {
+          const out = [], seen = new Set(tkSrc.map(t => t.title.trim().toLowerCase())), gone = S.tkSugGone || {};
+          const push = (client, title, why, src) => { const k = client + '|' + title.trim().toLowerCase(); if (!title || seen.has(title.trim().toLowerCase()) || gone[k] || out.some(o => o.key === k)) return; out.push({ key: k, client, title, why, src }); };
+          rows.slice().sort((a, b) => (a.c.s === 'r' ? 0 : 1) - (b.c.s === 'r' ? 0 : 1)).forEach(r => {
+            if (r.an) r.an.steps.forEach(st => push(r.name, st.action, st.why, 'Flag'));
+            else push(r.name, r.action.replace(/\.$/, ''), r.why, 'Flag'); });
+          C.forEach((c, i) => { const g = clientGoalVals(app, { S, live, C }, i, () => {});
+            // A flag step about spending already covers the budget.
+            const spendStep = out.some(o => o.client === c.name && /spend|budget/i.test(o.title));
+            if (g.cgBudgetStatus === 'Spending fast' && !spendStep) push(c.name, 'Lower ' + c.name + '\u2019s daily ad spend', g.cgBudgetNote, 'Budget');
+            if (g.cgBudgetStatus === 'Spending slow' && !spendStep) push(c.name, 'Check why ' + c.name + '\u2019s ads are underspending', g.cgBudgetNote, 'Budget');
+            g.cgGoals.filter(x => x.status === 'Over target' || x.status === 'Below target').forEach(x => push(c.name, (x.status === 'Over target' ? 'Bring ' : 'Lift ') + x.label.toLowerCase() + ' back on target', x.now + ', target ' + x.target.toLowerCase() + '.', 'Goal')); });
+          (S.msgs || []).forEach(m => (m.actions || []).forEach(x => { if (x.kind === 'task' && !x.done) push(x.client, x.title, x.why, 'Ask Analyst'); }));
+          return out;
+        })();
+        const sgAll = !!S.tkSugAll, shown = sgAll ? sug : sug.slice(0, 3);
+        const sgVals = { sgHas: sug.length > 0, sgCount: String(sug.length), sgMore: sug.length > 3, sgMoreLabel: sgAll ? 'Show fewer' : 'Show all ' + sug.length, sgToggle: () => app.setState({ tkSugAll: !sgAll }),
+          sgList: shown.map(x => ({ ...x, clientLabel: x.client || 'No client', srcLabel: { Flag: 'From a flag', Budget: 'Budget', Goal: 'Goal', 'Ask Analyst': 'Ask Analyst' }[x.src], addLabel: 'Add task: ' + x.title, dismissLabel: 'Dismiss suggestion: ' + x.title,
+            add: () => { addTask({ name: x.client }, x.title, x.why); app.setState(s => ({ tkSugGone: { ...(s.tkSugGone || {}), [x.key]: true }, gToast: null })); },
+            dismiss: () => app.setState(s => ({ tkSugGone: { ...(s.tkSugGone || {}), [x.key]: true } })) })) };
+        return { ...rp, ...sgVals, rpClose: () => app.setState({ rkOpen: null }), rkList: rows, rkHas: fl && list.length > 0, rkNone: fl && list.length === 0, rkMail: !live, rkTitle: clSplit('Analyst flagged ' + list.length + (list.length === 1 ? ' client' : ' clients')) }; })(),
       ...(() => { const W = S.tw; if (!W) return { twOpen: false, twStep: 1, twBars: [], twS1: false, twS2: false, twS3: false, twClients: [], twPeople: [], twItems: [] };
         const set = o => app.setState(s => ({ tw: { ...s.tw, ...o } })), E = S.twErr || {}, st = W.step;
         const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
