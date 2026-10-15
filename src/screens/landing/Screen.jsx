@@ -313,11 +313,11 @@ class Logic extends React.Component {
       draftO: draft ? 1 : 0,
       toggleDraft: () => this.setState({ draft: !draft }),
       clients: [
-        row('Northside Physio', 'At risk', '44', '−6%', 'Sep 26, not opened'),
-        row('Kalye Streetwear', 'Needs attention', '188', '−7%', 'Oct 6, opened'),
-        row('Harbor & Pine Dental', 'Healthy', '142', '−3%', 'Oct 6, opened'),
-        row('Mara Skincare', 'Healthy', '119', '+14%', 'Oct 6, opened'),
-        row('Coastline Realty', 'Healthy', '40', '+8%', 'Oct 5, opened')
+        row('Northside Physio', 'At risk', '44', '−6%', 'Sep 26, not viewed'),
+        row('Kalye Streetwear', 'Needs attention', '188', '−7%', 'Oct 6, viewed'),
+        row('Harbor & Pine Dental', 'Healthy', '142', '−3%', 'Oct 6, viewed'),
+        row('Mara Skincare', 'Healthy', '119', '+14%', 'Oct 6, viewed'),
+        row('Coastline Realty', 'Healthy', '40', '+8%', 'Oct 5, viewed')
       ]
     };
   }

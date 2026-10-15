@@ -37,16 +37,16 @@ class Logic extends React.Component {
     const ST = { h: ['Healthy', '#e3f3e8', '#1d6b3a'], n: ['Needs attention', '#fff6c2', '#7a5a00'], r: ['At risk', '#fde2d6', '#a3330c'] };
     const L = LOGOS;
     const C = [
-      { name: 'Northside Physio', i: 'NP', s: 'r', leads: 44, delta: '−6%', bars: [61, 55, 47, 44, 46, 44], last: 'Sent Sep 26, not opened', tone: 'Reassuring',
-        signals: [['Leads down 3 weeks', '−9%, −14%, −6%'], ['Slower replies', '3.8 days, usually 1'], ['Last report unopened', 'Sent Sep 26']], action: 'book a 15-minute call before the Oct 15 invoice.', draft: 'Hi Dana, leads have dipped the last few weeks. I have an idea for fixing it. Do you have 15 minutes on Thursday?' },
-      { name: 'Kalye Streetwear', i: 'KS', s: 'n', leads: 188, delta: '−7%', bars: [210, 238, 201, 196, 190, 188], last: 'Sent Oct 6, opened', tone: 'Straightforward',
-        signals: [['Cost per lead rising', '+18% in 2 weeks'], ['Budget pacing ahead', '82% spent, day 20'], ['Replies normal', 'Under 1 day']], action: 'refresh the TikTok creative this week.', draft: 'Hi Marco, costs crept up on TikTok. I am swapping in fresh videos this week to bring them back down.' },
-      { name: 'Harbor & Pine Dental', i: 'HP', s: 'h', leads: 142, delta: '−3%', bars: [131, 140, 146, 138, 144, 142], last: 'Sent Oct 6, opened', tone: 'Reassuring',
-        signals: [['Leads steady', '142 this week'], ['Cost per lead down', '−11%'], ['Opens every report', 'Last 6 of 6']] },
-      { name: 'Mara Skincare', i: 'MS', s: 'h', leads: 119, delta: '+14%', bars: [88, 96, 104, 99, 110, 119], last: 'Sent Oct 6, opened', tone: 'Detailed',
-        signals: [['Leads growing', '+14% this week'], ['On budget', '64% spent, day 20'], ['Replies fast', 'Same day']] },
-      { name: 'Coastline Realty', i: 'CR', s: 'h', leads: 40, delta: '+8%', bars: [34, 31, 37, 36, 38, 40], last: 'Sent Oct 5, opened', tone: 'Straightforward',
-        signals: [['Leads up', '+8%'], ['On budget', '58% spent'], ['Replies normal', 'Under 1 day']] }
+      { name: 'Northside Physio', i: 'NP', s: 'r', leads: 44, delta: '−6%', bars: [61, 55, 47, 44, 46, 44], last: 'Sent Sep 26, not viewed', tone: 'Reassuring',
+        signals: [['Leads down 3 weeks', '−9%, −14%, −6%'], ['Portal not visited', 'Last visit Sep 12'], ['Last report not viewed', 'Sent Sep 26']], action: 'book a 15-minute call before the Oct 15 invoice.', draft: 'Hi Dana, leads have dipped the last few weeks. I have an idea for fixing it. Do you have 15 minutes on Thursday?' },
+      { name: 'Kalye Streetwear', i: 'KS', s: 'n', leads: 188, delta: '−7%', bars: [210, 238, 201, 196, 190, 188], last: 'Sent Oct 6, viewed', tone: 'Straightforward',
+        signals: [['Cost per lead rising', '+18% in 2 weeks'], ['Budget pacing ahead', '82% spent, day 20'], ['Reports viewed', 'Within a day']], action: 'refresh the TikTok creative this week.', draft: 'Hi Marco, costs crept up on TikTok. I am swapping in fresh videos this week to bring them back down.' },
+      { name: 'Harbor & Pine Dental', i: 'HP', s: 'h', leads: 142, delta: '−3%', bars: [131, 140, 146, 138, 144, 142], last: 'Sent Oct 6, viewed', tone: 'Reassuring',
+        signals: [['Leads steady', '142 this week'], ['Cost per lead down', '−11%'], ['Views every report', 'Last 6 of 6']] },
+      { name: 'Mara Skincare', i: 'MS', s: 'h', leads: 119, delta: '+14%', bars: [88, 96, 104, 99, 110, 119], last: 'Sent Oct 6, viewed', tone: 'Detailed',
+        signals: [['Leads growing', '+14% this week'], ['On budget', '64% spent, day 20'], ['Reports viewed', 'Same day']] },
+      { name: 'Coastline Realty', i: 'CR', s: 'h', leads: 40, delta: '+8%', bars: [34, 31, 37, 36, 38, 40], last: 'Sent Oct 5, viewed', tone: 'Straightforward',
+        signals: [['Leads up', '+8%'], ['On budget', '58% spent'], ['Reports viewed', 'Within a day']] }
     ];
     (S.extraClients || []).forEach(x => C.push({ name: x.name, i: x.name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), s: 'h', leads: 0, delta: '+0%', bars: [1, 1, 1, 1, 1, 1], last: 'No reports yet', tone: 'Reassuring', signals: [['New client', 'No data yet'], ['Accounts', clientTools(S, x.name).length + ' linked'], ['Reports', 'None sent yet']], extra: x }));
     // A client's tools come only from the accounts assigned to it in Settings › Integrations.
