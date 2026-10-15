@@ -108,14 +108,14 @@ class Logic extends React.Component {
       combined: ['Reporting', 'Combined data', 'Merge the same metric from different platforms into one number and one story.', 'New widget'],
       branding: ['Reporting', 'White label', 'Your logo, colours and domain on every client report.', ''],
       sharing: ['Reporting', 'Sharing & portals', 'Choose how clients receive their reports.', ''],
-      goals: ['Dashboard', 'Goals & budget', 'Set a target for each client. Clario tells you when they drift.', 'Add goal'],
+      goals: ['Dashboard', 'Goals & budget', 'Set a target for each client. Analyst tells you when they drift.', 'Add goal'],
       alerts: ['Dashboard', 'Smart alerts', 'Get told when something changes, so you do not have to check every account.', 'New alert'],
       riskscores: ['Risk & retention', 'Risk & retention', 'Each client\'s risk level, the reasons behind it, and what to do next.', ''],
       notify: ['Risk & retention', 'Alert notifications', 'Choose where risk alerts reach you.', ''],
       tasks: ['Workflow', 'Tasks', 'Keep track of what needs doing for each client.', 'Add task'],
       team: ['Workflow', 'Team', 'Invite teammates and choose what they can see.', 'Invite teammate'],
       builder: ['Reporting', 'Report builder', '', ''],
-      insights: ['AI', 'AI insights', 'Plain-language takeaways Clario found across your clients this week.', '']
+      insights: ['AI', 'AI insights', 'Plain-language takeaways Analyst found across your clients this week.', '']
     };
     const v = S.view;
     const inDash = true;
@@ -132,7 +132,7 @@ class Logic extends React.Component {
     return {
       pageO: S.pageO, modules: modules.map(m => ({ ...m, badgePill: m.hasBadge && !S.navC, badgeDot: m.hasBadge && !!S.navC, title: m.hasBadge ? m.label + ' (' + m.badge + ' need attention)' : m.label, rowsN: S.navC ? '0fr' : m.rows, multi: m.multi && !S.navC })),
       navOpen: !S.navC, swH: S.navC ? '50px' : '60px', swPadL: S.navC ? '2.5px' : '8px', swAv: S.navC ? '42px' : '42px', swR: S.navC ? '14px' : '16px', navW: S.navC ? '74px' : '264px', navTxt: S.navC ? 'none' : 'inline', navTxtFlex: S.navC ? 'none' : 'flex', navTxtGrid: S.navC ? 'none' : 'grid', navDot: S.navC ? 'block' : 'none', navJust: 'flex-start', navTopDir: S.navC ? 'column' : 'row', navAlign: S.navC ? 'flex-start' : 'center', navPad: '10px', navSwPad: S.navC ? '0' : '12px', navSetW: S.navC ? '36px' : '44px',
-      navArrow: S.navC ? 'M5 12h14M13 6l6 6-6 6' : 'M19 12H5M11 6l-6 6 6 6', navToggleLabel: S.navC ? 'Expand sidebar' : 'Collapse sidebar', navCursor: S.navC ? 'e-resize' : 'auto', logoLabel: S.navC ? 'Expand sidebar' : 'Clario home',
+      navArrow: S.navC ? 'M5 12h14M13 6l6 6-6 6' : 'M19 12H5M11 6l-6 6 6 6', navToggleLabel: S.navC ? 'Expand sidebar' : 'Collapse sidebar', navCursor: S.navC ? 'e-resize' : 'auto', logoLabel: S.navC ? 'Expand sidebar' : 'AI Ads Analyst home',
       logoClick: e => { if (S.navC) { e.preventDefault(); e.stopPropagation(); this.setState({ navC: false }); try { localStorage.setItem('clario-nav-collapsed', '0'); } catch (er) {} } },
       asideClick: e => { if (!S.navC) return; if (e.target.closest('button, a, input, select, [role=listbox]')) return; this.setState({ navC: false }); try { localStorage.setItem('clario-nav-collapsed', '0'); } catch (er) {} }, toggleNav: () => this.setState(s => { const n = !s.navC; try { localStorage.setItem('clario-nav-collapsed', n ? '1' : '0'); } catch (e) {} return { navC: n, swOpen: false }; }),
       ...(() => {
@@ -149,7 +149,7 @@ class Logic extends React.Component {
         const greet = { me: false, text: who ? 'What should I do for ' + who.name + '?' : 'Hi Alex. Tell me what you need and I will take care of it.' };
         return {
           chatOpen: open, chatO: open ? 1 : 0, chatT: open ? 'scale(1)' : 'scale(0.96) translateY(8px)', chatPe: open ? 'auto' : 'none', chatVis: open ? 'visible' : 'hidden',
-          chatBtn: open ? 'Close' : 'Ask Clario', toggleChat: () => this.setState(s => ({ chatOpen: !s.chatOpen })),
+          chatBtn: open ? 'Close' : 'Ask Analyst', toggleChat: () => this.setState(s => ({ chatOpen: !s.chatOpen })),
           chatScope: who ? 'Working on ' + who.name : 'Working across all clients', chatRef: this.chatRef,
           chatMsgs: [greet, ...msgs].map(m => ({ text: m.text, align: m.me ? 'flex-end' : 'flex-start', bg: m.me ? '#1f6be2' : '#f4f7fb', c: m.me ? '#ffffff' : '#0b1626' })),
           chatTyping: !!S.typing, chatFresh: msgs.length === 0,

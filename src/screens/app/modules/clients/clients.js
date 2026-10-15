@@ -14,7 +14,7 @@ export function clientsVals(app, ctx) {
         const industry = ex ? 'Industry not set' : ['Physiotherapy clinic', 'Streetwear brand', 'Dental practice', 'Skincare brand', 'Real estate agency'][i], since = ex ? 'Oct 2026' : ['Mar 2025', 'Jan 2026', 'Aug 2024', 'May 2025', 'Nov 2025'][i];
         const INT = [['meta', 'Meta', L.meta], ['ga4', 'Google Analytics 4', L.ga4], ['gads', 'Google Ads', L.gads], ['tt', 'TikTok Ads', L.tt], ['sc', 'Google Search Console', '/assets/logo-search-console.png'], ['li', 'LinkedIn Ads', '/assets/logo-linkedin.png'], ['ms', 'Microsoft Ads', '/assets/logo-microsoft.png'], ['gbp', 'Google Business Profile', '/assets/logo-google-business.png']];
         // A client who will not share access with the agency can connect from their side with a one-time link.
-        const ask = (S.cAsk || {})[c.name], askUrl = 'https://app.clario.so/connect/' + c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-7f3k';
+        const ask = (S.cAsk || {})[c.name], askUrl = 'https://app.aiadsanalyst.app/connect/' + c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-7f3k';
         const cpl = [12.9, 10.6, 8.73, 7.4, 9.1][i] ?? 0, spend = [1170, 1968, 960, 1280, 696][i] ?? 0;
         const keys = [['contact', 'Contact person'], ['email', 'Contact email'], ['schedule', 'Report schedule']];
         return {
@@ -29,7 +29,7 @@ export function clientsVals(app, ctx) {
             const on = mine.length > 0, toSet = () => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), [k]: true } }));
             return { name, logo, status: on ? mine.map(({ a }) => a[0]).join(', ') + ' · ' + mine[0].conn.sync.toLowerCase() : ask ? 'Waiting for ' + c.name + ' to connect' : A ? 'No account linked' : 'Not connected for your agency', sc: on ? '#1d6b3a' : '#5a6474', btn: on ? 'Change' : A ? 'Link account' : 'Connect', aria: (on ? 'Change ' : A ? 'Link ' : 'Connect ') + name + ' account', bg: on ? '#ffffff' : '#1f6be2', c: on ? '#0b1626' : '#ffffff', bd: on ? '#d3dbe6' : '#1f6be2', toggle: toSet }; }),
           pfAskTitle: ask ? 'Link sent to ' + ask : 'Ask ' + c.name + ' to connect',
-          pfAskText: ask ? 'They sign in on their side. The accounts they connect attach to ' + c.name + ' only.' : 'Send a secure link to ' + info.email + '. They sign in with their own login, and Clario attaches the accounts to ' + c.name + ' only.',
+          pfAskText: ask ? 'They sign in on their side. The accounts they connect attach to ' + c.name + ' only.' : 'Send a secure link to ' + info.email + '. They sign in with their own login, and Analyst attaches the accounts to ' + c.name + ' only.',
           pfAskBtn: ask ? 'Copy link' : 'Send link',
           pfAsk: () => { if (!ask) { app.setState(s => ({ cAsk: { ...(s.cAsk || {}), [c.name]: info.email } })); return; } try { navigator.clipboard.writeText(askUrl); } catch (er) {} app.setState({ pfCopied: c.name }); clearTimeout(app.pcT); app.pcT = setTimeout(() => app.setState({ pfCopied: null }), 2000); },
           pfAskCopied: ask && S.pfCopied === c.name,

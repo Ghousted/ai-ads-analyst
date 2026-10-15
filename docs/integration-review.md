@@ -1,6 +1,6 @@
 # Integration review: does the design work with real APIs?
 
-This review checks the Clario design (`design/App.dc.html`, `design/Setup.dc.html`, `design/Landing Page.dc.html`)
+This review checks the AI Ads Analyst design (formerly Clario) (`design/App.dc.html`, `design/Setup.dc.html`, `design/Landing Page.dc.html`)
 against how each ad and analytics platform actually grants access. Each item says what the design assumes,
 what the platform does, and what to change. The prototype now applies most of the changes. The status table
 below says what changed and what is still open.
@@ -132,7 +132,7 @@ connected Facebook Page) with its own permissions and app review.
 
 Setup promises read-only access. Meta (`ads_read`) and TikTok can be scoped read-only. **Google Ads has no
 read-only OAuth scope**: the `adwords` scope allows changes. The promise has to be kept by policy and code
-review, not by the permission screen. Reword it as "Clario only reads your data and never changes your ads",
+review, not by the permission screen. Reword it as "Analyst only reads your data and never changes your ads",
 and check that the Google consent screen will not contradict the copy.
 
 ## Numbers the design shows that the APIs cannot give
@@ -155,7 +155,7 @@ marketer's email. That needs a Gmail or Outlook integration with mailbox read ac
 **restricted scope** that requires a yearly third-party security assessment. It is also the privacy-sensitive
 opt-in feature the PRD marks as stretch. None of this appears in Integrations.
 
-"Last report unopened" is feasible only if Clario sends the report email itself and tracks opens. Apple Mail
+"Last report unopened" is feasible only if Analyst sends the report email itself and tracks opens. Apple Mail
 privacy protection makes open tracking unreliable, so prefer "link clicked" or "portal viewed".
 
 **Change:** for v1, base risk on performance trends, goal status and report engagement (portal views and

@@ -289,7 +289,7 @@ export function GoalsView({ v }) {
                 <span style={{ color: "#5a6474", maxWidth: "380px" }}>
                   {"Set a target, like a cost per lead limit or a monthly budget, and "}
                   <span style={{ color: "#1f6be2" }}>
-                    {"Clario"}
+                    {"Analyst"}
                   </span>
                   {" will tell you when it drifts."}
                 </span>

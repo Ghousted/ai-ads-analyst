@@ -37,8 +37,8 @@ class Logic extends React.Component {
       { kind: 'text', title: "What's your business called?", help: 'Your clients will see this name on their reports.', placeholder: 'e.g. Rivera Digital', field: 'workspace' },
       { kind: 'choice', title: 'How many people work with you?', help: 'This helps us set up your workspace.', field: 'team', opts: [['Just me', 'Freelancer'], ['2 to 5 people', 'Small team'], ['6 or more', 'Agency']] },
       { kind: 'multi', title: 'Which tools does your agency use?', help: 'Pick the ad and analytics tools you manage client accounts in. Meta covers both Facebook and Instagram ads.' },
-      { kind: 'connect', title: 'Connect your agency accounts', help: 'Sign in once with your agency login. Clario finds every client account you manage. It only reads your data and never changes your ads.' },
-      { kind: 'choice', title: 'How often should reports go out?', help: 'Clario writes them on schedule so they are ready to review.', field: 'freq', opts: [['Every Monday', 'Most popular'], ['Every two weeks', ''], ['Once a month', '']] },
+      { kind: 'connect', title: 'Connect your agency accounts', help: 'Sign in once with your agency login. Analyst finds every client account you manage. It only reads your data and never changes your ads.' },
+      { kind: 'choice', title: 'How often should reports go out?', help: 'Analyst writes them on schedule so they are ready to review.', field: 'freq', opts: [['Every Monday', 'Most popular'], ['Every two weeks', ''], ['Once a month', '']] },
       { kind: 'choice', title: 'How should reports sound?', help: 'You can change this for each client later.', field: 'tone', opts: [['Friendly', 'Warm and easy to read'], ['Professional', 'Clear and polished'], ['Short and direct', 'Just the key points']] }
     ];
     const total = Q.length, done = S.step >= total;
@@ -63,7 +63,7 @@ class Logic extends React.Component {
     const required = S.step === 0;
     const errs = ['Enter your business name to continue.', 'Pick one option to continue, or set this up later.', 'Pick at least one tool, or set this up later.', 'Connect at least one account, or set this up later.', 'Pick how often reports should go out, or set this up later.', 'Pick a tone, or set this up later.'];
     const next = () => { if (!answered) { this.setState({ error: true }); return; } this.go(S.step + 1); };
-    const TIP = [null, ['your team size', 'You can invite teammates anytime.', 'Settings', 'Team members'], ['picking your tools', 'Clario will use sample data until your tools are connected.', 'Settings', 'Integrations'], ['connecting your tools', 'Clario will use sample data until your tools are connected.', 'Settings', 'Integrations'], ['the report schedule', 'Reports will go out every Monday at 8:00am until you change it.', 'Settings', 'Agency and branding'], ['the report tone', 'Reports will use a friendly tone until you change it.', 'Settings', 'Agency and branding']];
+    const TIP = [null, ['your team size', 'You can invite teammates anytime.', 'Settings', 'Team members'], ['picking your tools', 'Analyst will use sample data until your tools are connected.', 'Settings', 'Integrations'], ['connecting your tools', 'Analyst will use sample data until your tools are connected.', 'Settings', 'Integrations'], ['the report schedule', 'Reports will go out every Monday at 8:00am until you change it.', 'Settings', 'Agency and branding'], ['the report tone', 'Reports will use a friendly tone until you change it.', 'Settings', 'Agency and branding']];
     const skip = () => this.setState({ skipAsk: true });
     const tip = TIP[Math.min(S.step, total - 1)] || TIP[2];
     const stageOf = [0, 0, 1, 1, 2, 2];
@@ -120,7 +120,7 @@ class Logic extends React.Component {
       addLabel: cnRaw ? 'Add another client' : 'Add a client',
       addAnother: () => this.setState({ client: '', platforms: [], conn: {} }, () => this.go(2)),
       doneName: firstName ? `, ${firstName}` : '',
-      doneText: cnRaw ? `Here's what Clario is doing for ${cnRaw} now. You don't need to do anything else.` : 'Add your first client and Clario will start writing their reports.',
+      doneText: cnRaw ? `Here's what Analyst is doing for ${cnRaw} now. You don't need to do anything else.` : 'Add your first client and Analyst will start writing their reports.',
       summary: [
         { k: 'Business', v: firstName || 'Not set' },
         { k: 'First client', v: (S.client || '').trim() || 'Not added yet' },

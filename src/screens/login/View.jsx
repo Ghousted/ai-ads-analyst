@@ -13,7 +13,7 @@ export default function View({ v }) {
           <a href={"/"} style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", color: "#0b1626", fontSize: "22px", fontWeight: "700", letterSpacing: "-0.8px" }}>
             {" "}
             <img src={"/assets/clario-mark-v2.png"} alt={""} width={"34"} height={"34"} style={{ width: "34px", height: "34px", display: "block" }} />
-            {"Clario "}
+            {"AI Ads Analyst "}
           </a>
           {" "}
           <div style={{ flex: "1", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 0" }}>
@@ -50,7 +50,7 @@ export default function View({ v }) {
                 {" "}
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   {" "}
-                  <img src={"/assets/clario-mark-v2.png"} alt={"Clario"} width={"56"} height={"56"} style={{ width: "56px", height: "56px", display: "block", marginBottom: "12px" }} />
+                  <img src={"/assets/clario-mark-v2.png"} alt={"AI Ads Analyst"} width={"56"} height={"56"} style={{ width: "56px", height: "56px", display: "block", marginBottom: "12px" }} />
                   {" "}
                   <h1 style={{ margin: "0", fontSize: "36px", fontWeight: "700", lineHeight: "1.15", letterSpacing: "-1.3px" }}>
                     {v.title}
@@ -215,7 +215,7 @@ export default function View({ v }) {
           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 20px", fontSize: "14px", letterSpacing: "-0.52px", color: "#5a6474" }}>
             {" "}
             <span>
-              {"© 2026 Clario"}
+              {"© 2026 AI Ads Analyst"}
             </span>
             <a href={"/privacy"} style={{ color: "#5a6474", textDecoration: "none" }}>
               {"Privacy"}
@@ -250,7 +250,7 @@ export default function View({ v }) {
             </h2>
             {" "}
             <p style={{ margin: "0", fontSize: "18px", color: "#b8c4d4" }}>
-              {"Clario has pulled this week’s numbers. Review, tweak and send in a few clicks."}
+              {"Analyst has pulled this week’s numbers. Review, tweak and send in a few clicks."}
             </p>
             {" "}
           </div>

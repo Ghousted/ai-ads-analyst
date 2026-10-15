@@ -10,7 +10,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: (PAGES[slug]?.title ?? 'Clario') + ' · Clario' };
+  return { title: (PAGES[slug]?.title ?? 'AI Ads Analyst') + ' · AI Ads Analyst' };
 }
 
 const ink = '#0b1626', muted = '#5a6474', blue = '#1f6be2';
@@ -24,7 +24,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       <style>{'body{margin:0}'}</style>
       <header style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, color: ink, textDecoration: 'none', fontSize: 20, fontWeight: 700, letterSpacing: '-0.7px', minHeight: 44 }}>
-          <img src="/assets/clario-mark-v2.png" alt="" width={30} height={30} />Clario
+          <img src="/assets/clario-mark-v2.png" alt="" width={30} height={30} />AI Ads Analyst
         </a>
         <a href="/login" style={{ color: ink, fontWeight: 600, textDecoration: 'none', minHeight: 44, display: 'flex', alignItems: 'center' }}>Log in</a>
       </header>

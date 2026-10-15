@@ -6,7 +6,7 @@ const signup = { label: 'Start free with 2 clients', href: '/login?mode=signup' 
 export const PAGES: Record<string, InfoPage> = {
   integrations: {
     title: 'Integrations',
-    lead: 'Sign in once with your agency login. Clario finds the client accounts you manage. It only reads your data and never changes your ads.',
+    lead: 'Sign in once with your agency login. Analyst finds the client accounts you manage. It only reads your data and never changes your ads.',
     sections: [
       { heading: 'Available at launch', items: ['Meta Ads (Facebook and Instagram ads)', 'Google Analytics 4'] },
       { heading: 'Coming next', items: ['Google Ads', 'TikTok Ads', 'LinkedIn Ads', 'Microsoft Ads', 'Google Search Console', 'Google Business Profile'] },
@@ -22,13 +22,13 @@ export const PAGES: Record<string, InfoPage> = {
     ],
     cta: signup,
   },
-  freelancers: { title: 'For freelancers', lead: 'Spend Friday on marketing, not on screenshots. Clario writes each client’s report and tells you who might be about to leave.', sections: [{ heading: 'What you get', items: ['Free for your first two clients', 'Reports written on schedule, ready for you to review', 'Risk alerts with the reasons and a drafted check-in'] }], cta: signup },
+  freelancers: { title: 'For freelancers', lead: 'Spend Friday on marketing, not on screenshots. Analyst writes each client’s report and tells you who might be about to leave.', sections: [{ heading: 'What you get', items: ['Free for your first two clients', 'Reports written on schedule, ready for you to review', 'Risk alerts with the reasons and a drafted check-in'] }], cta: signup },
   agencies: { title: 'For small agencies', lead: 'One place for every client’s results, with tasks and alerts your whole team can see.', sections: [{ heading: 'What you get', items: ['Shared client list with health status', 'Tasks board linked to each client', 'Your logo and colour on every report'] }], cta: signup },
   'in-house': { title: 'For in-house marketers', lead: 'Turn ad and analytics data into an update your manager can read in two minutes.', sections: [{ heading: 'What you get', items: ['One combined view across ad platforms', 'Plain-language summaries of what changed and why', 'Goals and budget pacing alerts'] }], cta: signup },
-  help: { title: 'Help center', lead: 'Answers to the questions people ask most.', sections: [{ heading: 'Getting started', items: ['Connect your agency accounts from Settings, Integrations.', 'Assign each ad account or property to a client.', 'Pick a template in Reporting and Clario fills in the numbers.'] }, { heading: 'Still stuck?', items: ['Email help@clario.app and we reply within one working day.'] }] },
+  help: { title: 'Help center', lead: 'Answers to the questions people ask most.', sections: [{ heading: 'Getting started', items: ['Connect your agency accounts from Settings, Integrations.', 'Assign each ad account or property to a client.', 'Pick a template in Reporting and Analyst fills in the numbers.'] }, { heading: 'Still stuck?', items: ['Email help@aiadsanalyst.app and we reply within one working day.'] }] },
   blog: { title: 'Blog', lead: 'Notes on client reporting and keeping clients. The first posts are on their way.', sections: [] },
   changelog: { title: 'What’s new', lead: 'Product updates as they ship.', sections: [{ heading: 'October 2026', items: ['Clickable prototype of the app: dashboard, clients, reports, tasks, goals and settings.'] }] },
-  privacy: { title: 'Privacy', lead: 'Clario only reads the ad and analytics data you connect. It never changes your campaigns and never sells data.', sections: [{ heading: 'Draft', items: ['The full privacy policy will be published before launch.'] }] },
+  privacy: { title: 'Privacy', lead: 'AI Ads Analyst only reads the ad and analytics data you connect. It never changes your campaigns and never sells data.', sections: [{ heading: 'Draft', items: ['The full privacy policy will be published before launch.'] }] },
   terms: { title: 'Terms', lead: 'The terms of service will be published before launch.', sections: [] },
-  contact: { title: 'Contact', lead: 'Questions, partnerships or press: hello@clario.app.', sections: [] },
+  contact: { title: 'Contact', lead: 'Questions, partnerships or press: hello@aiadsanalyst.app.', sections: [] },
 };

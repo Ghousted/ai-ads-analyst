@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Clario',
-  description: 'Clario turns your Meta Ads and GA4 data into a weekly report your clients can follow, and lets you know when a client might be about to leave.',
+  title: 'AI Ads Analyst',
+  description: 'AI Ads Analyst turns your Meta Ads and GA4 data into a weekly report your clients can follow, and lets you know when a client might be about to leave.',
   icons: { icon: '/assets/clario-mark-v2.png' },
   openGraph: {
-    title: 'Clario: weekly ad reports in plain English',
+    title: 'AI Ads Analyst: weekly ad reports in plain English',
     description: 'Plain-language ad reports and explainable churn warnings for freelance marketers and small agencies.',
     type: 'website',
     images: ['/assets/clario-mark-v2.png'],

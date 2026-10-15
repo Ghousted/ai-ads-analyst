@@ -24,7 +24,7 @@ export default function View({ v }) {
                 {" "}
                 <span style={{ display: "block", opacity: v.preInO, transition: "opacity 200ms ease" }}>
                   <span style={{ display: "block", fontSize: "40px", fontWeight: "700", letterSpacing: "-1.4px", color: "#0b1626", animation: "clario-pre-word 500ms cubic-bezier(0.23,1,0.32,1) 350ms both" }}>
-                    {"Clario"}
+                    {"AI Ads Analyst"}
                   </span>
                 </span>
                 {" "}
@@ -46,7 +46,7 @@ export default function View({ v }) {
               <a href={"/"} style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", color: "#0b1626", fontSize: "22px", fontWeight: "700", letterSpacing: "-0.8px" }}>
                 {" "}
                 <img src={"/assets/clario-mark-v2.png"} alt={""} width={"34"} height={"34"} style={{ width: "34px", height: "34px", display: "block" }} />
-                {"Clario "}
+                {"AI Ads Analyst "}
               </a>
               {" "}
               <nav className="clario-dnav" style={{ display: "flex", alignItems: "center", gap: "2px", flexWrap: "wrap" }}>
@@ -66,7 +66,7 @@ export default function View({ v }) {
                       <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: "220px" }}>
                         <span style={{ padding: "4px 12px 8px", fontSize: "14px", fontWeight: "700", letterSpacing: "-0.52px", color: "#5a6474" }}>
                           <span style={{ color: "#1f6be2" }}>
-                            {"Clario"}
+                            {"AI Ads Analyst"}
                           </span>
                           {" platform"}
                         </span>
@@ -525,13 +525,13 @@ export default function View({ v }) {
                   <h1 style={{ margin: "0", fontSize: "clamp(44px,6vw,70px)", fontWeight: "900", lineHeight: "1", letterSpacing: "-0.037em", textWrap: "balance" }}>
                     {"Digital marketing reporting made easy with "}
                     <span style={{ color: "#1f6be2" }}>
-                      {"Clario"}
+                      {"AI Ads Analyst"}
                     </span>
                   </h1>
                   {" "}
                   <p style={{ margin: "0", fontSize: "20px", lineHeight: "1.4", letterSpacing: "-0.74px", color: "#5a6474", textWrap: "pretty" }}>
                     <span style={{ color: "#1f6be2" }}>
-                      {"Clario"}
+                      {"Analyst"}
                     </span>
                     {" connects to your ad and analytics accounts, writes each client's weekly report in plain language, and warns you when a client starts drifting away."}
                   </p>
@@ -1064,7 +1064,7 @@ export default function View({ v }) {
                     <p style={{ margin: "0", fontSize: "18px", color: "#5a6474", textWrap: "pretty" }}>
                       {"Writing a clear report for every client, every week, takes hours. "}
                       <span style={{ color: "#1f6be2" }}>
-                        {"Clario"}
+                        {"Analyst"}
                       </span>
                       {" will write it for you, so all you do is review and send."}
                     </p>
@@ -1289,11 +1289,11 @@ export default function View({ v }) {
                       <p style={{ margin: "0", color: "#5a6474", textWrap: "pretty" }}>
                         {"Log in to Meta Ads, GA4 and TikTok, and "}
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" will match each account to the right client. If a login expires, "}
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" will let you know before a report goes out with missing numbers."}
                       </p>
@@ -1309,13 +1309,13 @@ export default function View({ v }) {
                       <h2 style={{ margin: "0", fontSize: "38px", fontWeight: "700", lineHeight: "1.2", letterSpacing: "-1.41px" }}>
                         {"Automate weekly reports with "}
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"AI Ads Analyst"}
                         </span>
                       </h2>
                       {" "}
                       <p style={{ margin: "0", color: "#5a6474", textWrap: "pretty" }}>
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" will write two versions every week: a short summary for your client, and a breakdown by platform for you, with anything worth fixing. Both are ready every Monday morning."}
                       </p>
@@ -1562,17 +1562,17 @@ export default function View({ v }) {
                       <h2 style={{ margin: "0", fontSize: "38px", fontWeight: "700", lineHeight: "1.2", letterSpacing: "-1.41px" }}>
                         {"Spot at-risk clients early with "}
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"AI Ads Analyst"}
                         </span>
                       </h2>
                       {" "}
                       <p style={{ margin: "0", color: "#5a6474", textWrap: "pretty" }}>
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" will track each client's results and whether they look at their reports. When a client looks likely to cancel, "}
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" will send you a risk alert with the reasons, a suggested next step and a draft message you can edit."}
                       </p>
@@ -1598,7 +1598,7 @@ export default function View({ v }) {
                   <h2 style={{ margin: "0", fontSize: "clamp(34px,4vw,44px)", fontWeight: "700", lineHeight: "1.15", letterSpacing: "-0.035em", textWrap: "balance" }}>
                     {"Run your client reporting on autopilot with "}
                     <span style={{ color: "#1f6be2" }}>
-                      {"Clario"}
+                      {"AI Ads Analyst"}
                     </span>
                   </h2>
                   {" "}
@@ -1620,7 +1620,7 @@ export default function View({ v }) {
                       {" "}
                       <p style={{ margin: "0", color: "#45505f", textWrap: "pretty" }}>
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" will turn your ad data into reports"}
                         <br />
@@ -1698,7 +1698,7 @@ export default function View({ v }) {
                       {" "}
                       <p style={{ margin: "0", color: "#45505f", textWrap: "pretty" }}>
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" will flags churn risks"}
                         <br />
@@ -1776,7 +1776,7 @@ export default function View({ v }) {
                       {" "}
                       <p style={{ margin: "0", color: "#45505f", textWrap: "pretty" }}>
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" will pull data from the platforms you already use."}
                       </p>
@@ -1850,7 +1850,7 @@ export default function View({ v }) {
                 {" "}
                 <h2 style={{ margin: "0", alignSelf: "center", textAlign: "center", fontSize: "clamp(34px,4vw,44px)", fontWeight: "700", lineHeight: "1.15", letterSpacing: "-0.035em", textWrap: "balance" }}>
                   <span style={{ color: "#1f6be2" }}>
-                    {"Clario"}
+                    {"Analyst"}
                   </span>
                   {" handles the small stuff"}
                 </h2>
@@ -1916,7 +1916,7 @@ export default function View({ v }) {
                       </h3>
                       <p style={{ margin: "0", color: "#5a6474", textWrap: "pretty" }}>
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" will send reports every Monday, or on whatever day each client prefers."}
                       </p>
@@ -1980,7 +1980,7 @@ export default function View({ v }) {
                         <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: "6px", fontSize: "14px", letterSpacing: "-0.52px", color: "#5a6474" }}>
                           <img src={"/assets/clario-mark-v2.png"} alt={""} width={"16"} height={"16"} style={{ width: "16px", height: "16px" }} />
                           <span style={{ color: "#1f6be2" }}>
-                            {"Clario"}
+                            {"Analyst"}
                           </span>
                           {" will remember this"}
                         </span>
@@ -1995,7 +1995,7 @@ export default function View({ v }) {
                       <p style={{ margin: "0", color: "#5a6474", textWrap: "pretty" }}>
                         {"Change any sentence. "}
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" will learn from your edits and write closer to your style."}
                       </p>
@@ -2242,7 +2242,7 @@ export default function View({ v }) {
           <span>
             {"© 2026 "}
             <span style={{ color: "#1f6be2" }}>
-              {"Clario"}
+              {"AI Ads Analyst"}
             </span>
           </span>
           {" "}

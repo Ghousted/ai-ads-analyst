@@ -115,7 +115,7 @@ export default function View({ v }) {
           {" "}
           <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "20px", fontWeight: "700", letterSpacing: "-0.7px" }}>
             <img src={"/assets/clario-mark-v2.png"} alt={""} width={"30"} height={"30"} style={{ width: "30px", height: "30px", display: "block" }} />
-            {"Clario"}
+            {"AI Ads Analyst"}
           </span>
           {" "}
           {(v.inQuestions) ? (<>
@@ -313,7 +313,7 @@ export default function View({ v }) {
                   {(v.q?.noneSelected) ? (<>
                     {" "}
                     <p style={{ margin: "0", padding: "16px", borderRadius: "16px", background: "#f4f7fb", color: "#45505f" }}>
-                      {"No tools picked yet. Set this up later and Clario will use sample data until your accounts are connected."}
+                      {"No tools picked yet. Set this up later and Analyst will use sample data until your accounts are connected."}
                     </p>
                     {" "}
                   </>) : null}

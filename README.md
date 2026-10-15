@@ -1,6 +1,6 @@
-# Clario
+# AI Ads Analyst
 
-Clickable prototype of Clario: weekly ad reports in plain English, and a warning before a client leaves.
+Clickable prototype of AI Ads Analyst (formerly Clario): weekly ad reports in plain English, and a warning before a client leaves.
 
 ```bash
 npm install

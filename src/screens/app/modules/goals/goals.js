@@ -50,7 +50,7 @@ export function goalsVals(app, ctx) {
               gpNow: r.gt === 'budget' ? r.T.fmt(r.cur) : r.T.fmt(r.cur), gpNowLabel: r.gt === 'budget' ? 'Spent this month' : 'Right now', gpTarget: r.target, gpCaption: r.caption,
               gpTrendLabel: r.gt === 'budget' ? 'Spend per week' : 'Last 6 weeks',
               gpTrend: vals.map((v, j) => ({ h: Math.max(6, Math.round(v / mx * 96)) + 'px', c: j === 5 ? r.col : '#d6e4f8', v: fmtV(v), wk: WK[j] })),
-              gpWhy: (WHY[r.gt][r.st] || WHY[r.gt].good), gpAlert: clSplit('Clario alerts you when ' + r.T.label.toLowerCase() + ' ' + r.T.alert + ' ' + (r.gt === 'budget' ? 'its schedule' : 'the target') + '.'),
+              gpWhy: (WHY[r.gt][r.st] || WHY[r.gt].good), gpAlert: clSplit('Analyst alerts you when ' + r.T.label.toLowerCase() + ' ' + r.T.alert + ' ' + (r.gt === 'budget' ? 'its schedule' : 'the target') + '.'),
               gpNeedsTask: r.st !== 'good', gpTask: () => app.setState(s => ({ gOpen: null, gToast: 'Task added to To do', tasks: [{ title: TA[r.gt], desc: r.label + ' is ' + r.status.toLowerCase() + '. ' + r.caption + '.', client: r.name, status: 'todo', sub: [0, 0], due: '', who: ['AR'], cm: 0 }, ...(s.tasks || defTasks)] })),
               gpEdit: r.edit, gpRemove: () => { close(); r.remove(); } };
           })(),
@@ -65,7 +65,7 @@ export function goalsVals(app, ctx) {
           gErrTargetOn: !!E.target, gErrTarget: E.target || '', gfTargetBd: E.target ? '#e0481a' : '#d3dbe6',
           gTypes: Object.keys(GT).map(k => ({ label: GT[k].label, desc: GT[k].desc, on: F ? F.type === k : false, bd: F && F.type === k ? '#1f6be2' : '#e6ebf2', pick: () => app.setState(s => ({ gForm: { ...s.gForm, type: k }, gErr: { ...(s.gErr || {}), target: null } })) })),
           gTargetLabel: fT.op === 'under' ? 'Keep it under' : fT.op === 'over' ? 'Reach at least' : 'Budget for the month', gPrefix: fT.pre, gSuffix: fT.suf, gPlaceholder: fT.ph,
-          gHelperOn: fC != null && !E.target, gHelper: fC != null ? 'Now ' + fT.fmt(fT.cur(fC)) + '. Clario alerts you when it ' + fT.alert + ' your target.' : '',
+          gHelperOn: fC != null && !E.target, gHelper: fC != null ? 'Now ' + fT.fmt(fT.cur(fC)) + '. Analyst alerts you when it ' + fT.alert + ' your target.' : '',
           gSetClient: e => { const val = e.target.value; app.setState(s => ({ gForm: { ...s.gForm, client: val }, gErr: { ...(s.gErr || {}), client: false } })); },
           gSetTarget: e => { const val = e.target.value.replace(/[^0-9.]/g, ''); app.setState(s => ({ gForm: { ...s.gForm, target: val }, gErr: { ...(s.gErr || {}), target: null } })); },
           gCancel: () => app.setState({ gForm: null, gErr: {} }),
