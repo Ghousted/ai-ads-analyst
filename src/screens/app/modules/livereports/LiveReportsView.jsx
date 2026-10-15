@@ -56,8 +56,8 @@ export function LiveReportsView({ v }) {
           <button onClick={v.lrSave} disabled={!v.lrDirty || v.lrSaving} style={{ ...primary, height: "40px", padding: "0 16px", fontSize: "14px", opacity: v.lrDirty ? 1 : 0.5, cursor: v.lrDirty ? "pointer" : "default" }} className="dc9482609">{v.lrSaving ? "Saving\u2026" : v.lrDirty ? "Save changes" : "Saved"}</button>
         </>)}
         header={(<>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", fontSize: "14px", color: "#5a6474" }}>
-            <strong style={{ color: "#0b1626", fontSize: "16px" }}>{v.lrAgency}</strong><span>{v.lrPeriod}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", fontSize: "14px", color: "#5a6474" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>{v.lrLogo ? <img src={v.lrLogo} alt={v.lrAgency + " logo"} style={{ height: "36px", maxWidth: "180px", objectFit: "contain", display: "block" }} /> : null}<strong style={{ color: "#0b1626", fontSize: "16px" }}>{v.lrAgency}</strong></span><span>{v.lrPeriod}</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             <input aria-label="Report title" value={v.lrTitle} onChange={v.lrSetTitle} style={{ ...field, fontSize: "14px", fontWeight: "600", color: "#5a6474" }} />
@@ -229,6 +229,15 @@ export function LiveReportsOverlay({ v }) {
           </>) : !v.lrStep2 ? (
             <form onSubmit={v.lrNext} noValidate style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"Which client is this report for?"}</h2>
+              {v.lrNoBrand ? (
+                <div role="note" style={{ display: "flex", alignItems: "center", gap: "8px 16px", flexWrap: "wrap", padding: "12px 14px", background: "#fff6c2", color: "#5c4400" }}>
+                  <span style={{ flex: "1 1 240px", fontSize: "15px", textWrap: "pretty" }}><strong>{"Your reports don’t have your branding yet."}</strong>{" Add your logo and colour once, and every report uses them."}</span>
+                  <span style={{ display: "flex", gap: "4px" }}>
+                    <button type="button" onClick={v.lrSkipBrand} style={{ height: "40px", padding: "0 10px", border: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#5c4400", cursor: "pointer" }}>{"Not now"}</button>
+                    <button type="button" onClick={v.lrSetBrand} style={{ height: "40px", padding: "0 14px", border: "1px solid #5c4400", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#5c4400", cursor: "pointer" }}>{"Set up branding"}</button>
+                  </span>
+                </div>
+              ) : null}
               <div role="radiogroup" aria-label="Client" style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "320px", overflowY: "auto" }}>
                 {(v.lrClients || []).map(c => (
                   <button key={c.id} type="button" role="radio" aria-checked={c.on} onClick={c.pick} style={{ display: "flex", alignItems: "center", gap: "12px", minHeight: "56px", padding: "8px 14px", border: `1.5px solid ${c.bd}`, borderRadius: "0", background: c.bg, font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }}>
