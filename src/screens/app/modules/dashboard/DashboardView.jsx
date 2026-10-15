@@ -115,30 +115,39 @@ export function DashboardView({ v }) {
               {" "}
             </div>
             {" "}
-            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px 14px", fontSize: "14px", color: "#5a6474" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ width: "12px", height: "3px", borderRadius: "0", background: v.anColor }}></span>
+            <div role="group" aria-label="Lines shown" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", fontSize: "14px", color: "#5a6474" }}>
+              <button type="button" onClick={v.anToggleCur} aria-pressed={v.anShowCur} title={v.anShowCur ? "Hide this period" : "Show this period"} style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "40px", padding: "0 14px", border: "0", background: v.anShowCur ? "var(--an-tint)" : "transparent", font: "inherit", fontSize: "14px", fontWeight: v.anShowCur ? 700 : 500, letterSpacing: "inherit", color: v.anShowCur ? "#0b1626" : "#97a2b2", cursor: "pointer", textDecoration: v.anShowCur ? "none" : "line-through", transition: "background-color 160ms ease,color 160ms ease" }}>
+                <span style={{ width: "16px", height: "4px", background: v.anShowCur ? v.anColor : "#d3dbe6" }}></span>
                 {"This period"}
-              </span>
-              <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ width: "12px", height: "0", borderTop: "2px dashed #97a2b2" }}></span>
+              </button>
+              <button type="button" onClick={v.anTogglePrev} aria-pressed={v.anShowPrev} title={v.anShowPrev ? "Hide previous period" : "Show previous period"} style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "40px", padding: "0 14px", border: "0", background: v.anShowPrev ? "var(--an-tint)" : "transparent", font: "inherit", fontSize: "14px", fontWeight: v.anShowPrev ? 700 : 500, letterSpacing: "inherit", color: v.anShowPrev ? "#0b1626" : "#97a2b2", cursor: "pointer", textDecoration: v.anShowPrev ? "none" : "line-through", transition: "background-color 160ms ease,color 160ms ease" }}>
+                <span style={{ width: "16px", height: "0", borderTop: `3px dashed ${v.anShowPrev ? "#5a6474" : "#d3dbe6"}` }}></span>
                 {"Previous period"}
-              </span>
-              <span style={{ marginLeft: "auto", textAlign: "right" }}>
-                {v.anFresh}
-              </span>
+              </button>
             </div>
             {" "}
             <div ref={v.chartRef} tabIndex={"0"} aria-label={"Chart, scroll sideways to see earlier days"} style={{ overflowX: "auto", overflowY: "hidden", margin: "0 -22px", padding: "0 22px 6px", scrollbarWidth: "thin", outline: "none" }}>
               {" "}
               <div style={{ position: "relative", width: v.anChartW, minWidth: "100%" }}>
                 {" "}
+                <div onMouseMove={v.anMove} onMouseLeave={v.anLeave} style={{ position: "relative", cursor: "crosshair" }}>
                 <svg viewBox={v.anVB} preserveAspectRatio={"none"} role={"img"} aria-label={v.anChartLabel} style={{ width: "100%", height: "220px", display: "block" }}>
                   <path d={v.anGrid} stroke={"#eef1f6"} strokeWidth={"1"} vectorEffect={"non-scaling-stroke"}></path>
-                  <path d={v.anArea} fill={v.anFill}></path>
-                  <path d={v.anPrev} stroke={"#97a2b2"} strokeWidth={"2"} fill={"none"} strokeDasharray={"5 5"} vectorEffect={"non-scaling-stroke"}></path>
-                  <path d={v.anLine} stroke={v.anColor} strokeWidth={"3"} fill={"none"} strokeLinecap={"round"} strokeLinejoin={"round"} vectorEffect={"non-scaling-stroke"}></path>
+                  {v.anShowCur ? <path d={v.anArea} fill={v.anFill}></path> : null}
+                  {v.anShowPrev ? <path d={v.anPrev} stroke={"#97a2b2"} strokeWidth={"2"} fill={"none"} strokeDasharray={"5 5"} vectorEffect={"non-scaling-stroke"}></path> : null}
+                  {v.anShowCur ? <path d={v.anLine} stroke={v.anColor} strokeWidth={"3"} fill={"none"} strokeLinecap={"round"} strokeLinejoin={"round"} vectorEffect={"non-scaling-stroke"}></path> : null}
                 </svg>
+                {v.anHover ? (<>
+                  <span aria-hidden="true" style={{ position: "absolute", top: "0", bottom: "0", left: v.anHover.x, width: "1px", background: "#97a2b2", pointerEvents: "none" }}></span>
+                  {v.anShowCur ? <span aria-hidden="true" style={{ position: "absolute", left: v.anHover.x, top: v.anHover.curY, width: "10px", height: "10px", margin: "-5px 0 0 -5px", borderRadius: "50%", background: v.anColor, border: "2px solid #ffffff", pointerEvents: "none" }}></span> : null}
+                  {v.anShowPrev && v.anHover.prevY ? <span aria-hidden="true" style={{ position: "absolute", left: v.anHover.x, top: v.anHover.prevY, width: "10px", height: "10px", margin: "-5px 0 0 -5px", borderRadius: "50%", background: "#97a2b2", border: "2px solid #ffffff", pointerEvents: "none" }}></span> : null}
+                  <div role="status" style={{ position: "absolute", top: "8px", left: v.anHover.x, transform: v.anHover.flip ? "translateX(calc(-100% - 12px))" : "translateX(12px)", background: "#0b1626", color: "#ffffff", padding: "8px 12px", fontSize: "13px", lineHeight: "1.5", whiteSpace: "nowrap", pointerEvents: "none", boxShadow: "0 8px 20px -10px rgba(11,22,38,.5)" }}>
+                    <div style={{ fontWeight: "700" }}>{v.anHover.date}</div>
+                    {v.anShowCur ? <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><span style={{ width: "10px", height: "3px", background: v.anColor }}></span>{"This period "}<strong style={{ marginLeft: "auto", paddingLeft: "12px", fontVariantNumeric: "tabular-nums" }}>{v.anHover.cur}</strong></div> : null}
+                    {v.anShowPrev ? <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><span style={{ width: "10px", height: "0", borderTop: "2px dashed #97a2b2" }}></span>{"Previous period "}<strong style={{ marginLeft: "auto", paddingLeft: "12px", fontVariantNumeric: "tabular-nums" }}>{v.anHover.prev}</strong></div> : null}
+                  </div>
+                </>) : null}
+                </div>
                 {" "}
                 <div style={{ position: "relative", height: "22px", marginTop: "8px", fontSize: "13px", color: "#5a6474" }}>
                   {" "}

@@ -20,7 +20,7 @@ export function makeMetrics(m) {
     has: !!through,
     through,
     // Daily values of a total metric across the given accounts, for the last n days ending at `through`.
-    series(accts, metric, n) { return days(n).map(day => accts.reduce((t, a) => t + ((total[a] || {})[metric] || {})[day] || 0, 0)); },
+    series(accts, metric, n) { return days(n).map(day => accts.reduce((t, a) => t + (((total[a] || {})[metric] || {})[day] || 0), 0)); },
     // Sum of a total metric over [end - n + 1, end], where end is `back` periods before `through`.
     sum(accts, metric, n, back = 0) { const to = addDays(through, -n * back), from = addDays(to, -n + 1); return accts.reduce((t, a) => t + sumDays((total[a] || {})[metric], from, to), 0); },
     // A breakdown over the last n days: [[value, amount], ...] sorted largest first.

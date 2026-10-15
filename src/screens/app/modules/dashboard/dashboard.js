@@ -89,7 +89,9 @@ export function dashboardVals(app, ctx) {
           const liveTools = ['an-all', 'an-ga4'].map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === (av === 'an-ga4' ? 'an-ga4' : 'an-all'), bg: key === (av === 'an-ga4' ? 'an-ga4' : 'an-all') ? '#ffffff' : 'transparent', fw: key === av ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
           if (T) return { ...blank, anTools: liveTools, anEmpty: true, anEmptyLive: true, anEmptyLogo: L.ga4, anEmptyTool: 'Google Analytics 4', anEmptyTitle: T[0], anEmptyLiveText: T[1], anEmptyBtn: T[2],
             anEmptyGo: T[3] || (() => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), ga4: true } }))) };
-          LV = { M, accts, tools: liveTools, key: av === 'an-ga4' ? 'an-ga4' : 'an-all' };
+          // Viewing all clients: tables say which client each row belongs to.
+          const per = selC ? null : live.clients.map(c => ({ name: c.name, accts: M.accountsFor(c.id) })).filter(c => c.accts.length);
+          LV = { M, accts, per: per && per.length > 1 ? per : null, tools: liveTools, key: av === 'an-ga4' ? 'an-ga4' : 'an-all' };
         }
         const A = LV ? liveView(LV, S, { '7 days': 7, '14 days': 14, '30 days': 30 }[S.range || '14 days']) : A0;
         if (LV) av = LV.key;
@@ -115,11 +117,22 @@ export function dashboardVals(app, ctx) {
           const o = { title, span: full ? '1 / -1' : 'auto', isBars: d.type === 'bars', isFunnel: d.type === 'funnel', isTable: d.type === 'table', cols: [], rows: [] };
           if (d.type === 'bars') { const m = Math.max(...d.rows.map(r => num(r[1]))), tot = d.rows.reduce((t, r) => t + num(r[1]), 0); o.aria = title + ': ' + d.rows.map(r => r[0] + ' ' + r[1]).join(', '); o.rows = d.rows.map(([label, value], ri) => ({ label, value, logo: PLOGO[label] || '', hasLogo: !!PLOGO[label], icon: PICON[label] || '', hasIcon: !PLOGO[label] && !!PICON[label], noLogo: !PLOGO[label] && !PICON[label], pct: (num(value) / tot * 100).toFixed(1) + '%', pctLabel: Math.round(num(value) / tot * 100) + '%', col: (av === 'an-all' && PLAT[label]) || PAL[av].pal[ri % PAL[av].pal.length], w: Math.max(3, Math.round(num(value) / m * 100)) + '%' })); const CIRC = 2 * Math.PI * 40; let acc = 0; o.rows.forEach(r => { const len = num(r.pct) / 100 * CIRC; r.dash = Math.max(len - 1, 0.5).toFixed(2) + ' ' + CIRC.toFixed(2); r.off = (-acc).toFixed(2); acc += len; }); const top = o.rows.reduce((b, r) => num(r.pct) > num(b.pct) ? r : b, o.rows[0]); o.topPct = top.pctLabel; o.topLabel = top.label; }
           if (d.type === 'funnel') { const top = d.rows[0][1]; o.rows = d.rows.map(([label, val], i) => ({ label, col: PAL[av].pal[i % PAL[av].pal.length], value: val >= 10000 ? (val / 1000).toFixed(val >= 100000 ? 0 : 1) + 'k' : val.toLocaleString(), w: Math.max(2, Math.round(Math.sqrt(val / top) * 100)) + '%', drop: i ? Math.round(val / d.rows[i - 1][1] * 100) + '% of previous step' : 'Starting point', dc: i && val / d.rows[i - 1][1] < 0.5 ? '#a3330c' : '#5a6474' })); }
-          if (d.type === 'table') { o.cols = d.cols.map((t, i) => ({ t, a: i ? 'right' : 'left' })); const SL = { 'Meta': '/assets/logo-meta.png', 'Meta Ads': '/assets/logo-meta.png', 'Google Ads': '/assets/logo-google-ads.png', 'GA4': '/assets/logo-ga4.png', 'Google Analytics 4': '/assets/logo-ga4.png', 'TikTok': '/assets/logo-tiktok.png', 'TikTok Ads': '/assets/logo-tiktok.png', 'Search Console': '/assets/logo-search-console.png', 'Google Search Console': '/assets/logo-search-console.png', 'Instagram': '/assets/logo-instagram.png', 'LinkedIn': '/assets/logo-linkedin.png', 'Microsoft Ads': '/assets/logo-microsoft.png' }; o.rows = d.rows.map(r => ({ cells: r.map((v, i) => ({ v, logo: SL[v] || null, a: i ? 'right' : 'left', fw: i ? 500 : 600, c: v === 'Paused' ? '#5a6474' : '#0b1626' })) })); }
+          if (d.type === 'table') { const left = i => !i || d.cols[i] === 'Client'; o.cols = d.cols.map((t, i) => ({ t, a: left(i) ? 'left' : 'right' })); const SL = { 'Meta': '/assets/logo-meta.png', 'Meta Ads': '/assets/logo-meta.png', 'Google Ads': '/assets/logo-google-ads.png', 'GA4': '/assets/logo-ga4.png', 'Google Analytics 4': '/assets/logo-ga4.png', 'TikTok': '/assets/logo-tiktok.png', 'TikTok Ads': '/assets/logo-tiktok.png', 'Search Console': '/assets/logo-search-console.png', 'Google Search Console': '/assets/logo-search-console.png', 'Instagram': '/assets/logo-instagram.png', 'LinkedIn': '/assets/logo-linkedin.png', 'Microsoft Ads': '/assets/logo-microsoft.png' }; o.rows = d.rows.map(r => ({ cells: r.map((v, i) => ({ v, logo: SL[v] || null, a: left(i) ? 'left' : 'right', fw: i ? 500 : 600, c: v === 'Paused' ? '#5a6474' : '#0b1626' })) })); }
           return o;
         });
         const rng = S.range || '14 days';
-        return { ...blank, anTools, anHas: true, anTint: PAL[av].tint, anInk: PAL[av].ink, anSections, anTake: A.take, anFresh: A.fresh, anHasTake: !!A.take, anColor: A.color, anFill: A.color + '1a',
+        // Hover: the day under the pointer, with this period's and the previous period's value.
+        const prevAt = k => A.series ? (k >= rngDays ? pts[k - rngDays] : null) : pts[k] * 0.88 + (k % 3) * 2;
+        const label = A.m[mi][0], fmtV = v => v == null ? 'No data' : /rate/i.test(label) ? v.toFixed(1) + '%' : /spend|cost/i.test(label) ? '$' + Math.round(v).toLocaleString() : Math.round(v).toLocaleString();
+        const dayOf = k => { const dt = new Date(end); dt.setDate(end.getDate() - (n - 1 - k)); return MON[dt.getMonth()] + ' ' + dt.getDate(); };
+        const hideCur = !!S.anHideCur, hidePrev = !!S.anHidePrev, hk = S.anHover;
+        const hover = hk != null && hk >= 0 && hk < n ? { x: (hk / (n - 1) * 100).toFixed(3) + '%', flip: hk > n - 8, date: dayOf(hk), cur: fmtV(pts[hk]), prev: fmtV(prevAt(hk)),
+          curY: (180 - (pts[hk] / mx) * 170) / 180 * 100 + '%', prevY: prevAt(hk) == null ? null : (180 - (prevAt(hk) / mx) * 170) / 180 * 100 + '%' } : null;
+        const chartVals = { anHover: hover, anShowCur: !hideCur, anShowPrev: !hidePrev,
+          anToggleCur: () => app.setState({ anHideCur: !hideCur, anHidePrev: !hideCur ? false : hidePrev }), anTogglePrev: () => app.setState({ anHidePrev: !hidePrev, anHideCur: !hidePrev ? false : hideCur }),
+          anMove: e => { const r = e.currentTarget.getBoundingClientRect(), k = Math.max(0, Math.min(n - 1, Math.round((e.clientX - r.left) / r.width * (n - 1)))); if (k !== S.anHover) app.setState({ anHover: k }); },
+          anLeave: () => { if (S.anHover != null) app.setState({ anHover: null }); } };
+        return { ...blank, ...chartVals, anTools, anHas: true, anTint: PAL[av].tint, anInk: PAL[av].ink, anSections, anTake: A.take, anFresh: A.fresh, anHasTake: !!A.take, anColor: A.color, anFill: A.color + '1a',
           anMetrics: A.m.map(([label, value, note], i) => ({ label, value, note: note + ' vs previous', c: good(label, note), on: i === mi, bg: i === mi ? 'var(--an-tint)' : 'transparent', pick: () => app.setState({ anMetric: i }) })),
           anChartLabel: A.m[mi][0] + ' per day, ' + A.name,
           anLine: line, anPrev: prev, anArea: line + ' L' + W + ' 180 L0 180 Z', anVB: '0 0 ' + W + ' 180', anGrid: 'M0 45H' + W + 'M0 90H' + W + 'M0 135H' + W, anChartW: (TOTAL / rngDays * 100).toFixed(1) + '%', chartRef: app.chartRef,
@@ -150,17 +163,21 @@ function liveView(LV, S, rng) {
   const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
   const bars = (dim, metric, label = x => x) => M.breakdown(accts, dim, metric, rng).slice(0, 7).map(([k, v]) => [label(k), fmtNum(v)]);
   const chan = M.breakdown(accts, 'channel', 'sessions', rng), top = chan[0];
-  const pages = M.breakdown(accts, 'page', 'sessions', rng).slice(0, 8).map(([page, ses]) => {
-    const e = M.breakdown(accts, 'page', 'engagedSessions', rng).find(r => r[0] === page), k = M.breakdown(accts, 'page', 'keyEvents', rng).find(r => r[0] === page);
-    return [page, fmtNum(ses), Math.round(rate(e ? e[1] : 0, ses)) + '%', fmtNum(k ? k[1] : 0), rate(k ? k[1] : 0, ses).toFixed(1) + '%'];
-  });
+  // Top landing pages. With several clients, each row is one client's page, labelled with that client.
+  const groups = LV.per || [{ name: '', accts }];
+  const pages = groups.flatMap(g => M.breakdown(g.accts, 'page', 'sessions', rng).map(([page, ses]) => {
+    const e = M.breakdown(g.accts, 'page', 'engagedSessions', rng).find(r => r[0] === page), k = M.breakdown(g.accts, 'page', 'keyEvents', rng).find(r => r[0] === page);
+    return { ses, row: [page].concat(LV.per ? [g.name] : [], [fmtNum(ses), Math.round(rate(e ? e[1] : 0, ses)) + '%', fmtNum(k ? k[1] : 0), rate(k ? k[1] : 0, ses).toFixed(1) + '%']) };
+  })).sort((x, y) => y.ses - x.ses).slice(0, 8).map(x => x.row);
   const sec = [];
   const leadsByChannel = bars('channel', 'keyEvents');
   if (all && leadsByChannel.length) sec.push(['Leads by channel, from Google Analytics 4', { type: 'bars', rows: leadsByChannel }]);
   sec.push(['Sessions by channel', { type: 'bars', rows: bars('channel', 'sessions') }]);
   sec.push(['Sessions by device', { type: 'bars', rows: bars('device', 'sessions', cap) }]);
-  if (spend > 0) sec.push(['Google Ads campaigns, from Google Analytics 4', { type: 'table', cols: ['Campaign', 'Cost', 'Clicks'], rows: M.breakdown(accts, 'campaign', 'adCost', rng).slice(0, 8).map(([c, v]) => { const cl = M.breakdown(accts, 'campaign', 'adClicks', rng).find(r => r[0] === c); return [c, '$' + Math.round(v).toLocaleString(), fmtNum(cl ? cl[1] : 0)]; }) }, true]);
-  if (pages.length) sec.push(['Top landing pages', { type: 'table', cols: ['Page', 'Sessions', 'Engagement', 'Key events', 'Conv. rate'], rows: pages }, true]);
+  if (spend > 0) sec.push(['Google Ads campaigns, from Google Analytics 4', { type: 'table', cols: ['Campaign'].concat(LV.per ? ['Client'] : [], ['Cost', 'Clicks']),
+    rows: groups.flatMap(g => M.breakdown(g.accts, 'campaign', 'adCost', rng).map(([c, v]) => { const cl = M.breakdown(g.accts, 'campaign', 'adClicks', rng).find(r => r[0] === c); return { v, row: [c].concat(LV.per ? [g.name] : [], ['$' + Math.round(v).toLocaleString(), fmtNum(cl ? cl[1] : 0)]) }; }))
+      .sort((x, y) => y.v - x.v).slice(0, 8).map(x => x.row) }, true]);
+  if (pages.length) sec.push(['Top landing pages', { type: 'table', cols: ['Page'].concat(LV.per ? ['Client'] : [], ['Sessions', 'Engagement', 'Key events', 'Conv. rate']), rows: pages }, true]);
   const take = s.sessions ? fmtNum(s.sessions) + ' sessions in the last ' + rng + ' days, ' + pct(s.sessions, p.sessions) + ' on the ' + rng + ' days before.' + (top ? ' ' + top[0] + ' brought the most, ' + Math.round((top[1] / s.sessions) * 100) + '%.' : '') + (s.leads ? ' ' + fmtNum(s.leads) + (s.leads === 1 ? ' key event' : ' key events') + ' recorded.' : ' No key events recorded, so check which GA4 events count as leads.') : '';
   return { name: all ? 'All sources' : 'Google Analytics 4', logo: all ? '/assets/clario-mark-v2.png' : LOGOS.ga4, color: all ? '#1f6be2' : '#E37400', through: M.through,
     fresh: (all ? 'Leads from GA4 key events · ' : '') + 'Data up to ' + fmtDay(M.through) + ' · GA4 can take 2 days to finish processing',
