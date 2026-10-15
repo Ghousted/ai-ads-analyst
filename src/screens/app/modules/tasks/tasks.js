@@ -8,7 +8,7 @@ export function tasksVals(app, ctx) {
   return {
       ...(() => { const gone = S.rkGone || {}; const list = C.map((c, i) => ({ c, i })).filter(({ c }) => c.s !== 'h' && !c.dismissed && !gone[c.name]);
         const PILL = { r: ['#fde2d6', '#a3330c', 'At risk', '#e0481a'], n: ['#fff6c2', '#7a5a00', 'Needs attention', '#e8a33a'] };
-        const hide = c => app.confirm({ title: 'Dismiss the flag for ' + c.name + '?', body: 'It leaves your Flags list. Analyst flags them again if their numbers change.', confirm: 'Dismiss flag',
+        const hide = c => app.confirm({ title: 'Dismiss the flag for ' + c.name + '?', body: 'It leaves Ask Analyst. Analyst flags them again if their numbers change.', confirm: 'Dismiss flag',
           onConfirm: () => { app.setState(s => ({ rkGone: { ...(s.rkGone || {}), [c.name]: true }, rkOpen: null })); if (live && c.extra) dismissFlagAction({ clientId: c.extra.id, keys: c.flagKeys || '' }); } });
         const fl = S.tkView === 'flagged';
         // Claude's analysis of a flag: saved with the client (live), built in (sample), or being written now.
