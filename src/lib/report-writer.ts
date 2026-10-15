@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { db, schema } from '@/db';
 import { aiModel, getClaude } from './ai';
-import { getPart, partKind, type Content } from './report-blocks';
+
 
 const addDays = (day: string, n: number) => { const d = new Date(day + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
@@ -106,10 +106,9 @@ export async function writeReport(facts: NonNullable<Facts>, ctx: Ctx, focus = '
 
 const LIMITS: Record<string, number> = { headline: 160, heading: 160, paragraph: 2000, 'list item': 500 };
 
-// Ask Analyst on one part: Claude rewrites only that part, keeping it true to the numbers and consistent with the rest.
-export async function rewritePart(facts: NonNullable<Facts>, ctx: Ctx, content: Content, path: string, instruction: string) {
-  const current = getPart(content, path) ?? '';
-  const kind = partKind(content, path);
+// Ask Analyst on one piece of text (a headline, heading, paragraph or list item): Claude rewrites only that piece,
+// keeping it true to the numbers and consistent with the rest of the report.
+export async function rewritePart(facts: NonNullable<Facts>, ctx: Ctx, reportText: string, kind: string, current: string, instruction: string) {
   const res = await claudeOrThrow().messages.parse({
     model: aiModel(),
     max_tokens: 8000,
@@ -117,8 +116,8 @@ export async function rewritePart(facts: NonNullable<Facts>, ctx: Ctx, content: 
     output_config: { effort: 'low', format: zodOutputFormat(z.object({ text: z.string().describe('The new text for that part only, with no heading or label.') })) },
     messages: [{ role: 'user', content: `${briefFor(facts, ctx)}
 
-The report's text as it stands, in order:
-${content.blocks.map(b => 'text' in b ? b.text : b.t === 'list' ? b.items.map(x => '- ' + x).join('\n') : '[' + b.t + ']').join('\n\n')}
+The report's text as it stands:
+${reportText}
 
 Rewrite only this ${kind}. Its current text:
 """${current}"""
@@ -129,5 +128,5 @@ Keep it accurate to the data and consistent with the rest of the report. Return 
   });
   if (res.stop_reason === 'refusal') throw new Error('The AI declined to rewrite this part.');
   if (!res.parsed_output?.text?.trim()) throw new Error('The AI returned nothing. Try again.');
-  return { text: clip(res.parsed_output.text, LIMITS[kind] || 1200), usage: res.usage };
+  return { text: clip(res.parsed_output.text, LIMITS[kind] || 2000), usage: res.usage };
 }
