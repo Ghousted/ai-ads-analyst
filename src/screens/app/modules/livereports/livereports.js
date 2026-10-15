@@ -30,7 +30,7 @@ export function liveReportsVals(app, ctx) {
   const modal = (() => {
     const pick = S.lrClient && withData.some(c => c.id === S.lrClient) ? S.lrClient : (S.sel != null && C[S.sel] && C[S.sel].extra && hasData(C[S.sel].extra.id) ? C[S.sel].extra.id : (withData[0] || {}).id || '');
     const days = S.lrDays || 7, busy = !!S.lrBusy, close = () => { if (!busy) app.setState({ lrModal: false, lrErr: null }); };
-    return { ...writingVals, lrModal: !!S.lrModal && !writing && (v === 'templates' || v === 'reports'), lrClose: close, lrBackdrop: e => { if (e.target === e.currentTarget) close(); },
+    return { ...writingVals, lrModal: writing || (!!S.lrModal && (v === 'templates' || v === 'reports')), lrClose: close, lrBackdrop: e => { if (e.target === e.currentTarget) close(); },
       lrCanWrite: withData.length > 0,
       lrNoDataText: clients.length ? 'None of your clients has Google Analytics numbers yet. Link a property to a client in Integrations, and their numbers arrive within a minute.' : 'Add a client and link their Google Analytics property. Then Analyst can write their report from real numbers.',
       lrGoInt: () => app.setState({ lrModal: false, view: 'settings', stgTab: 'conn' }),
@@ -51,7 +51,7 @@ export function liveReportsVals(app, ctx) {
 
   if (v !== 'lrep') return base;
   const r = reports.find(x => x.id === S.lrId);
-  if (!r && S.lrPendingId === S.lrId) return { ...base, ...writingVals, lrWriting: true };
+  if (!r && S.lrPendingId === S.lrId) return { ...base, ...writingVals, lrWriting: true, lrModal: true, lrBackdrop: () => {}, lrClose: () => {} };
   if (!r) return { ...base, lrPage: true, lrMissing: true, lrBack: () => app.setState({ view: 'templates' }) };
   const f = r.facts, client = clients.find(x => x.id === r.clientId) || { name: 'Removed client' };
   const D = S.lrDraft && S.lrDraft.id === r.id ? S.lrDraft : { id: r.id, title: r.title, content: r.content };

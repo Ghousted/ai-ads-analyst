@@ -136,31 +136,29 @@ const WRITING_CSS = '@keyframes clario-spin{to{transform:rotate(360deg)}}@keyfra
 
 function Writing({ v }) {
   return (
-    <div role="status" aria-live="polite" style={{ position: "fixed", inset: "0", zIndex: "70", background: "#ffffff", display: "grid", placeItems: "center", overflow: "hidden", animation: "clario-fade-in 300ms ease both" }}>
+    <div role="status" aria-live="polite" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", padding: "24px 8px 8px", textAlign: "center", animation: "clario-fade-in 300ms ease both" }}>
       <style dangerouslySetInnerHTML={{ __html: WRITING_CSS }} />
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "28px", padding: "24px", textAlign: "center" }}>
-        <span style={{ position: "relative", width: "88px", height: "88px", display: "block" }}>
-          <span style={{ position: "absolute", inset: "-14px", borderRadius: "50%", border: "3px solid #eef1f6", borderTopColor: "#1f6be2", animation: "clario-spin 900ms linear infinite" }}></span>
-          <img src="/assets/clario-mark-v2.png" alt="" width="88" height="88" style={{ position: "absolute", inset: "0", width: "88px", height: "88px", display: "block", animation: "clario-breathe 1600ms ease-in-out infinite" }} />
-        </span>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px", minHeight: "60px" }}>
-          <span style={{ fontSize: "22px", fontWeight: "700", letterSpacing: "-0.7px" }}>{v.lrWritingTitle}</span>
-          <span key={v.lrWritingKey} style={{ fontSize: "16px", color: "#5a6474", animation: "clario-fade-in 300ms ease both" }}>{v.lrWritingMsg}</span>
-        </div>
-        <span style={{ display: "block", width: "200px", height: "4px", borderRadius: "9999px", background: "#eef1f6", overflow: "hidden" }}>
-          <span style={{ display: "block", height: "100%", background: "#1f6be2", borderRadius: "9999px", transformOrigin: "left", animation: "clario-fill 12s cubic-bezier(0.2,0.6,0.35,1) both" }}></span>
-        </span>
+      <span style={{ position: "relative", width: "72px", height: "72px", display: "block" }}>
+        <span style={{ position: "absolute", inset: "-12px", borderRadius: "50%", border: "3px solid #eef1f6", borderTopColor: "#1f6be2", animation: "clario-spin 900ms linear infinite" }}></span>
+        <img src="/assets/clario-mark-v2.png" alt="" width="72" height="72" style={{ position: "absolute", inset: "0", width: "72px", height: "72px", display: "block", animation: "clario-breathe 1600ms ease-in-out infinite" }} />
+      </span>
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px", minHeight: "56px" }}>
+        <span style={{ fontSize: "22px", fontWeight: "700", letterSpacing: "-0.7px" }}>{v.lrWritingTitle}</span>
+        <span key={v.lrWritingKey} style={{ fontSize: "16px", color: "#5a6474", animation: "clario-fade-in 300ms ease both" }}>{v.lrWritingMsg}</span>
       </div>
+      <span style={{ display: "block", width: "200px", height: "4px", borderRadius: "9999px", background: "#eef1f6", overflow: "hidden" }}>
+        <span style={{ display: "block", height: "100%", background: "#1f6be2", borderRadius: "9999px", transformOrigin: "left", animation: "clario-fill 12s cubic-bezier(0.2,0.6,0.35,1) both" }}></span>
+      </span>
     </div>
   );
 }
 
 export function LiveReportsOverlay({ v }) {
-  if (v.lrWriting) return <Writing v={v} />;
   if (!v.lrModal) return null;
   return (
     <div onClick={v.lrBackdrop} style={{ position: "fixed", inset: "0", zIndex: "70", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
-      <form role="dialog" aria-modal="true" aria-labelledby="lr-title" onSubmit={v.lrWrite} noValidate style={{ width: "min(520px,100%)", maxHeight: "calc(100vh - 48px)", overflowY: "auto", background: "#ffffff", padding: "28px", display: "flex", flexDirection: "column", gap: "20px", boxShadow: "0 30px 80px -30px rgba(11,22,38,.5)" }}>
+      <form role="dialog" aria-modal="true" aria-labelledby={v.lrWriting ? undefined : "lr-title"} aria-label={v.lrWriting ? v.lrWritingTitle : undefined} onSubmit={v.lrWrite} noValidate style={{ width: "min(520px,100%)", maxHeight: "calc(100vh - 48px)", overflowY: "auto", background: "#ffffff", padding: "28px", display: "flex", flexDirection: "column", gap: "20px", boxShadow: "0 30px 80px -30px rgba(11,22,38,.5)" }}>
+        {v.lrWriting ? <Writing v={v} /> : (<>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"Write a report"}</h2>
@@ -185,6 +183,7 @@ export function LiveReportsOverlay({ v }) {
             ? <button type="submit" disabled={v.lrBusy} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer", opacity: v.lrBusy ? 0.8 : 1 }} className="dc9482609">{v.lrWriteLabel}</button>
             : <button type="button" onClick={v.lrGoInt} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{"Open integrations"}</button>}
         </div>
+        </>)}
       </form>
     </div>
   );
