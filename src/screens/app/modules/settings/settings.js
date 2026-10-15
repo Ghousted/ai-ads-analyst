@@ -88,7 +88,7 @@ export function settingsVals(app, ctx) {
               colors: COLORS.map(c => ({ hex: c, on: c === color, pick: () => manager && c !== color && save({ color: c }) })),
               pick: e => { const file = e.target.files && e.target.files[0]; e.target.value = ''; if (!file) return; if (file.size > 1024 * 1024) return toast('Use a logo under 1 MB.');
                 const rd = new FileReader(); rd.onload = () => save({ logo: String(rd.result) }); rd.readAsDataURL(file); },
-              remove: () => save({ logo: null }) }; })(),
+              remove: () => app.confirm({ title: 'Remove your logo?', body: 'Reports and the client portal show your agency name instead. You can upload a logo again any time.', confirm: 'Remove logo', tone: 'danger', onConfirm: () => save({ logo: null }) }) }; })(),
           stgGroups: G[tab].map(g => ({ isBrand: !!g.isBrand, hasLogo: !!g.logo, logo: g.logo || '', hasSub: !!g.sub, sub: g.sub || [], subLabel: g.subLabel || '', subOpen: !!g.subOpen, subChev: g.subChev || '', subRows: g.subRows || '0fr', subToggle: g.subToggle, title: g.title, hasChecks: !!g.checks, checkTitle: g.checkTitle || '', checks: (g.checks || []).map(x => ({ ...x, ls: clSplit(x.label) })), rows: g.rows.map(r => ({ isToggle: false, isSelect: false, isBtn: false, isPrimary: false, ...r, ts: clSplit(r.t), ds: clSplit(r.d) })) })) };
       })(),
   };

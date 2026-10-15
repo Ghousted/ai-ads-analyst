@@ -6,6 +6,7 @@ import View, { css } from './View';
 import { FEATURES } from './modules';
 import { clSplit, TCOLS, PEOPLE, DEF_TASKS, LOGOS, clientTools } from './data';
 import { makeMetrics, pct, fmtDay } from './metrics';
+import Confirm from './Confirm';
 import { askAnalystAction } from '@/app/actions/analyst';
 
 
@@ -14,7 +15,20 @@ class Logic extends React.Component {
 
   // The signed-in person, their agency and team arrive as props from the server page.
   state = { me: this.props.me, agName: this.props.agency?.name, brandLogo: this.props.agency?.brandLogo || null, brandColor: this.props.agency?.brandColor || '#1f6be2', members: this.props.team, tasks: this.props.live ? [] : null, view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
+  // Confirmation dialog: confirm({ title, body, confirm, onConfirm, tone: 'danger', alt, onAlt, cancel }).
+  // onConfirm may return a promise; the dialog stays open (busy) until it settles, and closes unless it resolves false.
+  confirm(o) { this.setState({ cf: o, cfBusy: false }); }
+  // Leaving a report with unsaved edits asks first. next() is where the user was going.
+  leaveGuard(next) {
+    const S = this.state;
+    if (S.view !== 'lrep' || !S.lrDraft) return next();
+    this.confirm({ title: 'Save your changes?', body: 'You edited this report. Save it before you leave, or your changes are lost.', confirm: 'Save and leave', busy: 'Saving…',
+      onConfirm: () => Promise.resolve(this._lrSave ? this._lrSave() : true).then(ok => { if (ok) next(); return ok; }),
+      alt: 'Discard changes', onAlt: () => { this.setState({ lrDraft: null }); next(); }, cancel: 'Keep editing' });
+  }
   componentDidMount() {
+    // Closing the tab or reloading with unsaved report edits: the browser asks.
+    this._bu = e => { if (this.state.view === 'lrep' && this.state.lrDraft) { e.preventDefault(); e.returnValue = ''; } }; window.addEventListener('beforeunload', this._bu);
     // Back from Google sign-in for GA4: open Integrations and say what happened, then tidy the address bar.
     try { const q = new URLSearchParams(window.location.search); if (q.get('integration') === 'google') {
       const n = Number(q.get('found') || 0), msg = { connected: 'Google Analytics connected as ' + q.get('login') + '. ' + n + (n === 1 ? ' property' : ' properties') + ' found. Link each one to a client below.', cancelled: 'Google sign-in was cancelled. Nothing changed.', noscope: 'Google didn\'t share Analytics access. Connect again and tick the Google Analytics box.', expired: 'That sign-in took too long. Try connecting again.', forbidden: 'Only the owner and admins can connect tools.', unconfigured: 'Google sign-in isn\'t set up on this server yet.', apidisabled: 'The Google Analytics Admin API is turned off in the Google Cloud project. Turn it on and connect again.', failed: 'Google didn\'t finish connecting. Try again.' }[q.get('result')] || 'Google didn\'t finish connecting. Try again.';
@@ -40,10 +54,10 @@ class Logic extends React.Component {
   chartRef = React.createRef();
   rbChatRef = React.createRef();
   componentDidUpdate() { this.autosize(); this.syncDoc?.(); this.positionSel?.(); const vr = this.viewRef.current; if (vr && this._viewHTML && vr.innerHTML !== this._viewHTML) vr.innerHTML = this._viewHTML; const el = this.chatRef.current, mk = (this.state.msgs || []).length + (this.state.typing ? 't' : ''); if (el && mk !== this._chatMk) { this._chatMk = mk; el.scrollTop = (this.state.msgs || []).length ? el.scrollHeight : 0; } const rc = this.rbChatRef.current; if (rc) rc.scrollTop = rc.scrollHeight; const c = this.chartRef.current; if (c && this._chartKey !== this._chartSeen) { this._chartSeen = this._chartKey; c.scrollLeft = c.scrollWidth; } }
-  componentWillUnmount() { document.removeEventListener('mousedown', this._ctxClose); window.removeEventListener('resize', this._rp); document.removeEventListener('selectionchange', this._sc); window.removeEventListener('resize', this._rs); clearTimeout(this.gt); clearTimeout(this.ct); clearTimeout(this.gtT); clearTimeout(this.ctT); clearTimeout(this.rtT); clearTimeout(this.rbT); clearTimeout(this.rbA); clearTimeout(this.genT); }
+  componentWillUnmount() { window.removeEventListener('beforeunload', this._bu); document.removeEventListener('mousedown', this._ctxClose); window.removeEventListener('resize', this._rp); document.removeEventListener('selectionchange', this._sc); window.removeEventListener('resize', this._rs); clearTimeout(this.gt); clearTimeout(this.ct); clearTimeout(this.gtT); clearTimeout(this.ctT); clearTimeout(this.rtT); clearTimeout(this.rbT); clearTimeout(this.rbA); clearTimeout(this.genT); }
   renderVals() {
     // The sidebar collapses while a report is being edited.
-    const S = this.state.view === 'lrep' && !this.state.navC ? { ...this.state, navC: true } : this.state, go = (view, extra = {}) => () => this.setState({ view, ...extra });
+    const S = this.state.view === 'lrep' && !this.state.navC ? { ...this.state, navC: true } : this.state, go = (view, extra = {}) => () => this.leaveGuard(() => this.setState({ view, ...extra }));
     const ST = { h: ['Healthy', '#e3f3e8', '#1d6b3a'], n: ['Needs attention', '#fff6c2', '#7a5a00'], r: ['At risk', '#fde2d6', '#a3330c'] };
     const L = LOGOS;
     // Live agencies see their own clients (from the server); sample agencies see the built-in examples.
@@ -116,7 +130,7 @@ class Logic extends React.Component {
       return { label, open, multi: !single, aria: single && hasActive ? 'page' : undefined, icon: icons[id], rows: open && !single ? '1fr' : '0fr', chev: open ? 'rotate(180deg)' : 'rotate(0deg)',
         bg: single && hasActive ? '#eef3fd' : 'transparent', iconBg: 'transparent', iconC: hasActive ? '#1f6be2' : '#5a6474',
         hasBadge: false, badge: '',
-        toggle: () => { if (S.navC) { this.setState({ navC: false }); try { localStorage.setItem('clario-nav-collapsed', '0'); } catch (er) {} } if (id === 'clients') { this.setState({ view: 'clients', clList: true, cForm: null, pfDraft: null }); return; } if (id === 'reporting' && S.view !== 'templates') { this.setState({ view: 'templates' }); return; } if (!hasActive) this.setState({ view: items[0][2] ? items[0][2][0][0] : items[0][0] }); },
+        toggle: () => this.leaveGuard(() => { if (S.navC) { this.setState({ navC: false }); try { localStorage.setItem('clario-nav-collapsed', '0'); } catch (er) {} } if (id === 'clients') { this.setState({ view: 'clients', clList: true, cForm: null, pfDraft: null }); return; } if (id === 'reporting' && S.view !== 'templates') { this.setState({ view: 'templates' }); return; } if (!hasActive) this.setState({ view: items[0][2] ? items[0][2][0][0] : items[0][0] }); }),
         items: items.map(([v, l, kids]) => {
           if (kids) {
             const kOpen = kids.some(k => k[0] === activeView);
@@ -236,11 +250,16 @@ export default function AppScreen(props) {
 }
 
 Logic.prototype.render = function render() {
-  const v = { ...this.props, ...this.renderVals() };
+  const cf = this.state.cf, close = () => this.setState({ cf: null, cfBusy: false });
+  const cfv = cf ? { cfOn: true, cfTitle: cf.title, cfBody: cf.body, cfTone: cf.tone || 'primary', cfConfirmLabel: cf.confirm, cfAltLabel: cf.alt || '', cfCancelLabel: cf.cancel || 'Cancel', cfBusy: !!this.state.cfBusy, cfBusyLabel: cf.busy || cf.confirm,
+    cfCancel: () => { if (!this.state.cfBusy) close(); }, cfAlt: () => { close(); cf.onAlt && cf.onAlt(); },
+    cfDo: () => { const r = cf.onConfirm && cf.onConfirm(); if (r && r.then) { this.setState({ cfBusy: true }); r.then(ok => { if (ok === false) this.setState({ cfBusy: false }); else close(); }, () => this.setState({ cfBusy: false })); } else close(); } } : { cfOn: false };
+  const v = { ...this.props, ...this.renderVals(), ...cfv };
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css + PRINT_CSS }} />
       <View v={v} />
+      <Confirm v={v} />
     </>
   );
 };
