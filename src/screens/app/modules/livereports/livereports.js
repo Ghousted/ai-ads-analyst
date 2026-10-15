@@ -55,6 +55,8 @@ export function liveReportsVals(app, ctx) {
       lrCats: ['All templates', 'Traffic', 'Leads'].map(c => ({ label: c, count: String(all.filter(t => c === 'All templates' || t.id === 'blank' || t.cats.includes(c)).length), aria: c === cat ? 'true' : undefined, bg: c === cat ? '#eef3fd' : 'transparent', fw: c === cat ? 700 : 500, pick: () => app.setState({ lrCat: c }) })),
       lrQ: S.lrQ || '', lrSetQ: e => app.setState({ lrQ: e.target.value }), lrClearQ: () => app.setState({ lrQ: '' }), lrNoMatch: !!q && shown.length === 0,
       lrTpls: shown.map(t => ({ ...t, blank: t.id === 'blank', btn: t.id === 'blank' ? 'Start blank' : 'Use template', create: () => create(t.id) })),
+      lrNoBrand: !S.brandLogo && !S.lrBrandSkip, lrSkipBrand: () => app.setState({ lrBrandSkip: true }),
+      lrSetBrand: () => app.setState({ lrModal: false, lrStep: 1, view: 'settings', stgTab: 'agency' }),
       lrBusy: busy, lrErr: S.lrErr || '', lrHasErr: !!S.lrErr };
   })();
 
@@ -77,9 +79,9 @@ export function liveReportsVals(app, ctx) {
   return { ...base, lrPage: true, lrMissing: false,
     lrBack: () => app.setState({ view: 'templates', lrDraft: null }),
     lrStatus: r.status === 'sent' ? 'Sent' : 'Draft', lrDate: 'Written ' + fmtDay(r.createdAt.slice(0, 10)),
-    lrAgency: S.agName, lrPeriod: fmtDay(f.start) + ' \u2013 ' + fmtDay(f.end), lrClientName: client.name, lrColor: S.wlColor || '#1f6be2',
+    lrAgency: S.agName, lrLogo: S.brandLogo || '', lrPeriod: fmtDay(f.start) + ' \u2013 ' + fmtDay(f.end), lrClientName: client.name, lrColor: S.brandColor || '#1f6be2',
     lrTitle: D.title, lrSetTitle: e => setDraft({ title: e.target.value }),
-    lrEditor: { docKey: r.id + ':' + (S.lrEditorKey || 0), initialDoc: r.content.doc, facts: f, color: S.wlColor || '#1f6be2', toast,
+    lrEditor: { docKey: r.id + ':' + (S.lrEditorKey || 0), initialDoc: r.content.doc, facts: f, color: S.brandColor || '#1f6be2', logo: S.brandLogo || '', toast,
       onChange: doc => setDraft({ content: { doc } }),
       onRewrite: ({ kind, text, doc, instruction }) => rewritePartAction({ id: r.id, kind, text, content: { doc }, instruction }) },
     lrSource: 'From Google Analytics: ' + f.properties.join(', ') + '.',

@@ -12,7 +12,7 @@ class Logic extends React.Component {
   static defaultProps = {};
 
   // The signed-in person, their agency and team arrive as props from the server page.
-  state = { me: this.props.me, agName: this.props.agency?.name, members: this.props.team, tasks: this.props.live ? [] : null, view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
+  state = { me: this.props.me, agName: this.props.agency?.name, brandLogo: this.props.agency?.brandLogo || null, brandColor: this.props.agency?.brandColor || '#1f6be2', members: this.props.team, tasks: this.props.live ? [] : null, view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
   componentDidMount() {
     // Back from Google sign-in for GA4: open Integrations and say what happened, then tidy the address bar.
     try { const q = new URLSearchParams(window.location.search); if (q.get('integration') === 'google') {

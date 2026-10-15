@@ -8,6 +8,7 @@ import { NodeSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
+import Image from '@tiptap/extension-image';
 import * as DV from './dataviews';
 
 const GAP = 12;
@@ -28,6 +29,27 @@ export const DataBlock = Node.create({
       return { style: `display:inline-block;vertical-align:top;width:calc(${w * 100}% - ${w < 1 ? GAP : 0}px);margin:0 ${w < 1 ? GAP / 2 : 0}px 22px;` }; } });
   },
 });
+
+// Images (logos, screenshots) with the same width shares as charts.
+const ReportImage = Image.extend({
+  draggable: true,
+  addAttributes() { return { ...this.parent?.(), w: { default: 1 / 3, parseHTML: el => Number(el.getAttribute('data-w')) || 1 / 3, renderHTML: a => ({ 'data-w': a.w }) } }; },
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageView, { attrs: ({ node }) => { const w = Number(node.attrs.w) || 1;
+      return { style: `display:inline-block;vertical-align:top;width:calc(${w * 100}% - ${w < 1 ? GAP : 0}px);margin:0 ${w < 1 ? GAP / 2 : 0}px 22px;` }; } });
+  },
+}).configure({ inline: false, allowBase64: true });
+
+function ImageView({ node, selected, updateAttributes, editor }) {
+  return (
+    <NodeViewWrapper draggable={editor.isEditable ? "true" : "false"} data-drag-handle style={{ position: "relative", outline: selected ? "2px solid #1f6be2" : "none", outlineOffset: "6px", cursor: editor.isEditable ? "grab" : "default", lineHeight: "0" }} title={editor.isEditable ? "Drag to move" : undefined}>
+      <img src={node.attrs.src} alt={node.attrs.alt || ''} style={{ width: "100%", height: "auto", display: "block", pointerEvents: "none" }} />
+      {selected && editor.isEditable ? (
+        <span role="slider" aria-label="Resize" draggable="false" onDragStart={e => { e.preventDefault(); e.stopPropagation(); }} onMouseDown={e => e.stopPropagation()} aria-valuetext={Math.round((node.attrs.w || 1) * 100) + '% wide'} onPointerDown={e => startResize(e, { attrs: { ...node.attrs, kind: 'image' } }, editor, updateAttributes)} className="clario-noprint" style={{ position: "absolute", right: "-14px", bottom: "-14px", width: "22px", height: "22px", background: "#1f6be2", cursor: "nwse-resize", touchAction: "none", border: "3px solid #ffffff", boxShadow: "0 2px 6px rgba(11,22,38,.3)" }}></span>
+      ) : null}
+    </NodeViewWrapper>
+  );
+}
 
 function startResize(e, node, editor, updateAttributes) {
   e.preventDefault(); e.stopPropagation();
@@ -121,7 +143,7 @@ function DataView({ node, selected, updateAttributes, extension, editor }) {
 }
 
 const ICON = { undo: 'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3', redo: 'M15 14l5-5-5-5M20 9H9a5 5 0 0 0 0 10h3', bullet: 'M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01', ordered: 'M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1',
-  left: 'M4 6h16M4 12h10M4 18h14', center: 'M4 6h16M7 12h10M5 18h14', right: 'M4 6h16M10 12h10M6 18h14', rule: 'M3 12h18', del: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+  left: 'M4 6h16M4 12h10M4 18h14', center: 'M4 6h16M7 12h10M5 18h14', right: 'M4 6h16M10 12h10M6 18h14', rule: 'M3 12h18', image: 'M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15 9h.01', del: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
   kpis: 'M4 20V10M10 20V4M16 20v-7M22 20H2', chart: 'M3 17l5-5 4 3 8-8', channels: 'M12 3a9 9 0 1 0 9 9h-9z', devices: 'M7 2h10v20H7zM11 18h2', tchannels: 'M3 5h18v14H3zM3 10h18M9 10v9', tpages: 'M3 5h18v14H3zM3 10h18M3 15h18', tcamps: 'M3 5h18v14H3zM3 10h18M15 10v9' };
 const Icon = ({ d }) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d}></path></svg>;
 const sep = k => <span key={'s' + k} aria-hidden="true" style={{ width: "1px", height: "28px", margin: "0 6px", background: "#e6ebf2" }}></span>;
@@ -154,8 +176,9 @@ const DOC_CSS = `.clario-doc{outline:none;font-size:17px;line-height:1.65;color:
 .clario-doc .ProseMirror-selectednode{outline:none}
 @media print{.clario-doc .is-empty::before{content:none}}`;
 
-export default function ReportEditor({ docKey, initialDoc, facts, color, onChange, onRewrite, toast, header, footer, lead, actions }) {
+export default function ReportEditor({ docKey, initialDoc, facts, color, onChange, onRewrite, toast, header, footer, lead, actions, logo }) {
   const wrap = useRef(null);
+  const fileRef = useRef(null);
   const [menu, setMenu] = useState(null);
   const [tab, setTab] = useState('home');
   const [ask, setAsk] = useState(null); // { pos, kind, text } while the Ask box is open
@@ -170,6 +193,7 @@ export default function ReportEditor({ docKey, initialDoc, facts, color, onChang
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({ placeholder: ({ node }) => node.type.name === 'heading' ? 'Heading' : 'Write here, or right-click to insert a chart' }),
       DataBlock.configure({ facts, color }),
+      ReportImage,
     ],
     content: initialDoc,
     editorProps: { attributes: { class: 'clario-doc', 'aria-label': 'Report' } },
@@ -179,11 +203,11 @@ export default function ReportEditor({ docKey, initialDoc, facts, color, onChang
   // useEditorState stays null until the editor's first transaction, so read the state directly until then.
   const selectState = ({ editor: e }) => {
     if (!e) return null;
-    const sel = e.state.selection, data = sel instanceof NodeSelection && sel.node.type.name === 'dataBlock' ? { ...sel.node.attrs } : null;
+    const sel = e.state.selection, data = sel instanceof NodeSelection && sel.node.type.name === 'dataBlock' ? { ...sel.node.attrs } : null, img = sel instanceof NodeSelection && sel.node.type.name === 'image' ? { ...sel.node.attrs } : null;
     return { bold: e.isActive('bold'), italic: e.isActive('italic'), underline: e.isActive('underline'), strike: e.isActive('strike'), bullet: e.isActive('bulletList'), ordered: e.isActive('orderedList'),
       align: e.isActive({ textAlign: 'center' }) ? 'center' : e.isActive({ textAlign: 'right' }) ? 'right' : 'left',
       style: e.isActive('heading', { level: 1 }) ? 'h1' : e.isActive('heading', { level: 2 }) ? 'h2' : e.isActive('heading', { level: 3 }) ? 'h3' : 'p',
-      canUndo: e.can().undo(), canRedo: e.can().redo(), data, focused: e.isFocused, text: currentText(e) };
+      canUndo: e.can().undo(), canRedo: e.can().redo(), data, img, focused: e.isFocused, text: currentText(e) };
   };
   const st = useEditorState({ editor, selector: selectState }) || (editor ? selectState({ editor }) : null);
   if (!editor || !st) return <div style={{ minHeight: "400px" }} />;
@@ -191,6 +215,12 @@ export default function ReportEditor({ docKey, initialDoc, facts, color, onChang
   const chain = () => editor.chain().focus();
   const insertData = attrs => chain().insertContent({ type: 'dataBlock', attrs }).run();
   const setData = o => chain().updateAttributes('dataBlock', o).run();
+  const insertImage = (src, alt, w) => chain().insertContent({ type: 'image', attrs: { src, alt, w } }).run();
+  const pickImage = e => { const file = e.target.files && e.target.files[0]; e.target.value = ''; if (!file) return;
+    if (!/^image\/(png|jpeg|webp|gif|svg\+xml)$/.test(file.type)) return toast('Use a PNG, JPG, WebP, GIF or SVG image.');
+    if (file.size > 1.5 * 1024 * 1024) return toast('Use an image under 1.5 MB.');
+    const rd = new FileReader(); rd.onload = () => insertImage(String(rd.result), file.name.replace(/\.[^.]+$/, ''), 1 / 3); rd.readAsDataURL(file); };
+  const setImg = o => chain().updateAttributes('image', o).run();
   const setStyle = v => v === 'p' ? chain().setParagraph().run() : chain().setHeading({ level: Number(v[1]) }).run();
   const cat = DV.catalog(facts);
   const hasH = st.data && (st.data.kind === 'chart' || st.data.kind === 'breakdown');
@@ -216,9 +246,11 @@ export default function ReportEditor({ docKey, initialDoc, facts, color, onChang
     { label: 'Cut', hint: '⌘X', run: run(() => { editor.view.focus(); document.execCommand('cut'); }), off: editor.state.selection.empty },
     { label: 'Copy', hint: '⌘C', run: run(() => { editor.view.focus(); document.execCommand('copy'); }), off: editor.state.selection.empty },
     { label: 'Paste', hint: '⌘V', run: run(paste) }, { sep: true },
-    ...(st.data ? [] : [{ label: 'Bold', hint: '⌘B', run: run(() => chain().toggleBold().run()) }, { label: 'Italic', hint: '⌘I', run: run(() => chain().toggleItalic().run()) }, { sep: true }]),
+    ...(st.data || st.img ? [] : [{ label: 'Bold', hint: '⌘B', run: run(() => chain().toggleBold().run()) }, { label: 'Italic', hint: '⌘I', run: run(() => chain().toggleItalic().run()) }, { sep: true }]),
     { head: 'Insert' }, ...cat.map(([, label, attrs]) => ({ label, hint: 'GA4', run: run(() => insertData(attrs)) })),
+    { label: 'Image\u2026', run: run(() => fileRef.current && fileRef.current.click()) }, ...(logo ? [{ label: 'Your logo', run: run(() => insertImage(logo, 'Logo', 1 / 3)) }] : []),
     { label: 'Divider', run: run(() => chain().setHorizontalRule().run()) },
+    ...(st.img ? [{ sep: true }, { head: 'Width' }, ...WIDTHS.map(([w, label]) => ({ label, check: Math.abs((st.img.w || 1) - w) < 0.02, run: run(() => setImg({ w })) })), { sep: true }, { label: 'Delete', run: run(() => chain().deleteSelection().run()), danger: true }] : []),
     ...(st.data ? [{ sep: true }, { head: 'Width' }, ...WIDTHS.map(([w, label]) => ({ label, check: Math.abs((st.data.w || 1) - w) < 0.02, run: run(() => setData({ w })) })), { sep: true }, { label: 'Delete', run: run(() => chain().deleteSelection().run()), danger: true }] : []),
   ];
 
@@ -264,9 +296,17 @@ export default function ReportEditor({ docKey, initialDoc, facts, color, onChang
               <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "#5a6474", padding: "0 6px" }}><img src="/assets/logo-ga4.png" alt="" width="16" height="16" />{"Google Analytics 4"}</span>
               {cat.map(([k, label, attrs]) => <button key={k} type="button" onMouseDown={e => e.preventDefault()} onClick={() => insertData(attrs)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "3px", minWidth: "64px", height: "56px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "12px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dcceddbc1"><span style={{ color: "#1f6be2", display: "grid" }}><Icon d={ICON[k]} /></span>{label}</button>)}
               {sep(5)}
+              <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => fileRef.current && fileRef.current.click()} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "3px", minWidth: "64px", height: "56px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "12px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dcceddbc1"><span style={{ color: "#1f6be2", display: "grid" }}><Icon d={ICON.image} /></span>{"Image"}</button>
+              {logo ? <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => insertImage(logo, 'Logo', 1 / 3)} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "3px", minWidth: "64px", height: "56px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "12px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dcceddbc1"><img src={logo} alt="" style={{ height: "20px", maxWidth: "48px", objectFit: "contain" }} />{"Your logo"}</button> : null}
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" onChange={pickImage} aria-label="Insert image" style={{ position: "absolute", width: "1px", height: "1px", opacity: "0", pointerEvents: "none" }} />
               <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => chain().setHorizontalRule().run()} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "3px", minWidth: "64px", height: "56px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "12px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dcceddbc1"><span style={{ color: "#1f6be2", display: "grid" }}><Icon d={ICON.rule} /></span>{"Divider"}</button>
             </>) : null}
-            {tab === 'layout' ? (st.data ? (<>
+            {tab === 'layout' && st.img ? (<>
+              <span style={{ fontSize: "14px", fontWeight: "600", marginRight: "4px" }}>{"Width"}</span>
+              {WIDTHS.map(([w, label], k) => pill(label, Math.abs((st.img.w || 1) - w) < 0.02, () => setImg({ w }), k))}
+              {sep(8)}{tb('Delete', <Icon d={ICON.del} />, () => chain().deleteSelection().run(), false, false, true)}
+            </>) : null}
+            {tab === 'layout' && !st.img ? (st.data ? (<>
               <span style={{ fontSize: "14px", fontWeight: "600", marginRight: "4px" }}>{"Width"}</span>
               {WIDTHS.map(([w, label], k) => pill(label, Math.abs((st.data.w || 1) - w) < 0.02, () => setData({ w }), k))}
               {hasH ? (<>{sep(6)}<span style={{ fontSize: "14px", fontWeight: "600", marginRight: "4px" }}>{"Height"}</span>{pill('Shorter', false, () => setData({ h: Math.max(100, (st.data.h || 180) - 40) }), 'a')}<span style={{ fontSize: "14px", color: "#5a6474", padding: "0 4px", fontVariantNumeric: "tabular-nums" }}>{(st.data.h || 180) + ' px'}</span>{pill('Taller', false, () => setData({ h: Math.min(560, (st.data.h || 180) + 40) }), 'b')}</>) : null}

@@ -1,6 +1,6 @@
 // Settings, including integrations.
 import { assignAccountAction, disconnectAction } from '@/app/actions/integrations';
-import { renameMeAction, renameAgencyAction, inviteAction, setRoleAction } from '@/app/actions/agency';
+import { renameMeAction, renameAgencyAction, inviteAction, setRoleAction, updateBrandAction } from '@/app/actions/agency';
 import { signOutAction, forgotAction } from '@/app/actions/auth';
 import { connList, nextConn, toolAccts, acctFor, acctKey, clSplit, LOGOS, TOOL_NAMES, MULTI } from '../../data';
 
@@ -54,7 +54,9 @@ export function settingsVals(app, ctx) {
           }).concat(live ? [] : [{ title: 'Slack', rows: S.slack ? [sl('slackCh', 'Alert channel', 'Risk and performance alerts post here for the whole team.', CHANNELS), bt('Connected to the ' + agency + ' Slack', 'Installed by ' + S.slack.by + '. Teammates can also get alerts as direct messages from Notifications.', 'Disconnect', () => { app.setState({ slack: null }); toast('Slack disconnected'); })]
               : [bt('Post alerts to a Slack channel', 'Install AI Ads Analyst in your Slack workspace once, then pick the channel your team watches.', 'Connect Slack', dlg({ kind: 'slack', who: CHANNELS[0] }), true)] }]).concat([
             { title: 'Add a tool', rows: [bt('Connect a new tool', 'Only the owner and admins can connect or change tools. Every teammate sees the data in reports.', 'Connect a tool', dlg({ kind: 'connect', tool: null, st: 'pick' }), true)] }]),
-          agency: [{ title: 'Agency', rows: [manager ? bt(agency, C.length + ' clients · ' + members.length + ' teammates', 'Edit agency', dlg({ kind: 'agency', val: agency })) : { t: agency, d: C.length + ' clients · ' + members.length + ' teammates' }, bt('Report branding', 'Your logo and colour are set when you create your first report. Change them anytime from Design in the report editor.', 'Open reports', () => app.setState({ view: 'templates' }))] },
+          agency: [{ title: 'Agency', rows: [manager ? bt(agency, C.length + ' clients · ' + members.length + ' teammates', 'Edit agency', dlg({ kind: 'agency', val: agency })) : { t: agency, d: C.length + ' clients · ' + members.length + ' teammates' }] },
+            // Report branding: one logo and colour for every report the agency sends.
+            { title: 'Report branding', isBrand: true, rows: [] },
             { title: 'Client portal', rows: [tg('portal', 'Client portal', 'A secure login where clients see every report you have sent them.', true), sl('rsched', 'Default report schedule', 'New clients start with this schedule.', ['Mondays, 8:00am', 'Fridays, 4:00pm', 'First of the month']), sl('rtone', 'Default report tone', 'How Analyst writes reports for new clients.', ['Friendly', 'Professional', 'Short and direct'])] }],
           members: [{ title: 'Team members', rows: members.map(m => {
               const label = m.pending ? 'Invited · joins when they sign up with this email' : m.email;
@@ -70,7 +72,14 @@ export function settingsVals(app, ctx) {
         return { stgCols: ((S.vw || 1280) - (S.navC ? 72 : 264)) < 640 ? 'minmax(0,1fr)' : '200px minmax(0,1fr)', stgCrumb: lab[tab], stgToast: !!S.stgToast, stgToastText: S.stgToast || '',
           stgNav: NAV.map(([label, items]) => ({ label, items: items.map(([k, l]) => ({ label: l, icon: ic[k], aria: k === tab ? 'page' : undefined, bg: k === tab ? '#e6ebf2' : 'transparent', fw: k === tab ? 700 : 500, c: k === tab ? '#0b1626' : '#45505f', ic: k === tab ? '#1f6be2' : '#5a6474', pick: () => app.setState({ stgTab: k }) })) })),
           ...dialogVals(app, S, { toast, me, agency, members, conns, C, live, refresh }),
-          stgGroups: G[tab].map(g => ({ hasLogo: !!g.logo, logo: g.logo || '', hasSub: !!g.sub, sub: g.sub || [], subLabel: g.subLabel || '', subOpen: !!g.subOpen, subChev: g.subChev || '', subRows: g.subRows || '0fr', subToggle: g.subToggle, title: g.title, hasChecks: !!g.checks, checkTitle: g.checkTitle || '', checks: (g.checks || []).map(x => ({ ...x, ls: clSplit(x.label) })), rows: g.rows.map(r => ({ isToggle: false, isSelect: false, isBtn: false, isPrimary: false, ...r, ts: clSplit(r.t), ds: clSplit(r.d) })) })) };
+          brand: (() => { const logo = S.brandLogo, color = S.brandColor || '#1f6be2', COLORS = ['#1f6be2', '#0b1626', '#1d6b3a', '#a3330c', '#7a5a00', '#0e7490'];
+            const save = o => updateBrandAction(o).then(r => { if (r.error) return toast(r.error); app.setState(o.logo !== undefined ? { brandLogo: o.logo } : { brandColor: o.color }); toast(o.logo === null ? 'Logo removed' : o.logo ? 'Logo saved. It now appears on every report.' : 'Brand colour saved'); app.props.refresh?.(); });
+            return { manager, logo: logo || '', hasLogo: !!logo, color, agency,
+              colors: COLORS.map(c => ({ hex: c, on: c === color, pick: () => manager && c !== color && save({ color: c }) })),
+              pick: e => { const file = e.target.files && e.target.files[0]; e.target.value = ''; if (!file) return; if (file.size > 1024 * 1024) return toast('Use a logo under 1 MB.');
+                const rd = new FileReader(); rd.onload = () => save({ logo: String(rd.result) }); rd.readAsDataURL(file); },
+              remove: () => save({ logo: null }) }; })(),
+          stgGroups: G[tab].map(g => ({ isBrand: !!g.isBrand, hasLogo: !!g.logo, logo: g.logo || '', hasSub: !!g.sub, sub: g.sub || [], subLabel: g.subLabel || '', subOpen: !!g.subOpen, subChev: g.subChev || '', subRows: g.subRows || '0fr', subToggle: g.subToggle, title: g.title, hasChecks: !!g.checks, checkTitle: g.checkTitle || '', checks: (g.checks || []).map(x => ({ ...x, ls: clSplit(x.label) })), rows: g.rows.map(r => ({ isToggle: false, isSelect: false, isBtn: false, isPrimary: false, ...r, ts: clSplit(r.t), ds: clSplit(r.d) })) })) };
       })(),
   };
 }

@@ -21,6 +21,9 @@ export const agencies = pgTable('agencies', {
   reportFreq: text('report_freq').notNull().default('Every Monday'),
   reportTone: text('report_tone').notNull().default('Friendly'),
   sampleMode: boolean('sample_mode').notNull().default(true),
+  // Report branding, applied to every report: a logo (data URL) and a brand colour.
+  brandLogo: text('brand_logo'),
+  brandColor: text('brand_color').notNull().default('#1f6be2'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

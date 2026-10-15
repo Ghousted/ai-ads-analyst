@@ -35,7 +35,7 @@ export default async function Page() {
   return (
     <AppScreen
       me={{ id: user.id, name: user.name || user.email.split('@')[0], email: user.email, role: cap(role) }}
-      agency={{ name: agency.name, sampleMode: agency.sampleMode, reportFreq: agency.reportFreq, reportTone: agency.reportTone }}
+      agency={{ name: agency.name, sampleMode: agency.sampleMode, reportFreq: agency.reportFreq, reportTone: agency.reportTone, brandLogo: agency.brandLogo, brandColor: agency.brandColor }}
       team={team}
       live={live}
     />
