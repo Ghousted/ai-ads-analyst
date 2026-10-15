@@ -6,7 +6,7 @@ import { db, schema } from '@/db';
 import { requireAgency } from '@/lib/auth';
 import { aiErrorMessage, aiModel, recordAiUsage, takeAiQuota } from '@/lib/ai';
 import { buildFacts, rewritePart, writeReport } from '@/lib/report-writer';
-import { blankContent, Content, getPart, layoutTemplate, PART, TEMPLATES } from '@/lib/report-blocks';
+import { blankContent, Content, docText, layoutTemplate, TEMPLATES, type Doc } from '@/lib/report-blocks';
 
 const Id = z.string().uuid();
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -53,20 +53,19 @@ export async function saveReportAction(input: { id: string; title: string; conte
   return { ok: true };
 }
 
-// Ask Analyst on one part of the report. Works on the agency's current (possibly unsaved) text and returns the new text
-// for that part; the page applies it as an edit the agency can save or discard. Numbers stay the saved snapshot.
-export async function rewritePartAction(input: { id: string; path: string; instruction: string; content: unknown }) {
+// Ask Analyst on one piece of text. Works on the agency's current (possibly unsaved) document and returns the new text;
+// the editor puts it in place as an edit the agency can save or undo. Numbers stay the saved snapshot.
+export async function rewritePartAction(input: { id: string; kind: string; text: string; content: unknown; instruction: string }) {
   const { agency } = await requireAgency();
-  const p = z.object({ id: Id, path: z.string().regex(PART), instruction: z.string().trim().min(2).max(1000), content: Content }).safeParse(input);
+  const p = z.object({ id: Id, kind: z.enum(['headline', 'heading', 'paragraph', 'list item']), text: z.string().max(8000), instruction: z.string().trim().min(2).max(1000), content: Content }).safeParse(input);
   if (!p.success) return { error: 'Tell Analyst what to change.' };
-  if (getPart(p.data.content, p.data.path) === undefined) return { error: 'That part of the report was removed.' };
   const [r] = await db.select({ report: schema.reports, client: schema.clients }).from(schema.reports)
     .innerJoin(schema.clients, eq(schema.clients.id, schema.reports.clientId))
     .where(and(eq(schema.reports.id, p.data.id), eq(schema.reports.agencyId, agency.id)));
   if (!r) return { error: 'That report was deleted.' };
   if (!(await takeAiQuota(agency.id, 'revise'))) return { error: 'You\u2019ve reached today\u2019s limit for AI edits. It resets within 24 hours.' };
   try {
-    const { text, usage } = await rewritePart(r.report.facts as never, { client: r.client.name, agency: agency.name, tone: r.client.tone }, p.data.content, p.data.path, p.data.instruction);
+    const { text, usage } = await rewritePart(r.report.facts as never, { client: r.client.name, agency: agency.name, tone: r.client.tone }, docText(p.data.content.doc as Doc), p.data.kind, p.data.text, p.data.instruction);
     await recordAiUsage(agency.id, 'revise', usage);
     return { ok: true, text };
   } catch (e) {

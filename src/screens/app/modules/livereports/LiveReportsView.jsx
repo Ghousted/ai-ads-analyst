@@ -1,41 +1,11 @@
 import React from 'react';
-import { WIDTHS } from '@/lib/report-blocks';
+import ReportEditor from './ReportEditor';
 
 const btn = { height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", whiteSpace: "nowrap" };
 const primary = { ...btn, border: "0", background: "#1f6be2", color: "#ffffff" };
 const select = { height: "44px", padding: "0 36px 0 14px", border: "0", borderRadius: "0", background: "#eef1f6 url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2214%22 height=%2214%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%235a6474%22 stroke-width=%222.6%22 stroke-linecap=%22round%22><path d=%22M6 9l6 6 6-6%22/></svg>') right 12px center no-repeat", appearance: "none", font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" };
 // Text the agency edits in place: looks like the report, not like a form.
 const field = { width: "100%", padding: "4px 6px", margin: "0 -6px", border: "1px solid transparent", borderRadius: "0", background: "transparent", font: "inherit", letterSpacing: "inherit", color: "inherit", resize: "none", outline: "none", fieldSizing: "content" };
-
-// One editable part of the report. Clicking into it shows the Analyst button at its right; pressing that opens a small
-// box to ask Analyst to change just this part.
-function Part({ p, children }) {
-  return (
-    <div onFocusCapture={p.focus} onMouseDown={p.focus} style={{ position: "relative" }}>
-      {children}
-      {p.active ? (
-        <button type="button" onClick={p.openAsk} aria-label="Ask Analyst to change this part" aria-expanded={p.open} title="Ask Analyst to change this part" className="clario-noprint" style={{ position: "absolute", top: "0", right: "-56px", width: "44px", height: "44px", padding: "0", border: "0", borderRadius: "50%", background: p.open ? "#eef3fd" : "#ffffff", boxShadow: "0 4px 14px -6px rgba(11,22,38,.35)", display: "grid", placeItems: "center", cursor: "pointer" }}>
-          <img src="/assets/clario-mark-v2.png" alt="" width="26" height="26" style={{ width: "26px", height: "26px", display: "block", animation: p.busy ? "clario-spin 900ms linear infinite" : "none" }} />
-        </button>
-      ) : null}
-      {p.open ? (
-        <form onSubmit={p.submit} className="clario-noprint" style={{ position: "absolute", zIndex: "20", top: "52px", right: "-56px", width: "min(360px,80vw)", background: "#ffffff", padding: "14px", display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 18px 40px -18px rgba(11,22,38,.45)", fontSize: "15px", lineHeight: "1.4" }}>
-          <span style={{ fontWeight: "700" }}>{"Ask "}<span style={{ color: "#1f6be2" }}>{"Analyst"}</span>{" to change this part"}</span>
-          <input autoFocus value={p.ask} onChange={p.setAsk} disabled={p.busy} placeholder="e.g. Mention the courses page" aria-label="What should Analyst change?" style={{ height: "44px", padding: "0 12px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", letterSpacing: "inherit", outline: "none" }} />
-          <span style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            {p.ideas.map(x => <button type="button" key={x.label} onClick={x.use} disabled={p.busy} style={{ height: "36px", padding: "0 10px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{x.label}</button>)}
-          </span>
-          {p.err ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{p.err}</span> : null}
-          {p.busy ? <span role="status" style={{ fontSize: "14px", color: "#5a6474" }}>{"Rewriting this part\u2026"}</span> : null}
-          <span style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-            <button type="button" onClick={p.close} disabled={p.busy} style={{ height: "40px", padding: "0 12px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{"Cancel"}</button>
-            <button type="submit" disabled={p.busy} style={{ height: "40px", padding: "0 16px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer", opacity: p.busy ? 0.8 : 1 }} className="dc9482609">{"Rewrite"}</button>
-          </span>
-        </form>
-      ) : null}
-    </div>
-  );
-}
 
 export function LiveReportsView({ v }) {
   if (v.lrList) return (
@@ -78,186 +48,18 @@ export function LiveReportsView({ v }) {
         {v.lrDirty ? <button onClick={v.lrDiscard} style={btn}>{"Discard edits"}</button> : null}
         <button onClick={v.lrSave} disabled={!v.lrDirty || v.lrSaving} style={{ ...primary, opacity: v.lrDirty ? 1 : 0.5, cursor: v.lrDirty ? "pointer" : "default" }} className="dc9482609">{v.lrSaving ? "Saving…" : v.lrDirty ? "Save changes" : "Saved"}</button>
       </div>
-      <Ribbon r={v.lrRibbon} />
-      <div style={{ padding: "8px 0 64px" }}>
-        <article className="clario-print" onContextMenu={v.lrPageMenu} onKeyDown={v.lrKeys} style={{ width: "100%", maxWidth: "816px", margin: "0 auto", background: "#ffffff", boxShadow: "0 1px 2px rgba(11,22,38,.06)" }}>
-          <div style={{ height: "8px", background: v.lrColor }}></div>
-          <div onMouseDown={v.lrDeselect} style={{ padding: "48px clamp(24px,7vw,72px) 72px", display: "flex", flexDirection: "column", gap: "22px", fontSize: "17px", lineHeight: "1.65", color: "#0b1626" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", fontSize: "14px", color: "#5a6474" }}>
-              <strong style={{ color: "#0b1626", fontSize: "16px" }}>{v.lrAgency}</strong><span>{v.lrPeriod}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              <input aria-label="Report title" value={v.lrTitle} onChange={v.lrSetTitle} style={{ ...field, fontSize: "14px", fontWeight: "600", color: "#5a6474" }} />
-              <span style={{ fontSize: "15px", color: "#5a6474" }}>{"Prepared for " + v.lrClientName}</span>
-            </div>
-            {v.lrNoBlocks ? <p className="clario-noprint" style={{ margin: "0", padding: "28px", background: "#f4f7fb", color: "#5a6474" }}>{"This report is empty. Use the Insert tab, or right-click here, to add text, charts and tables."}</p> : null}
-            <div onMouseDown={v.lrDeselect} style={{ display: "flex", flexWrap: "wrap", columnGap: GAP + "px", rowGap: "22px", alignItems: "flex-start" }}>
-              {v.lrBlocks.map(b => <Block key={b.id} b={b} />)}
-            </div>
-            <span style={{ fontSize: "13px", color: "#5a6474" }}>{v.lrSource}</span>
+      <ReportEditor key={v.lrEditor.docKey} {...v.lrEditor}
+        header={(<>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", fontSize: "14px", color: "#5a6474" }}>
+            <strong style={{ color: "#0b1626", fontSize: "16px" }}>{v.lrAgency}</strong><span>{v.lrPeriod}</span>
           </div>
-        </article>
-      </div>
-      {v.lrCtx ? <ContextMenu m={v.lrCtx} close={v.lrCloseCtx} /> : null}
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <input aria-label="Report title" value={v.lrTitle} onChange={v.lrSetTitle} style={{ ...field, fontSize: "14px", fontWeight: "600", color: "#5a6474" }} />
+            <span style={{ fontSize: "15px", color: "#5a6474" }}>{"Prepared for " + v.lrClientName}</span>
+          </div>
+        </>)}
+        footer={<span style={{ fontSize: "13px", color: "#5a6474" }}>{v.lrSource}</span>} />
     </>
-  );
-}
-
-const GAP = 16;
-
-function RibbonIcon({ d }) {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d}></path></svg>;
-}
-const sep = <span aria-hidden="true" style={{ width: "1px", height: "28px", margin: "0 6px", background: "#e6ebf2" }}></span>;
-
-function Ribbon({ r }) {
-  const tool = (t, k) => (
-    <button key={k} type="button" onClick={t.run} disabled={t.off} aria-label={t.aria} title={t.aria} style={{ minWidth: "40px", height: "40px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", display: "grid", placeItems: "center", color: t.danger ? "#a3330c" : "#0b1626", cursor: t.off ? "default" : "pointer", opacity: t.off ? 0.35 : 1 }} className="dcceddbc1"><RibbonIcon d={t.icon} /></button>
-  );
-  const pill = (label, on, run, k) => <button key={k} type="button" onClick={run} aria-pressed={on} style={{ height: "40px", padding: "0 12px", border: "0", borderRadius: "0", background: on ? "#eef3fd" : "transparent", font: "inherit", fontSize: "14px", fontWeight: on ? 700 : 500, letterSpacing: "inherit", color: on ? "#1f6be2" : "#0b1626", cursor: "pointer" }}>{label}</button>;
-  return (
-    <div className="clario-noprint" style={{ position: "sticky", top: "0", zIndex: "20", margin: "-8px -8px 0", padding: "8px", background: "#f4f7fb" }}>
-      <div style={{ background: "#ffffff", boxShadow: "0 1px 2px rgba(11,22,38,.05),0 10px 24px -18px rgba(11,22,38,.25)" }}>
-        <div role="tablist" aria-label="Editor tabs" style={{ display: "flex", gap: "2px", padding: "4px 10px 0", borderBottom: "1px solid #eef1f6", overflowX: "auto" }}>
-          {r.tabs.map(t => <button key={t.label} role="tab" aria-selected={t.on} onClick={t.pick} style={{ height: "44px", padding: "0 14px", border: "0", borderBottom: `2px solid ${t.line}`, background: "transparent", font: "inherit", fontSize: "15px", fontWeight: "600", letterSpacing: "inherit", color: t.c, cursor: "pointer", whiteSpace: "nowrap" }}>{t.label}</button>)}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", minHeight: "68px", padding: "6px 10px" }}>
-          {r.home ? r.homeTools.map((t, k) => t.sep ? <React.Fragment key={k}>{sep}</React.Fragment> : t.style ? (
-            <select key={k} aria-label="Block style" value={t.value} onChange={t.set} disabled={t.off} style={{ ...small, minWidth: "150px", opacity: t.off ? 0.5 : 1 }}>
-              {t.off ? <option value="">{"Select text"}</option> : null}
-              {r.styles.map(([val, label]) => <option key={val} value={val}>{label}</option>)}
-            </select>
-          ) : tool(t, k)) : null}
-          {r.insert ? r.groups.map((g, gi) => (
-            <React.Fragment key={g.label}>
-              {gi ? sep : null}
-              {g.items.map(w => <button key={w.label} type="button" onClick={w.add} title={(g.label === 'Text' ? '' : g.label + ': ') + w.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "3px", minWidth: "64px", height: "56px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "12px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dcceddbc1"><span style={{ color: "#1f6be2", display: "grid" }}><RibbonIcon d={w.icon} /></span>{w.label}</button>)}
-            </React.Fragment>
-          )) : null}
-          {r.layout ? (r.hasLayout ? (<>
-            <span style={{ fontSize: "14px", fontWeight: "600", marginRight: "4px" }}>{"Width"}</span>
-            {r.widths.map((w, k) => pill(w.label, w.on, w.run, k))}
-            {r.hasHeight ? (<>{sep}<span style={{ fontSize: "14px", fontWeight: "600", marginRight: "4px" }}>{"Height"}</span>{pill("Shorter", false, r.shorter, 'a')}<span style={{ fontSize: "14px", color: "#5a6474", padding: "0 4px", fontVariantNumeric: "tabular-nums" }}>{r.heightLabel}</span>{pill("Taller", false, r.taller, 'b')}</>) : null}
-            {r.opts.length ? sep : null}
-            {r.opts.map(o => <select key={o.label} aria-label={o.label} value={o.value} onChange={o.set} style={small}>{o.opts.map(([val, label]) => <option key={val} value={val}>{label}</option>)}</select>)}
-          </>) : <span style={{ fontSize: "14px", color: "#5a6474", padding: "0 6px" }}>{r.layoutHint}</span>) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Right-click menu, in the design's widget menu style.
-function ContextMenu({ m, close }) {
-  return (
-    <>
-      <div onMouseDown={close} onContextMenu={e => { e.preventDefault(); close(); }} className="clario-noprint" style={{ position: "fixed", inset: "0", zIndex: "69" }}></div>
-      <div role="menu" aria-label="Report options" className="clario-noprint" style={{ position: "fixed", left: m.x, top: m.y, zIndex: "70", minWidth: "240px", maxHeight: "calc(100vh - 24px)", overflowY: "auto", padding: "6px", background: "#ffffff", boxShadow: "0 0 0 1px #e6ebf2,0 18px 40px -16px rgba(11,22,38,.35)" }}>
-        {m.items.map((it, k) => it.sep ? <div key={k} style={{ height: "1px", margin: "4px 6px", background: "#eef1f6" }}></div>
-          : it.head ? <div key={k} style={{ padding: "6px 10px 2px", fontSize: "12px", fontWeight: "600", color: "#5a6474" }}>{it.label}</div>
-          : <button key={k} role="menuitem" onClick={it.run} disabled={it.off} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", minHeight: "38px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: "inherit", color: it.danger ? "#a3330c" : "#0b1626", cursor: it.off ? "default" : "pointer", opacity: it.off ? 0.4 : 1, textAlign: "left" }} className="dcf0b705f"><span>{it.label}</span><span style={{ fontSize: "12px", color: "#97a2b2" }}>{it.hint}</span></button>)}
-      </div>
-    </>
-  );
-}
-const small = { height: "40px", padding: "0 30px 0 10px", border: "0", borderRadius: "0", background: "#eef1f6 url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%235a6474%22 stroke-width=%222.6%22 stroke-linecap=%22round%22><path d=%22M6 9l6 6 6-6%22/></svg>') right 10px center no-repeat", appearance: "none", font: "inherit", fontSize: "14px", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" };
-const iconBtn = { width: "40px", height: "40px", padding: "0", border: "0", borderRadius: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer", color: "#45505f" };
-const caption = { fontSize: "15px", fontWeight: "700", lineHeight: "1.3" };
-
-// Drag the corner to resize: width snaps to a third, half, two thirds or full; charts also change height.
-function startResize(e, b) {
-  e.preventDefault(); e.stopPropagation();
-  const el = e.currentTarget.closest('[data-block]'), row = el.parentElement.clientWidth, w0 = el.getBoundingClientRect().width, x0 = e.clientX, y0 = e.clientY, h0 = b.h;
-  const move = ev => {
-    const frac = (w0 + ev.clientX - x0 + GAP) / (row + GAP);
-    const w = WIDTHS.reduce((a, x) => (Math.abs(x - frac) < Math.abs(a - frac) ? x : a), 1);
-    b.resize(w, b.hasH ? Math.max(100, Math.min(560, Math.round(h0 + ev.clientY - y0))) : 0);
-  };
-  const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); document.body.style.cursor = ''; };
-  document.body.style.cursor = 'nwse-resize';
-  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-}
-
-function Block({ b }) {
-  const width = b.visual ? `calc(${b.w * 100}% - ${GAP * (1 - b.w)}px)` : "100%";
-  return (
-    <div data-block onMouseDown={b.select} onContextMenu={b.menu} style={{ position: "relative", width, minWidth: "0", outline: b.sel ? "2px solid #1f6be2" : "none", outlineOffset: "6px" }}>
-      {b.isTitle ? <Part p={b.p}><textarea aria-label="Headline" rows={1} value={b.text} onChange={b.set} placeholder="Headline" style={{ ...field, fontSize: "34px", fontWeight: "700", letterSpacing: "-1px", lineHeight: "1.2" }} /></Part> : null}
-      {b.isHeading ? <Part p={b.p}><input aria-label="Heading" value={b.text} onChange={b.set} placeholder="Heading" style={{ ...field, fontSize: "22px", fontWeight: "700", letterSpacing: "-0.5px" }} /></Part> : null}
-      {b.isText ? <Part p={b.p}><textarea aria-label="Paragraph" value={b.text} onChange={b.set} placeholder="Write something" style={field} /></Part> : null}
-      {b.isList ? (
-        <ol style={{ margin: "0", paddingLeft: "22px", display: "flex", flexDirection: "column", gap: "4px" }}>
-          {b.items.map((it, j) => (
-            <li key={j}><Part p={it.p}><span style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
-              <textarea aria-label={"List item " + (j + 1)} rows={1} value={it.text} onChange={it.set} placeholder="List item" style={field} />
-              <button type="button" onClick={it.remove} aria-label={"Remove item " + (j + 1)} className="clario-noprint" style={{ flex: "none", width: "44px", height: "36px", border: "0", background: "transparent", color: "#97a2b2", cursor: "pointer" }}>{"×"}</button>
-            </span></Part></li>
-          ))}
-          {b.sel ? <li className="clario-noprint" style={{ listStyle: "none" }}><button type="button" onClick={b.addItem} style={{ height: "40px", padding: "0", border: "0", background: "transparent", font: "inherit", fontSize: "15px", fontWeight: "600", letterSpacing: "inherit", color: "#1f6be2", cursor: "pointer" }}>{"Add item"}</button></li> : null}
-        </ol>
-      ) : null}
-      {b.isKpis ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "8px" }}>
-          {b.tiles.map(k => (
-            <div key={k.label} style={{ background: "#f4f7fb", padding: "12px 14px", display: "flex", flexDirection: "column", lineHeight: "1.3" }}>
-              <span style={{ fontSize: "13px", color: "#5a6474" }}>{k.label}</span>
-              <span style={{ fontSize: "24px", fontWeight: "700", letterSpacing: "-0.6px", fontVariantNumeric: "tabular-nums" }}>{k.value}</span>
-              <span style={{ fontSize: "12px", fontWeight: "600", color: k.c }}>{k.note}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-      {b.isChart ? (
-        <figure style={{ margin: "0", display: "flex", flexDirection: "column", gap: "6px" }}>
-          <figcaption style={caption}>{b.chart.caption}</figcaption>
-          <svg viewBox={b.chart.vb} preserveAspectRatio="none" role="img" aria-label={b.chart.caption + ' this period, with the previous period dashed'} style={{ width: "100%", height: b.chart.H + "px", display: "block" }}>
-            <path d={b.chart.area} fill="#1f6be21f"></path>
-            <path d={b.chart.prevLine} fill="none" stroke="#97a2b2" strokeWidth="2" strokeDasharray="5 5" vectorEffect="non-scaling-stroke"></path>
-            <path d={b.chart.line} fill="none" stroke="#1f6be2" strokeWidth="2.5" vectorEffect="non-scaling-stroke"></path>
-          </svg>
-          <span style={{ display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "13px", color: "#5a6474" }}><span>{b.chart.from}</span><span>{"Dashed: previous period"}</span><span>{b.chart.to}</span></span>
-        </figure>
-      ) : null}
-      {b.isBreakdown ? (
-        <figure style={{ margin: "0", display: "flex", flexDirection: "column", gap: "10px", minHeight: b.h + "px" }}>
-          <figcaption style={caption}>{b.bd.caption}</figcaption>
-          {b.bd.empty ? <span style={{ fontSize: "15px", color: "#5a6474" }}>{"No data for this period."}</span> : b.bd.isDonut ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "18px", flexWrap: "wrap" }}>
-              <svg viewBox="0 0 100 100" width={b.bd.size} height={b.bd.size} role="img" aria-label={b.bd.caption} style={{ flex: "none", transform: "rotate(-90deg)" }}>
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#eef1f6" strokeWidth="16"></circle>
-                {b.bd.rows.map(r => <circle key={r.label} cx="50" cy="50" r="40" fill="none" stroke={r.col} strokeWidth="16" strokeDasharray={r.dash} strokeDashoffset={r.off}></circle>)}
-              </svg>
-              <ul style={{ margin: "0", padding: "0", listStyle: "none", flex: "1 1 140px", fontSize: "15px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                {b.bd.rows.map(r => <li key={r.label} style={{ display: "flex", alignItems: "center", gap: "8px" }}><span style={{ flex: "none", width: "10px", height: "10px", background: r.col }}></span><span style={{ flex: "1", minWidth: "0" }}>{r.label}</span><span style={{ color: "#5a6474" }}>{r.pct}</span><strong style={{ fontVariantNumeric: "tabular-nums", minWidth: "40px", textAlign: "right" }}>{r.value}</strong></li>)}
-              </ul>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {b.bd.rows.map(r => (
-                <div key={r.label} style={{ display: "flex", flexDirection: "column", gap: "3px", fontSize: "15px" }}>
-                  <span style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}><span>{r.label}</span><strong style={{ fontVariantNumeric: "tabular-nums" }}>{r.value}</strong></span>
-                  <span style={{ display: "block", height: "8px", background: "#eef1f6" }}><span style={{ display: "block", height: "100%", width: r.w, background: "#1f6be2" }}></span></span>
-                </div>
-              ))}
-            </div>
-          )}
-        </figure>
-      ) : null}
-      {b.isTable ? (
-        <section style={{ display: "flex", flexDirection: "column", gap: "8px", overflowX: "auto" }}>
-          <span style={caption}>{b.tb.caption}</span>
-          {b.tb.rows.length === 0 ? <span style={{ fontSize: "15px", color: "#5a6474" }}>{"No data for this period."}</span> : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "15px", fontVariantNumeric: "tabular-nums" }}>
-              <thead><tr style={{ color: "#5a6474", fontSize: "13px" }}>{b.tb.cols.map((c, k) => <th key={c} style={{ textAlign: k ? "right" : "left", fontWeight: "600", padding: "6px 0" }}>{c}</th>)}</tr></thead>
-              <tbody>{b.tb.rows.map((row, ri) => <tr key={ri} style={{ borderTop: "1px solid #eef1f6" }}>{row.map((cell, k) => <td key={k} style={{ padding: "8px 0", textAlign: k ? "right" : "left", fontWeight: k ? "500" : "600", overflowWrap: "anywhere", color: k === b.tb.changeCol ? (String(cell).startsWith('+') ? "#1d6b3a" : String(cell).startsWith('−') ? "#a3330c" : "#5a6474") : "inherit" }}>{cell}</td>)}</tr>)}</tbody>
-            </table>
-          )}
-        </section>
-      ) : null}
-      {b.sel && b.visual ? (
-        <span role="slider" aria-label="Resize block" aria-valuetext={Math.round(b.w * 100) + '% wide'} onPointerDown={e => startResize(e, b)} className="clario-noprint" style={{ position: "absolute", right: "-14px", bottom: "-14px", width: "22px", height: "22px", background: "#1f6be2", cursor: "nwse-resize", touchAction: "none", border: "3px solid #ffffff", boxShadow: "0 2px 6px rgba(11,22,38,.3)" }}></span>
-      ) : null}
-    </div>
   );
 }
 

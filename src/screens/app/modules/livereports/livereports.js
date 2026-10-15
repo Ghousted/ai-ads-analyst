@@ -1,11 +1,8 @@
 // Reports for live agencies: list, "write a report" with Claude, and the report page (numbers + editable text + Ask Analyst).
 import { generateReportAction, saveReportAction, rewritePartAction, deleteReportAction } from '@/app/actions/reports';
-import { fmtDay, fmtNum, pct } from '../../metrics';
-import { TEMPLATES, WIDTHS, layoutTemplate, newId, setPart } from '@/lib/report-blocks';
+import { fmtDay } from '../../metrics';
+import { TEMPLATES, layoutTemplate } from '@/lib/report-blocks';
 
-const rate = (a, b) => (b ? (a / b) * 100 : 0);
-const ptsChange = (a, b) => { const d = Math.round((a - b) * 10) / 10; return (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d) + ' pts'; };
-const tint = note => (note.startsWith('+') ? '#1d6b3a' : note.startsWith('−') ? '#a3330c' : '#5a6474');
 
 export function liveReportsVals(app, ctx) {
   const { live, refresh, S, v, C } = ctx;
@@ -73,133 +70,23 @@ export function liveReportsVals(app, ctx) {
   if (!r && S.lrPendingId === S.lrId) return { ...base, ...writingVals, lrWriting: true, lrModal: true, lrBackdrop: () => {}, lrClose: () => {} };
   if (!r) return { ...base, lrPage: true, lrMissing: true, lrBack: () => app.setState({ view: 'templates' }) };
   const f = r.facts, client = clients.find(x => x.id === r.clientId) || { name: 'Removed client' };
+  // The editor holds the document; every change lands here as an unsaved draft. Discard reloads the saved version.
   const D = S.lrDraft && S.lrDraft.id === r.id ? S.lrDraft : { id: r.id, title: r.title, content: r.content };
-  const blocks = D.content.blocks, dirty = !!(S.lrDraft && S.lrDraft.id === r.id);
-  const cur0 = s => (s.lrDraft && s.lrDraft.id === r.id ? s.lrDraft : { id: r.id, title: r.title, content: r.content });
-  if (app.lrHistFor !== r.id) { app.lrHistFor = r.id; app.lrPast = []; app.lrFuture = []; app.lrLastPush = 0; }
-  const edit = (fn, typing) => app.setState(s => { const cur = cur0(s), now = Date.now();
-    if (!typing || now - app.lrLastPush > 800) { app.lrPast.push(cur); if (app.lrPast.length > 100) app.lrPast.shift(); app.lrFuture = []; }
-    app.lrLastPush = typing ? now : 0; const next = JSON.parse(JSON.stringify(cur)); fn(next); return { lrDraft: next }; });
-  const undo = () => { if (!app.lrPast.length) return; app.setState(s => { app.lrFuture.push(cur0(s)); return { lrDraft: app.lrPast.pop(), lrCtx: null }; }); };
-  const redo = () => { if (!app.lrFuture.length) return; app.setState(s => { app.lrPast.push(cur0(s)); return { lrDraft: app.lrFuture.pop(), lrCtx: null }; }); };
-  const t = f.totals, p = f.prev, n = f.periodDays, color = S.wlColor || '#1f6be2', busy = !!S.lrAskBusy;
-  const PAL = [color, '#0b1626', '#97a2b2', '#5b9bff', '#d3dbe6', '#45505f'];
-
-  // Ask Analyst on one part: clicking a part shows the Analyst button beside it; pressing it opens a small ask box.
-  const part = path => { const open = S.lrPart === path, closeAsk = () => app.setState({ lrPart: null, lrAsk: '', lrAskErr: null });
-    const send = text => { const q = (text || '').trim(); if (!q || busy) return; app.setState({ lrAskBusy: true, lrAskErr: null });
-      rewritePartAction({ id: r.id, path, instruction: q, content: D.content }).then(x => { if (x.error) return app.setState({ lrAskBusy: false, lrAskErr: x.error });
-        edit(d => setPart(d.content, path, x.text)); app.setState({ lrAskBusy: false, lrPart: null, lrAsk: '' }); toast('Analyst rewrote this part. Save to keep it.'); },
-        () => app.setState({ lrAskBusy: false, lrAskErr: 'Rewriting failed. Try again.' })); };
-    return { active: S.lrFocus === path || open, open, focus: () => { if (S.lrFocus !== path) app.setState({ lrFocus: path }); },
-      openAsk: () => app.setState({ lrPart: open ? null : path, lrAsk: '', lrAskErr: null }), close: closeAsk,
-      ask: open ? S.lrAsk || '' : '', setAsk: e => app.setState({ lrAsk: e.target.value, lrAskErr: null }), busy: open && busy, err: open ? S.lrAskErr || '' : '',
-      ideas: ['Make it shorter', 'Use simpler words', 'Sound more reassuring'].map(label => ({ label, use: () => send(label) })),
-      submit: e => { e.preventDefault(); send(S.lrAsk); } }; };
-
-  // What each block shows, from the report's saved numbers.
-  const METRIC = { sessions: ['Sessions per day', 'sessions'], leads: ['Leads per day', 'leads'], engaged: ['Engaged sessions per day', 'engaged'], pageViews: ['Page views per day', 'pageViews'] };
-  const kpis = [
-    ['Leads', fmtNum(t.leads), pct(t.leads, p.leads)],
-    ['Sessions', fmtNum(t.sessions), pct(t.sessions, p.sessions)],
-    ['Conversion rate', rate(t.leads, t.sessions).toFixed(1) + '%', ptsChange(rate(t.leads, t.sessions), rate(p.leads, p.sessions))],
-    ['Engagement rate', Math.round(rate(t.engagedSessions, t.sessions)) + '%', ptsChange(rate(t.engagedSessions, t.sessions), rate(p.engagedSessions, p.sessions))],
-  ].concat(t.adCost ? [['Google Ads spend', '$' + Math.round(t.adCost).toLocaleString(), pct(t.adCost, p.adCost)]] : []).map(([label, value, note]) => ({ label, value, note: note + ' vs previous ' + n + ' days', c: tint(note) }));
-  const chart = b => { const key = METRIC[b.metric][1], H = b.h - 40, cur = f.daily.slice(n), prev = f.daily.slice(0, n), mx = Math.max(1, ...f.daily.map(d => d[key] || 0)) * 1.15;
-    const path = arr => arr.map((d, i) => (i ? 'L' : 'M') + Math.round((i / Math.max(1, n - 1)) * 600) + ' ' + Math.round(H - ((d[key] || 0) / mx) * (H - 10))).join(' ');
-    return { caption: METRIC[b.metric][0], vb: '0 0 600 ' + H, H, line: path(cur), prevLine: path(prev), area: path(cur) + ' L600 ' + H + ' L0 ' + H + ' Z', from: fmtDay(f.start), to: fmtDay(f.end) }; };
-  const breakdown = b => { const src = b.dim === 'channel' ? f.channels : f.devices, key = b.metric === 'leads' ? 'leads' : 'sessions';
-    const rows = src.map(x => ({ label: x.name.charAt(0).toUpperCase() + x.name.slice(1), v: x[key] || 0 })).filter(x => x.v > 0), tot = rows.reduce((a, x) => a + x.v, 0) || 1, mx = Math.max(1, ...rows.map(x => x.v));
-    const C = 2 * Math.PI * 40; let acc = 0;
-    return { caption: (b.metric === 'leads' ? 'Leads' : 'Sessions') + ' by ' + b.dim, empty: rows.length === 0, isBars: b.style === 'bars', isDonut: b.style === 'donut', size: Math.max(90, Math.min(b.h - 50, 260)),
-      rows: rows.map((x, i) => { const len = (x.v / tot) * C, o = { label: x.label, value: fmtNum(x.v), pct: Math.round((x.v / tot) * 100) + '%', w: Math.max(2, (x.v / mx) * 100) + '%', col: PAL[i % PAL.length], dash: Math.max(len - 1, 0.5).toFixed(2) + ' ' + C.toFixed(2), off: (-acc).toFixed(2) }; acc += len; return o; }) }; };
-  const table = b => b.source === 'pages' ? { caption: 'Top landing pages', cols: ['Page', 'Sessions', 'Leads'], rows: f.pages.map(x => [x.name, fmtNum(x.sessions), fmtNum(x.leads)]) }
-    : b.source === 'campaigns' ? { caption: 'Google Ads campaigns', cols: ['Campaign', 'Cost', 'Clicks'], rows: (f.campaigns || []).map(x => [x.name, '$' + Math.round(x.cost).toLocaleString(), fmtNum(x.clicks)]) }
-    : { caption: 'Where visitors came from', cols: ['Channel', 'Sessions', 'Change', 'Leads'], rows: f.channels.map(x => [x.name, fmtNum(x.sessions), pct(x.sessions, x.prevSessions), fmtNum(x.leads)]), changeCol: 2 };
-
-  const sel = blocks.find(b => b.id === S.lrSel) ? S.lrSel : null;
-  const setB = (id, o, typing) => edit(d => { const i = d.content.blocks.findIndex(b => b.id === id); if (i >= 0) Object.assign(d.content.blocks[i], o); }, typing);
-  const move = (id, by) => edit(d => { const L = d.content.blocks, i = L.findIndex(b => b.id === id), j = i + by; if (i < 0 || j < 0 || j >= L.length) return; [L[i], L[j]] = [L[j], L[i]]; });
-  const VIS = ['kpis', 'chart', 'breakdown', 'table'];
-  const opt = (label, value, opts, key, id) => ({ label, value, opts, set: e => setB(id, { [key]: e.target.value }) });
-  const lrBlocks = blocks.map((b, i) => {
-    const o = { id: b.id, t: b.t, i, sel: sel === b.id, select: () => { if (sel !== b.id) app.setState({ lrSel: b.id, lrCtx: null }); },
-      menu: e => { e.preventDefault(); e.stopPropagation(); app.setState({ lrSel: b.id, lrCtx: { x: Math.min(e.clientX, window.innerWidth - 260), y: Math.min(e.clientY, window.innerHeight - 420) } }); },
-      up: () => move(b.id, -1), down: () => move(b.id, 1), canUp: i > 0, canDown: i < blocks.length - 1,
-      remove: () => { edit(d => { d.content.blocks = d.content.blocks.filter(x => x.id !== b.id); }); app.setState({ lrSel: null }); },
-      visual: VIS.includes(b.t), w: b.w || 1, h: b.h || 0, hasH: b.t === 'chart' || b.t === 'breakdown', resize: (w, h) => setB(b.id, h ? { w, h } : { w }),
-      isTitle: b.t === 'title', isHeading: b.t === 'heading', isText: b.t === 'text', isList: b.t === 'list', isKpis: b.t === 'kpis', isChart: b.t === 'chart', isBreakdown: b.t === 'breakdown', isTable: b.t === 'table', opts: [] };
-    if ('text' in b) Object.assign(o, { text: b.text, set: e => { const x = e.target.value; setB(b.id, { text: x }, true); }, p: part('blocks.' + i) });
-    if (b.t === 'list') Object.assign(o, { items: b.items.map((x, j) => ({ text: x, p: part('blocks.' + i + '.items.' + j), set: e => { const v2 = e.target.value; edit(d => { d.content.blocks[i].items[j] = v2; }, true); }, remove: () => edit(d => { d.content.blocks[i].items.splice(j, 1); }) })),
-      addItem: () => edit(d => { d.content.blocks[i].items.push(''); }) });
-    if (b.t === 'kpis') o.tiles = kpis;
-    if (b.t === 'chart') { o.chart = chart(b); o.opts = [opt('Metric', b.metric, [['sessions', 'Sessions'], ['leads', 'Leads'], ['engaged', 'Engaged sessions'], ['pageViews', 'Page views']], 'metric', b.id)]; }
-    if (b.t === 'breakdown') { o.bd = breakdown(b); o.opts = [opt('Breakdown', b.dim, [['channel', 'By channel'], ['device', 'By device']], 'dim', b.id), opt('Metric', b.metric, [['sessions', 'Sessions'], ['leads', 'Leads']], 'metric', b.id), opt('Style', b.style, [['donut', 'Donut'], ['bars', 'Bars']], 'style', b.id)]; }
-    if (b.t === 'table') { o.tb = table(b); o.opts = [opt('Table', b.source, [['channels', 'Channels'], ['pages', 'Landing pages']].concat(t.adCost ? [['campaigns', 'Google Ads campaigns']] : []), 'source', b.id)]; }
-    if (o.visual) o.opts.unshift({ label: 'Width', value: String(WIDTHS.reduce((a, x) => (Math.abs(x - o.w) < Math.abs(a - o.w) ? x : a), 1)), opts: [[String(1 / 3), 'One third'], [String(1 / 2), 'Half'], [String(2 / 3), 'Two thirds'], ['1', 'Full width']], set: e => setB(b.id, { w: Number(e.target.value) }) });
-    return o;
-  });
-
-  // Insert: text blocks, plus charts and tables from the tools this client has. Meta blocks join when Meta is connected.
-  const mk = { heading: () => ({ t: 'heading', text: 'New section' }), text: () => ({ t: 'text', text: '' }), list: () => ({ t: 'list', items: [''] }),
-    kpis: () => ({ t: 'kpis', w: 1 }), chart: () => ({ t: 'chart', w: 1, h: 180, metric: 'sessions' }),
-    channels: () => ({ t: 'breakdown', w: 1 / 2, h: 220, dim: 'channel', metric: 'sessions', style: 'donut' }), devices: () => ({ t: 'breakdown', w: 1 / 2, h: 220, dim: 'device', metric: 'sessions', style: 'bars' }),
-    tchannels: () => ({ t: 'table', w: 1, source: 'channels' }), tpages: () => ({ t: 'table', w: 1, source: 'pages' }), tcamps: () => ({ t: 'table', w: 1, source: 'campaigns' }) };
-  const insert = k => { const blk = { id: newId(), ...mk[k]() }; edit(d => { const i = sel ? d.content.blocks.findIndex(x => x.id === sel) : -1; d.content.blocks.splice(i >= 0 ? i + 1 : d.content.blocks.length, 0, blk); }); app.setState({ lrSel: blk.id }); };
-  const lrInsert = [
-    { label: 'Text', items: [['heading', 'Heading'], ['text', 'Paragraph'], ['list', 'List']] },
-    { label: 'Google Analytics 4', logo: '/assets/logo-ga4.png', items: [['kpis', 'Key numbers'], ['chart', 'Trend chart'], ['channels', 'Channel breakdown'], ['devices', 'Device breakdown'], ['tchannels', 'Channels table'], ['tpages', 'Landing pages table']].concat(t.adCost ? [['tcamps', 'Google Ads campaigns']] : []) },
-  ].map(g => ({ ...g, hasLogo: !!g.logo, items: g.items.map(([k, label]) => ({ k, label, add: () => insert(k) })) }));
-
-  // The Word-style ribbon (Home, Insert, Layout) and right-click menu.
-  const sb = lrBlocks.find(b => b.sel), tab = S.lrTab || 'home';
-  const ICON = { undo: 'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3', redo: 'M15 14l5-5-5-5M20 9H9a5 5 0 0 0 0 10h3', up: 'M12 19V5M6 11l6-6 6 6', down: 'M12 5v14M6 13l6 6 6-6',
-    dup: 'M8 8h12v12H8zM4 16V4h12', del: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13', heading: 'M6 4v16M18 4v16M6 12h12', text: 'M4 6h16M4 12h16M4 18h10', list: 'M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01',
-    kpis: 'M4 20V10M10 20V4M16 20v-7M22 20H2', chart: 'M3 17l5-5 4 3 8-8', channels: 'M12 3a9 9 0 1 0 9 9h-9z', devices: 'M7 2h10v20H7zM11 18h2', tchannels: 'M3 5h18v14H3zM3 10h18M9 10v9', tpages: 'M3 5h18v14H3zM3 10h18M3 15h18', tcamps: 'M3 5h18v14H3zM3 10h18M15 10v9' };
-  const duplicate = () => { if (!sb) return; const copy = { ...JSON.parse(JSON.stringify(blocks.find(b => b.id === sb.id))), id: newId() }; edit(d => { const i = d.content.blocks.findIndex(x => x.id === sb.id); d.content.blocks.splice(i + 1, 0, copy); }); app.setState({ lrSel: copy.id, lrCtx: null }); };
-  const restyle = to => { if (!sb) return; edit(d => { const i = d.content.blocks.findIndex(x => x.id === sb.id), b = d.content.blocks[i];
-    const text = 'text' in b ? b.text : b.t === 'list' ? b.items.join('\n') : '';
-    d.content.blocks[i] = to === 'list' ? { id: b.id, t: 'list', items: text.split('\n').filter(Boolean).length ? text.split('\n').filter(Boolean) : [''] } : { id: b.id, t: to, text }; }); };
-  const isTextBlock = sb && ['title', 'heading', 'text', 'list'].includes(sb.t);
-  const closeCtx = () => app.setState({ lrCtx: null });
-  const run = fn => () => { fn(); app.setState({ lrCtx: null }); };
-  const insertItems = lrInsert.flatMap(g => g.items.map(it => ({ ...it, group: g.label })));
-  const lrRibbon = {
-    tabs: [['home', 'Home'], ['insert', 'Insert'], ['layout', 'Layout']].map(([k, label]) => ({ label, on: tab === k, line: tab === k ? '#1f6be2' : 'transparent', c: tab === k ? '#1f6be2' : '#45505f', pick: () => app.setState({ lrTab: k }) })),
-    home: tab === 'home', insert: tab === 'insert', layout: tab === 'layout',
-    homeTools: [
-      { btn: true, aria: 'Undo', icon: ICON.undo, run: undo, off: !app.lrPast.length }, { btn: true, aria: 'Redo', icon: ICON.redo, run: redo, off: !app.lrFuture.length }, { sep: true },
-      { style: true, off: !isTextBlock, value: isTextBlock ? sb.t : '', set: e => restyle(e.target.value) }, { sep: true },
-      { btn: true, aria: 'Move up', icon: ICON.up, run: () => sb && sb.up(), off: !sb || !sb.canUp }, { btn: true, aria: 'Move down', icon: ICON.down, run: () => sb && sb.down(), off: !sb || !sb.canDown },
-      { btn: true, aria: 'Duplicate', icon: ICON.dup, run: duplicate, off: !sb }, { btn: true, aria: 'Delete', icon: ICON.del, run: () => sb && sb.remove(), off: !sb, danger: true },
-    ],
-    styles: [['title', 'Headline'], ['heading', 'Heading'], ['text', 'Paragraph'], ['list', 'List']],
-    groups: lrInsert.map(g => ({ label: g.label, items: g.items.map(it => ({ label: it.label, icon: ICON[it.k] || ICON.text, add: it.add })) })),
-    hasLayout: !!(sb && sb.visual), layoutHint: sb ? (sb.visual ? '' : 'Width and height apply to charts, tables and key numbers.') : 'Select a chart, table or key numbers to change its size.',
-    widths: sb && sb.visual ? [[1 / 3, 'One third'], [1 / 2, 'Half'], [2 / 3, 'Two thirds'], [1, 'Full width']].map(([w, label]) => ({ label, on: Math.abs(sb.w - w) < 0.02, run: () => sb.resize(w, sb.h || 0) })) : [],
-    hasHeight: !!(sb && sb.hasH), shorter: () => sb && sb.resize(sb.w, Math.max(100, sb.h - 40)), taller: () => sb && sb.resize(sb.w, Math.min(560, sb.h + 40)), heightLabel: sb && sb.hasH ? sb.h + ' px tall' : '',
-    opts: sb && sb.visual ? sb.opts.filter(o => o.label !== 'Width') : [],
-  };
-  const lrCtx = S.lrCtx ? { x: S.lrCtx.x + 'px', y: S.lrCtx.y + 'px', items: [
-    { btn: true, label: 'Undo', hint: '⌘Z', run: run(undo), off: !app.lrPast.length }, { btn: true, label: 'Redo', hint: '⇧⌘Z', run: run(redo), off: !app.lrFuture.length }, { sep: true },
-    { head: true, label: sb ? 'Insert below' : 'Insert at the end' }, ...insertItems.map(it => ({ btn: true, label: it.label, hint: it.group === 'Text' ? '' : 'GA4', run: run(it.add) })),
-  ].concat(sb ? [{ sep: true }, { btn: true, label: 'Move up', run: run(() => sb.up()), off: !sb.canUp }, { btn: true, label: 'Move down', run: run(() => sb.down()), off: !sb.canDown },
-    { btn: true, label: 'Duplicate', run: duplicate }, { btn: true, label: 'Delete', run: run(() => sb.remove()), danger: true }] : []) } : null;
-
-  return { ...base, lrPage: true, lrMissing: false, lrRibbon, lrCtx, lrCloseCtx: closeCtx,
-    lrPageMenu: e => { e.preventDefault(); app.setState({ lrSel: null, lrCtx: { x: Math.min(e.clientX, window.innerWidth - 260), y: Math.min(e.clientY, window.innerHeight - 420) } }); },
-    lrKeys: e => { const mod = e.metaKey || e.ctrlKey; if (e.key === 'Escape' && S.lrCtx) closeCtx(); if (mod && e.key.toLowerCase() === 'z' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) { e.preventDefault(); e.shiftKey ? redo() : undo(); } },
-    lrBack: () => app.setState({ view: 'templates', lrDraft: null, lrSel: null }),
+  const dirty = !!(S.lrDraft && S.lrDraft.id === r.id);
+  const setDraft = o => app.setState(s => ({ lrDraft: { ...(s.lrDraft && s.lrDraft.id === r.id ? s.lrDraft : { id: r.id, title: r.title, content: r.content }), ...o } }));
+  return { ...base, lrPage: true, lrMissing: false,
+    lrBack: () => app.setState({ view: 'templates', lrDraft: null }),
     lrStatus: r.status === 'sent' ? 'Sent' : 'Draft', lrDate: 'Written ' + fmtDay(r.createdAt.slice(0, 10)),
-    lrAgency: S.agName, lrPeriod: fmtDay(f.start) + ' – ' + fmtDay(f.end), lrClientName: client.name, lrColor: color,
-    lrTitle: D.title, lrSetTitle: e => { const x = e.target.value; edit(d => { d.title = x; }, true); },
-    lrBlocks, lrNoBlocks: blocks.length === 0, lrInsert, lrInsertHint: sel ? 'Adds below the selected block' : 'Adds at the end. Click a block to add below it.',
-    lrDeselect: e => { if (e.target === e.currentTarget && sel) app.setState({ lrSel: null }); },
+    lrAgency: S.agName, lrPeriod: fmtDay(f.start) + ' \u2013 ' + fmtDay(f.end), lrClientName: client.name, lrColor: S.wlColor || '#1f6be2',
+    lrTitle: D.title, lrSetTitle: e => setDraft({ title: e.target.value }),
+    lrEditor: { docKey: r.id + ':' + (S.lrEditorKey || 0), initialDoc: r.content.doc, facts: f, color: S.wlColor || '#1f6be2', toast,
+      onChange: doc => setDraft({ content: { doc } }),
+      onRewrite: ({ kind, text, doc, instruction }) => rewritePartAction({ id: r.id, kind, text, content: { doc }, instruction }) },
     lrSource: 'From Google Analytics: ' + f.properties.join(', ') + '.',
     lrDirty: dirty, lrSaving: !!S.lrSaving,
     lrSave: () => { if (!dirty) return; app.setState({ lrSaving: true }); saveReportAction({ id: r.id, title: D.title, content: D.content }).then(x => { app.setState({ lrSaving: false }); if (x.error) return toast(x.error); app.setState({ lrDraft: null }); toast('Report saved'); refresh(); }); },
-    lrDiscard: () => { app.lrPast = []; app.lrFuture = []; app.setState({ lrDraft: null, lrSel: null }); },
-    lrPdf: () => { app.setState({ lrSel: null, lrFocus: null, lrPart: null }); setTimeout(() => window.print(), 50); },
+    lrDiscard: () => app.setState(s => ({ lrDraft: null, lrEditorKey: (s.lrEditorKey || 0) + 1 })),
+    lrPdf: () => { if (document.activeElement) document.activeElement.blur(); setTimeout(() => window.print(), 50); },
     lrDelete: () => { if (S.lrDelAsk !== r.id) { app.setState({ lrDelAsk: r.id }); clearTimeout(app.lrDT); app.lrDT = setTimeout(() => app.setState({ lrDelAsk: null }), 4000); return; }
       deleteReportAction(r.id).then(x => { if (x.error) return toast(x.error); app.setState({ view: 'templates', lrDelAsk: null, lrDraft: null }); refresh(); }); },
     lrDeleteLabel: S.lrDelAsk === r.id ? 'Click again to delete' : 'Delete',
