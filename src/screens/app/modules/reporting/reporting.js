@@ -14,7 +14,7 @@ export function reportingVals(app, ctx) {
   // The agency's own name goes into report HTML, so escape it.
   const agEsc = String(ctx.S.agName ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   // eslint-disable-next-line no-unused-vars
-  const { S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
+  const { SL: S, live, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
   return {
       vRepView: v === 'repview', ...(() => {
         const R = S.repView || (S.repIdx != null && REPORTS[S.repIdx] ? (([ci, title, status, date]) => ({ ci, title, status, date }))(REPORTS[S.repIdx]) : null); if (v !== 'repview' || !R) { app._viewHTML = null; return { rvStatus: '', rvDate: '', rvPBg: '#eef1f6', rvPC: '#45505f', rvToast: false, rvToastText: '', rvLink: () => {}, rvPdf: () => {}, rvEdit: () => {} }; }
@@ -35,7 +35,7 @@ export function reportingVals(app, ctx) {
           rvEdit: () => { app._docHTML = null; app.setState(s => ({ view: 'builder', sel: ci, cid: ci, rbTitle: R.title.split(' · ')[0], rbSeed: (s.rbSeed || 0) + 1, rbBlocks: null, rbFilled: false, rbSent: false, rbMsgs: [] })); } };
       })(),
       vTplPage: v === 'templates', vReports: v === 'reports', ...(() => {
-        const RP = REPORTS;
+        const RP = live ? [] : REPORTS;
         const PS = { 'Draft': ['#eef1f6', '#45505f'], 'Scheduled': ['#eef3fd', '#1f6be2'], 'Opened': ['#e3f3e8', '#1d6b3a'], 'Not opened': ['#fff6c2', '#7a5a00'] };
         const toast = t => { clearTimeout(app.rtT); app.setState({ rToast: t }); app.rtT = setTimeout(() => app.setState({ rToast: null }), 3000); };
         const rows = RP.filter(r => S.sel == null || r[0] === S.sel).map(([ci, title, status, date]) => ({ title, name: title.split(' · ')[0], status, date, client: C[ci].name, pBg: PS[status][0], pC: PS[status][1], link: e => { e.stopPropagation(); copyLink(findReport(ci, title), toast, 'Link to ' + C[ci].name + '\'s report copied'); }, pdf: e => { e.stopPropagation(); app.setState({ view: 'repview', repView: { ci, title, status, date } }, () => setTimeout(() => window.print(), 300)); }, open: () => app.setState({ view: 'repview', repView: { ci, title, status, date } }), key: e => { if (e.key === 'Enter') app.setState({ view: 'repview', repView: { ci, title, status, date } }); } }));

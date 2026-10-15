@@ -24,11 +24,18 @@ export const TOOL_ORDER = ['meta', 'tt', 'gads', 'ga4', 'sc', 'li', 'ms', 'gbp']
 // Tools with no agency container: access is granted per Google user, so the agency may need several logins.
 export const MULTI = ['ga4', 'gads', 'sc', 'gbp'];
 
+// Real connections from the server, in the same shape as the sample ones.
+// accts rows are [name, detail, client name]; acctIds holds each account's database id.
+const ago = iso => { if (!iso) return 'Not synced yet'; const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000); return m < 1 ? 'Synced just now' : m < 60 ? 'Synced ' + m + (m === 1 ? ' minute' : ' minutes') + ' ago' : m < 1440 ? 'Synced ' + Math.round(m / 60) + (Math.round(m / 60) === 1 ? ' hour' : ' hours') + ' ago' : 'Synced ' + Math.round(m / 1440) + (Math.round(m / 1440) === 1 ? ' day' : ' days') + ' ago'; };
+const liveConns = live => live.conns.map(c => ({ id: c.id, tool: c.provider === 'google' ? 'ga4' : 'meta', who: c.login, by: c.by, sync: ago(c.lastSyncAt), live: true, status: c.status, error: c.error,
+  accts: c.accounts.map(a => [a.name, a.detail, (live.clients.find(x => x.id === a.clientId) || {}).name || '']), acctIds: c.accounts.map(a => a.id) }));
+
 // Connections the agency has right now: the sample ones, minus any disconnected, plus any connected later.
 // S.connBy holds who owns a connection after it was reconnected, without touching its account assignments.
-export const connList = S => { const off = S.connOff || {}, on = S.connOn || {}, by = S.connBy || {}; return CATALOG.filter(c => (c.base || on[c.id]) && !off[c.id]).map(c => ({ ...c, ...(by[c.id] || {}) })); };
+export const connList = S => { if (S.live) return liveConns(S.live); const off = S.connOff || {}, on = S.connOn || {}, by = S.connBy || {}; return CATALOG.filter(c => (c.base || on[c.id]) && !off[c.id]).map(c => ({ ...c, ...(by[c.id] || {}) })); };
 // The connection that connecting this tool now would add, or null when there is nothing more to find.
-export const nextConn = (S, tool) => { const live = connList(S).filter(c => c.tool === tool); if (live.length && !MULTI.includes(tool)) return null; const ids = live.map(c => c.id); return CATALOG.find(c => c.tool === tool && !ids.includes(c.id) && (live.length ? true : !c.second)) || null; };
+// Live: GA4 can always add another Google login (Google sign-in decides which). Other tools are not connectable yet.
+export const nextConn = (S, tool) => { if (S.live) return tool === 'ga4' ? { id: 'google-new', tool: 'ga4', start: true, accts: [] } : null; const live = connList(S).filter(c => c.tool === tool); if (live.length && !MULTI.includes(tool)) return null; const ids = live.map(c => c.id); return CATALOG.find(c => c.tool === tool && !ids.includes(c.id) && (live.length ? true : !c.second)) || null; };
 export const acctKey = (id, j) => 'acct-' + id + '-' + j;
 export const acctFor = (sel, conn, j) => { const k = acctKey(conn.id, j); return k in (sel || {}) ? sel[k] : conn.accts[j][2]; };
 // Every account a tool can see across its connections, with the client it is assigned to.

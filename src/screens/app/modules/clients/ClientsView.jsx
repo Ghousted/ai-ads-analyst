@@ -633,6 +633,7 @@ export function ClientsView({ v }) {
                 {" "}
               </div>
               {" "}
+              {(v.pfAskShow) ? (
               <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", padding: "16px 0 12px", borderTop: "1px solid #eef1f6" }}>
                 <span style={{ flex: "1 1 220px", minWidth: "0", display: "flex", flexDirection: "column", lineHeight: "1.3" }}>
                   <span style={{ fontWeight: "600" }}>
@@ -646,6 +647,7 @@ export function ClientsView({ v }) {
                   {v.pfAskCopied ? "Copied" : v.pfAskBtn}
                 </button>
               </div>
+              ) : null}
             </section>
             {" "}
           </>) : null}

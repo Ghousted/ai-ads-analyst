@@ -3,7 +3,7 @@ import { clSplit } from '../../data';
 
 export function goalsVals(app, ctx) {
   // eslint-disable-next-line no-unused-vars
-  const { S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
+  const { SL: S, live, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
   return {
       ...(() => {
         const cpl = [12.9, 10.6, 8.73, 7.4, 9.1], conv = [2.6, 3.1, 3.4, 3.7, 4.0], spent = [1170, 1968, 960, 1280, 696], pace = 20 / 31;
@@ -15,7 +15,7 @@ export function goalsVals(app, ctx) {
           budget: { label: 'Monthly budget', desc: 'Pace spending', op: 'pace', pre: '$', suf: '', ph: '2,000', cur: i => spent[i] ?? 0, fmt: money, alert: 'spends too fast or too slow' }
         };
         const defs = [{ id: 1, c: 0, t: 'cpl', v: 12 }, { id: 2, c: 0, t: 'budget', v: 1800 }, { id: 3, c: 1, t: 'cpl', v: 9 }, { id: 4, c: 1, t: 'budget', v: 2400 }, { id: 5, c: 2, t: 'cpl', v: 10 }, { id: 6, c: 3, t: 'leads', v: 100 }, { id: 7, c: 3, t: 'budget', v: 2000 }, { id: 8, c: 4, t: 'leads', v: 35 }];
-        const goals = S.goals || defs, F = S.gForm, E = S.gErr || {};
+        const goals = S.goals || (live ? [] : defs), F = S.gForm, E = S.gErr || {};
         const selC = inDash && S.sel != null ? S.sel : null;
         const list = goals.filter(g => selC == null || g.c === selC).slice().sort((a, b) => a.c - b.c || a.id - b.id);
         const toast = (text, undo) => { clearTimeout(app.gtT); app.setState({ gToast: text, gUndo: undo || null }); app.gtT = setTimeout(() => app.setState({ gToast: null, gUndo: null }), 5000); };

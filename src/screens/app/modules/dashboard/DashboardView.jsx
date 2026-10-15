@@ -20,7 +20,12 @@ export function DashboardView({ v }) {
               {v.anEmptyTitle}
             </span>
             {" "}
-            {(v.anEmptyLink) ? (<>
+            {(v.anEmptyLive) ? (
+              <span style={{ color: "#5a6474", maxWidth: "420px" }}>
+                {v.anEmptyLiveText}
+              </span>
+            ) : null}
+            {(v.anEmptyLink && !v.anEmptyLive) ? (<>
               <span style={{ color: "#5a6474", maxWidth: "420px" }}>
                 {"Your agency is already connected. Link this client's account and "}
                 <span style={{ color: "#1f6be2" }}>
@@ -29,7 +34,7 @@ export function DashboardView({ v }) {
                 {" fills this page with their results."}
               </span>
             </>) : null}
-            {(v.anEmptyLink) ? null : <span style={{ color: "#5a6474", maxWidth: "420px" }}>
+            {(v.anEmptyLink || v.anEmptyLive) ? null : <span style={{ color: "#5a6474", maxWidth: "420px" }}>
               {"Connect it and "}
               <span style={{ color: "#1f6be2" }}>
                 {"Analyst"}

@@ -61,16 +61,22 @@ const PLAT = { 'Meta': '#0866FF', 'Google Ads': '#4285F4', 'TikTok Ads': '#00000
 
 export function dashboardVals(app, ctx) {
   // eslint-disable-next-line no-unused-vars
-  const { S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
+  const { SL: S, live, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
   return {
       tapTake: () => app.setState({ takeOpen: true }), takeOpenB: !!S.takeOpen,
       showTake: () => app.setState({ takeOpen: true }), hideTake: () => app.setState({ takeOpen: false }), takeO: S.takeOpen ? 1 : 0, takeT: S.takeOpen ? 'translateY(0) scale(1)' : 'translateY(-4px) scale(0.97)', takeVis: S.takeOpen ? 'visible' : 'hidden', takeBtnBg: S.takeOpen ? '#eef3fd' : '#f4f7fb',
       vAn: v === 'an', ...(() => {
         const av = S.anTool || 'an-all';
-        const blank = { anVB: '0 0 600 180', anGrid: '', anChartW: '100%', chartRef: app.chartRef, anTint: '#eef3fd', anInk: '#0b1626', anTools: [], anMetrics: [], anSections: [], anDays: [], anRanges: [], anLine: '', anArea: '', anPrev: '', anColor: '#1f6be2', anFill: '#eef3fd', anTake: '', anChartLabel: '', anEmpty: false, anHas: false, anEmptyTitle: '', anEmptyBtn: '', anEmptyLogo: '', anEmptyTool: '', anEmptyLink: false, anFresh: '' };
+        const blank = { anVB: '0 0 600 180', anGrid: '', anChartW: '100%', chartRef: app.chartRef, anTint: '#eef3fd', anInk: '#0b1626', anTools: [], anMetrics: [], anSections: [], anDays: [], anRanges: [], anLine: '', anArea: '', anPrev: '', anColor: '#1f6be2', anFill: '#eef3fd', anTake: '', anChartLabel: '', anEmpty: false, anHas: false, anEmptyTitle: '', anEmptyBtn: '', anEmptyLogo: '', anEmptyTool: '', anEmptyLink: false, anEmptyLive: false, anEmptyLiveText: '', anFresh: '' };
         if (v !== 'an') return blank;
         const A = AN[av];
         const anTools = Object.keys(AN).map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === av, bg: key === av ? '#ffffff' : 'transparent', fw: key === av ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
+        // Live agencies have no stored numbers until GA4 data is pulled; show that instead of the sample charts.
+        if (live) { const hasLinked = live.conns.some(c => c.accounts.some(x => x.clientId));
+          return { ...blank, anTools, anEmpty: true, anEmptyLive: true, anEmptyLogo: L.ga4, anEmptyTool: 'Google Analytics 4',
+            anEmptyTitle: hasLinked ? 'Your numbers are on the way' : 'Connect Google Analytics to see results',
+            anEmptyLiveText: hasLinked ? 'Properties are linked to clients. Results appear here after the first data pull from Google Analytics.' : 'Sign in with Google, then link each GA4 property to a client in Integrations.',
+            anEmptyBtn: hasLinked ? 'Open integrations' : 'Connect Google Analytics', anEmptyGo: () => app.setState({ view: 'settings', stgTab: 'conn' }) }; }
         const toolKey = ({ 'an-meta': 'meta', 'an-ga4': 'ga4', 'an-gads': 'gads', 'an-tt': 'tt' })[av];
         // The agency may already be connected and only the client's account is unlinked. Then the fix is linking, not connecting.
         const agencyHas = !!toolKey && connList(S).some(c => c.tool === toolKey);

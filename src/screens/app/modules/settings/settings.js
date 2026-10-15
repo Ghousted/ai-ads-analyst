@@ -1,4 +1,5 @@
 // Settings, including integrations.
+import { assignAccountAction, disconnectAction } from '@/app/actions/integrations';
 import { renameMeAction, renameAgencyAction, inviteAction, setRoleAction } from '@/app/actions/agency';
 import { signOutAction, forgotAction } from '@/app/actions/auth';
 import { connList, nextConn, toolAccts, acctFor, acctKey, clSplit, LOGOS, TOOL_NAMES, MULTI } from '../../data';
@@ -13,7 +14,8 @@ const emailOk = x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((x || '').trim());
 
 export function settingsVals(app, ctx) {
   // eslint-disable-next-line no-unused-vars
-  const { S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
+  // SL is the state plus live (server) data, so connection helpers read real connections when the agency is live.
+  const { SL: S, live, refresh, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
   return {
       vSet: v === 'settings', ...(() => {
         const tab = S.stgTab || 'general', on = S.stg || {}, sel = S.stgSel || {};
@@ -39,15 +41,18 @@ export function settingsVals(app, ctx) {
             const mine = conns.filter(c => c.tool === tool), all = toolAccts(S, tool), open = !!(S.stgOpen || {})[tool], many = mine.length > 1, pend = S.connPend || {};
             const rows = mine.map(c => {
               const nA = c.accts.filter((_, j) => acctFor(sel, c, j)).length;
+              if (c.live) { const err = c.status === 'error' ? ' ' + (c.error || 'This login stopped working.') : '';
+                return { ...bt('Connected as ' + c.who, 'Connected by ' + c.by + ' · ' + c.sync + ' · ' + nA + ' of ' + c.accts.length + (c.accts.length === 1 ? ' property' : ' properties') + ' assigned to clients.' + err, 'Reconnect', () => { window.location.href = '/api/integrations/google/start?hint=' + encodeURIComponent(c.who); }), hasBtn2: true, btn2Label: 'Disconnect', btn2: dlg({ kind: 'disconnect', id: c.id }) }; }
               const note = pend[c.id] ? ' Waiting for ' + pend[c.id] + ' to sign in again.' : tool === 'meta' && !c.sys ? ' It stops working if ' + c.by.split(' ')[0] + ' leaves or loses access. A system user is safer.' : '';
               return { ...bt('Connected as ' + c.who, (c.sys ? 'System user, not tied to a person' : 'Connected by ' + c.by) + ' · ' + c.sync + ' · ' + nA + ' of ' + c.accts.length + ' accounts assigned to clients.' + note, 'Reconnect', dlg({ kind: 'reconnect', id: c.id, who: tool === 'meta' && !c.sys ? 'sys' : me.name })), hasBtn2: true, btn2Label: 'Disconnect', btn2: dlg({ kind: 'disconnect', id: c.id }) };
             });
-            if (MULTI.includes(tool)) rows.push(nextConn(S, tool) ? bt('Add another Google login', 'Clients share ' + TOOL_NAMES[tool] + ' with whichever teammate asked. Add each login so every ' + UNIT[tool] + ' shows up.', 'Add login', dlg({ kind: 'connect', tool, st: 'pick', another: true })) : { t: 'Add another Google login', d: 'Every teammate\'s Google login is connected.' });
+            if (MULTI.includes(tool)) rows.push(nextConn(S, tool) ? bt('Add another Google login', 'Clients share ' + TOOL_NAMES[tool] + ' with whichever teammate asked. Add each login so every ' + UNIT[tool] + ' shows up.', 'Add login', live ? () => { window.location.href = '/api/integrations/google/start'; } : dlg({ kind: 'connect', tool, st: 'pick', another: true })) : { t: 'Add another Google login', d: 'Every teammate\'s Google login is connected.' });
             return { title: TOOL_NAMES[tool], logo: L[tool], rows,
               subLabel: (open ? 'Hide ' : 'Show ') + all.length + (all.length === 1 ? ' account' : ' accounts'), subOpen: open, subChev: open ? 'rotate(180deg)' : 'rotate(0deg)', subRows: open ? '1fr' : '0fr', subToggle: () => app.setState(st => ({ stgOpen: { ...(st.stgOpen || {}), [tool]: !open } })),
-              sub: all.map(({ conn: c, j, a: [an, id], client }) => { const k = acctKey(c.id, j); return { t: an, d: id + (many ? ' · via ' + c.who : ''), aria: 'Client for ' + an, opts: ['Not assigned'].concat(C.map(x => x.name)), val: client || 'Not assigned', c: client ? '#0b1626' : '#5a6474', set: ev => { const x = ev.target.value; app.setState(st => ({ stgSel: { ...(st.stgSel || {}), [k]: x === 'Not assigned' ? '' : x } })); } }; }) };
-          }).concat([{ title: 'Slack', rows: S.slack ? [sl('slackCh', 'Alert channel', 'Risk and performance alerts post here for the whole team.', CHANNELS), bt('Connected to the ' + agency + ' Slack', 'Installed by ' + S.slack.by + '. Teammates can also get alerts as direct messages from Notifications.', 'Disconnect', () => { app.setState({ slack: null }); toast('Slack disconnected'); })]
-              : [bt('Post alerts to a Slack channel', 'Install AI Ads Analyst in your Slack workspace once, then pick the channel your team watches.', 'Connect Slack', dlg({ kind: 'slack', who: CHANNELS[0] }), true)] },
+              sub: all.map(({ conn: c, j, a: [an, id], client }) => { const k = acctKey(c.id, j); return { t: an, d: id + (many ? ' · via ' + c.who : ''), aria: 'Client for ' + an, opts: ['Not assigned'].concat(C.map(x => x.name)), val: client || 'Not assigned', c: client ? '#0b1626' : '#5a6474', set: ev => { const x = ev.target.value; app.setState(st => ({ stgSel: { ...(st.stgSel || {}), [k]: x === 'Not assigned' ? '' : x } }));
+                if (c.live) assignAccountAction({ accountId: c.acctIds[j], clientId: x === 'Not assigned' ? null : (live.clients.find(y => y.name === x) || {}).id || null }).then(r => { if (r.error) { toast(r.error); app.setState(st => { const o = { ...(st.stgSel || {}) }; delete o[k]; return { stgSel: o }; }); } else refresh(); }); } }; }) };
+          }).concat(live ? [] : [{ title: 'Slack', rows: S.slack ? [sl('slackCh', 'Alert channel', 'Risk and performance alerts post here for the whole team.', CHANNELS), bt('Connected to the ' + agency + ' Slack', 'Installed by ' + S.slack.by + '. Teammates can also get alerts as direct messages from Notifications.', 'Disconnect', () => { app.setState({ slack: null }); toast('Slack disconnected'); })]
+              : [bt('Post alerts to a Slack channel', 'Install AI Ads Analyst in your Slack workspace once, then pick the channel your team watches.', 'Connect Slack', dlg({ kind: 'slack', who: CHANNELS[0] }), true)] }]).concat([
             { title: 'Add a tool', rows: [bt('Connect a new tool', 'Only the owner and admins can connect or change tools. Every teammate sees the data in reports.', 'Connect a tool', dlg({ kind: 'connect', tool: null, st: 'pick' }), true)] }]),
           agency: [{ title: 'Agency', rows: [manager ? bt(agency, C.length + ' clients · ' + members.length + ' teammates', 'Edit agency', dlg({ kind: 'agency', val: agency })) : { t: agency, d: C.length + ' clients · ' + members.length + ' teammates' }, bt('Report branding', 'Your logo and colour are set when you create your first report. Change them anytime from Design in the report editor.', 'Open reports', () => app.setState({ view: 'templates' }))] },
             { title: 'Client portal', rows: [tg('portal', 'Client portal', 'A secure login where clients see every report you have sent them.', true), sl('rsched', 'Default report schedule', 'New clients start with this schedule.', ['Mondays, 8:00am', 'Fridays, 4:00pm', 'First of the month']), sl('rtone', 'Default report tone', 'How Analyst writes reports for new clients.', ['Friendly', 'Professional', 'Short and direct'])] }],
@@ -64,14 +69,14 @@ export function settingsVals(app, ctx) {
         };
         return { stgCols: ((S.vw || 1280) - (S.navC ? 72 : 264)) < 640 ? 'minmax(0,1fr)' : '200px minmax(0,1fr)', stgCrumb: lab[tab], stgToast: !!S.stgToast, stgToastText: S.stgToast || '',
           stgNav: NAV.map(([label, items]) => ({ label, items: items.map(([k, l]) => ({ label: l, icon: ic[k], aria: k === tab ? 'page' : undefined, bg: k === tab ? '#e6ebf2' : 'transparent', fw: k === tab ? 700 : 500, c: k === tab ? '#0b1626' : '#45505f', ic: k === tab ? '#1f6be2' : '#5a6474', pick: () => app.setState({ stgTab: k }) })) })),
-          ...dialogVals(app, S, { toast, me, agency, members, conns, C }),
+          ...dialogVals(app, S, { toast, me, agency, members, conns, C, live, refresh }),
           stgGroups: G[tab].map(g => ({ hasLogo: !!g.logo, logo: g.logo || '', hasSub: !!g.sub, sub: g.sub || [], subLabel: g.subLabel || '', subOpen: !!g.subOpen, subChev: g.subChev || '', subRows: g.subRows || '0fr', subToggle: g.subToggle, title: g.title, hasChecks: !!g.checks, checkTitle: g.checkTitle || '', checks: (g.checks || []).map(x => ({ ...x, ls: clSplit(x.label) })), rows: g.rows.map(r => ({ isToggle: false, isSelect: false, isBtn: false, isPrimary: false, ...r, ts: clSplit(r.t), ds: clSplit(r.d) })) })) };
       })(),
   };
 }
 
 // Values for the settings dialog (one dialog at a time, chosen by S.dlg.kind).
-function dialogVals(app, S, { toast, me, agency, members, conns, C }) {
+function dialogVals(app, S, { toast, me, agency, members, conns, C, live, refresh }) {
   const D = S.dlg, err = S.dlgErr;
   const close = () => { clearTimeout(app.cnT); app.setState({ dlg: null, dlgErr: null }); };
   const base = { dlgOpen: !!D, dlgClose: close, dlgBackdrop: e => { if (e.target === e.currentTarget) close(); }, dlgErr: err || '', dlgHasErr: !!err };
@@ -105,11 +110,13 @@ function dialogVals(app, S, { toast, me, agency, members, conns, C }) {
     if (k === 'email') { if (!emailOk(val)) return app.setState({ dlgErr: 'Enter a valid email, like name@agency.com.' }); close(); return toast('Confirmation link sent to ' + val); }
     if (k === 'agency') { if (!val) return app.setState({ dlgErr: 'Enter your agency name.' }); return renameAgencyAction(val).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); app.setState({ agName: val }); close(); toast('Agency name updated'); }); }
     if (k === 'invite') { if (!emailOk(val)) return app.setState({ dlgErr: 'Enter a valid email, like name@agency.com.' }); const em = val.toLowerCase(); if (members.some(m => m.email === em)) return app.setState({ dlgErr: 'That person is already on your team.' }); return inviteAction({ email: em, role: D.role || 'Member' }).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); app.setState({ members: [...members, { id: '', name: em, email: em, role: D.role || 'Member', pending: true }] }); close(); toast(em + ' can now join by signing up with that email'); }); }
+    if (k === 'disconnect' && cn.live) return disconnectAction(D.id).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); close(); toast(tn + ' disconnected from ' + cn.who); refresh(); });
     if (k === 'disconnect') { app.setState(s => ({ connOff: { ...(s.connOff || {}), [D.id]: true }, connOn: { ...(s.connOn || {}), [D.id]: false }, connPend: { ...(s.connPend || {}), [D.id]: null } })); close(); return toast(tn + ' disconnected from ' + cn.who); }
     if (k === 'connect') {
       if (!D.tool) return app.setState({ dlgErr: 'Pick a tool to connect.' });
       const c = nextConn(S, D.tool);
-      if (!c) return app.setState({ dlgErr: TOOL_NAMES[D.tool] + ' is already connected.' });
+      if (c && c.start) { set({ st: 'signing' }); window.location.href = '/api/integrations/google/start'; return; }
+      if (!c) return app.setState({ dlgErr: live ? TOOL_NAMES[D.tool] + ' isn\'t available yet.' : TOOL_NAMES[D.tool] + ' is already connected.' });
       return signIn(s => ({ connOn: { ...(s.connOn || {}), [c.id]: true }, connOff: { ...(s.connOff || {}), [c.id]: false }, connBy: c.base ? s.connBy : { ...(s.connBy || {}), [c.id]: { by: me.name } }, dlg: { ...s.dlg, st: 'done', conn: c.id }, dlgErr: null }));
     }
     if (k === 'reconnect') {
@@ -138,7 +145,7 @@ function dialogVals(app, S, { toast, me, agency, members, conns, C }) {
     dlgVal: D.val || '', dlgSetVal: e => set({ val: e.target.value }), dlgInputBd: err ? '#e0481a' : '#d3dbe6',
     dlgHasRoles: radios.length > 0 && !signing, dlgRoleLegend: { invite: 'Role', reconnect: 'Who owns the connection', slack: 'Alert channel' }[k] || '',
     dlgRoles: radios.map(([id, label, desc]) => ({ label, desc, on: picked === id, bd: picked === id ? '#1f6be2' : '#d3dbe6', bg: picked === id ? '#eef3fd' : '#ffffff', pick: () => set(k === 'invite' ? { role: id } : { who: id }) })),
-    dlgHasTools: k === 'connect' && D.st === 'pick' && !D.another, dlgTools: TOOLS.map(([id, label, desc]) => { const nx = nextConn(S, id), live = conns.some(c => c.tool === id), on = D.tool === id; return { label, desc: !nx ? 'Already connected' : live ? 'Add another Google login' : desc, logo: LOGOS[id], disabled: !nx, on, bd: on ? '#1f6be2' : '#e6ebf2', bg: on ? '#eef3fd' : !nx ? '#f4f7fb' : '#ffffff', o: !nx ? 0.6 : 1, pick: () => { if (nx) set({ tool: id }); } }; }),
+    dlgHasTools: k === 'connect' && D.st === 'pick' && !D.another, dlgTools: TOOLS.map(([id, label, desc]) => { const nx = nextConn(S, id), live = conns.some(c => c.tool === id), on = D.tool === id; return { label, desc: S.live ? (id === 'ga4' ? (live ? 'Add another Google login' : 'Sign in with Google') : 'Coming soon') : !nx ? 'Already connected' : live ? 'Add another Google login' : desc, logo: LOGOS[id], disabled: !nx, on, bd: on ? '#1f6be2' : '#e6ebf2', bg: on ? '#eef3fd' : !nx ? '#f4f7fb' : '#ffffff', o: !nx ? 0.6 : 1, pick: () => { if (nx) set({ tool: id }); } }; }),
     dlgSigning: signing, dlgSignText: k === 'slack' ? 'Waiting for Slack to confirm the install…' : 'Waiting for you to sign in…',
     dlgHasPlans: k === 'plan', dlgPlans: PLANS.map(([n, price, note]) => { const on = D.val === n; return { label: n, price: price + ' a month', note, on, bd: on ? '#1f6be2' : '#e6ebf2', bg: on ? '#eef3fd' : '#ffffff', pick: () => set({ val: n }) }; }),
     dlgHasInvoices: k === 'invoices', dlgInvoices: INVOICES.map(([date, amt]) => ({ date, amt, download: () => {

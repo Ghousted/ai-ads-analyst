@@ -168,7 +168,8 @@ export default function View({ v }) {
             {(v.sampleMode) ? (
               <p role={"note"} style={{ margin: "0", padding: "12px 16px", background: "#fff6c2", color: "#5c4400", fontSize: "15px", textWrap: "pretty" }}>
                 <strong style={{ fontWeight: "700" }}>{"Sample data. "}</strong>
-                {"These clients and numbers are examples so you can look around. Your own clients replace them once you connect Meta or Google Analytics."}
+                {"These clients and numbers are examples so you can look around. Your own clients replace them once you connect Google Analytics."}
+                {(v.canConnect) ? (<>{" "}<a href={"/api/integrations/google/start"} style={{ fontWeight: "700", color: "#5c4400" }}>{"Connect Google Analytics"}</a></>) : null}
               </p>
             ) : null}
             {(v.showHeader) ? (<>
