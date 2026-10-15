@@ -495,6 +495,29 @@ export function ReportingView({ v }) {
                   <input value={(v.wlDomain) ?? ""} onChange={v.wlSetDomain} style={{ flex: "1", minWidth: "0", height: "40px", padding: "0 12px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", fontSize: "15px", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
                 </label>
                 {" "}
+                <button type={"button"} onClick={v.wlVerify} disabled={v.wlVerOk} style={{ height: "40px", padding: "0 14px", border: v.wlVerOk ? "0" : "1px solid #d3dbe6", borderRadius: "0", background: v.wlVerOk ? "#e3f3e8" : "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: v.wlVerOk ? "#1d6b3a" : "#0b1626", cursor: v.wlVerOk ? "default" : "pointer", whiteSpace: "nowrap" }}>
+                  {v.wlVerLabel}
+                </button>
+                {(v.wlVerOk) ? null : (
+                  <span style={{ flexBasis: "100%", fontSize: "14px", color: "#5a6474" }}>
+                    {v.wlVerNote}
+                  </span>
+                )}
+                {(v.wlVerRecs) ? (
+                  <div style={{ flexBasis: "100%", display: "flex", flexDirection: "column", gap: "6px", padding: "12px 14px", background: "#f4f7fb", fontSize: "14px" }}>
+                    <span style={{ fontWeight: "600" }}>
+                      {"Add these DNS records for "}{v.wlVerDom}{", then check them."}
+                    </span>
+                    {((v.wlVerRows) || []).map((r, $index) => (
+                      <span key={$index} style={{ display: "grid", gridTemplateColumns: "64px minmax(0,1fr) minmax(0,1.3fr)", gap: "12px", fontVariantNumeric: "tabular-nums", overflowWrap: "anywhere" }}>
+                        <span style={{ fontWeight: "600" }}>{r.type}</span>
+                        <span>{r.host}</span>
+                        <span style={{ color: "#45505f" }}>{r.value}</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                {" "}
               </>) : null}
               {" "}
               {(v.rbTabAi) ? (<>
@@ -559,7 +582,7 @@ export function ReportingView({ v }) {
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", maxWidth: "816px", margin: "0 auto 16px", padding: "8px 12px", borderRadius: "0", background: "#e3f3e8", fontSize: "14px", color: "#1d6b3a" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#2f9e5b" }}></span>
               <span style={{ flex: "1", minWidth: "200px" }}>
-                {"Filled with live numbers from "}{v.rbFilledFor}{" · updated today"}
+                {"Filled with numbers from "}{v.rbFilledFor}{" · settled data up to Oct 5"}
               </span>
               <button onClick={v.rbRefresh} style={{ height: "32px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "700", letterSpacing: "inherit", color: "#1d6b3a", cursor: "pointer" }} className="dc7a04906">
                 {"Refresh numbers"}
