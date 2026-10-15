@@ -4,6 +4,9 @@ import { clSplit } from '../../data';
 // Sent and scheduled reports: [client index, title, status, date].
 const REPORTS = [[0, 'Weekly report · Sep 29 – Oct 5', 'Draft', 'Ready to review'], [4, 'Weekly report · Sep 29 – Oct 5', 'Scheduled', 'Sends Mon Oct 13, 8:00am'], [1, 'Weekly report · Sep 22 – 28', 'Opened', 'Sent Oct 6'], [2, 'Weekly report · Sep 22 – 28', 'Opened', 'Sent Oct 6'], [3, 'Monthly summary · September', 'Opened', 'Sent Oct 6'], [0, 'Weekly report · Sep 15 – 21', 'Not opened', 'Sent Sep 26']];
 
+// Stands in when an agency has no clients yet, so the report pages still render.
+const NO_CLIENT = { name: 'Your client', i: 'YC', leads: 0, delta: '+0%', tone: 'Friendly', s: 'h', status: 'Healthy', bars: [1, 1, 1, 1, 1, 1], logos: [], signals: [] };
+
 // A link that opens this report straight in the app (/app?report=N).
 const shareUrl = i => window.location.origin + '/app?report=' + i;
 const copyLink = (i, toast, label) => { const url = shareUrl(i); const done = () => toast(label); if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, () => toast('Copy failed. The link is ' + url)); else toast('The link is ' + url); };
@@ -16,7 +19,7 @@ export function reportingVals(app, ctx) {
   // eslint-disable-next-line no-unused-vars
   const { SL: S, live, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
   return {
-      vRepView: v === 'repview', ...(() => {
+      vRepView: v === 'repview' && !live, ...(() => {
         const R = S.repView || (S.repIdx != null && REPORTS[S.repIdx] ? (([ci, title, status, date]) => ({ ci, title, status, date }))(REPORTS[S.repIdx]) : null); if (v !== 'repview' || !R) { app._viewHTML = null; return { rvStatus: '', rvDate: '', rvPBg: '#eef1f6', rvPC: '#45505f', rvToast: false, rvToastText: '', rvLink: () => {}, rvPdf: () => {}, rvEdit: () => {} }; }
         const c = C[R.ci], ci = R.ci, Ld = c.leads || 0, cplV = [12.9, 10.6, 8.73, 7.4, 9.1][ci] ?? 0, spV = [1170, 1968, 960, 1280, 696][ci] ?? 0, up = c.delta.startsWith('+'), col = S.wlColor || '#1f6be2';
         const PS = { 'Draft': ['#eef1f6', '#45505f'], 'Scheduled': ['#eef3fd', '#1f6be2'], 'Opened': ['#e3f3e8', '#1d6b3a'], 'Not opened': ['#fff6c2', '#7a5a00'] };
@@ -34,7 +37,7 @@ export function reportingVals(app, ctx) {
           rvLink: () => copyLink(findReport(R.ci, R.title), toast, 'Link copied'), rvPdf: () => window.print(),
           rvEdit: () => { app._docHTML = null; app.setState(s => ({ view: 'builder', sel: ci, cid: ci, rbTitle: R.title.split(' · ')[0], rbSeed: (s.rbSeed || 0) + 1, rbBlocks: null, rbFilled: false, rbSent: false, rbMsgs: [] })); } };
       })(),
-      vTplPage: v === 'templates', vReports: v === 'reports', ...(() => {
+      vTplPage: v === 'templates' && !live, vReports: v === 'reports' && !live, ...(() => {
         const RP = live ? [] : REPORTS;
         const PS = { 'Draft': ['#eef1f6', '#45505f'], 'Scheduled': ['#eef3fd', '#1f6be2'], 'Opened': ['#e3f3e8', '#1d6b3a'], 'Not opened': ['#fff6c2', '#7a5a00'] };
         const toast = t => { clearTimeout(app.rtT); app.setState({ rToast: t }); app.rtT = setTimeout(() => app.setState({ rToast: null }), 3000); };
@@ -62,7 +65,7 @@ export function reportingVals(app, ctx) {
         };
       })(),
       ...(() => {
-        const cl = S.sel != null ? clients[S.sel] : clients[2];
+        const cl = (S.sel != null && clients[S.sel]) || clients[2] || clients[0] || NO_CLIENT;
         const sum = { a: cl.name + ' had ' + cl.leads + ' leads this week (' + cl.delta + ' vs last week). Most came from Meta retargeting, and each lead cost a little less than before. Google search stayed steady.', b: 'A steady week for ' + cl.name + ': ' + cl.leads + ' leads, with cost per lead down slightly. Meta retargeting did most of the work.' };
         const nextT = 'Next week we will refresh one ad that is wearing out and move a little budget toward weekday mornings, when people book the most.';
         const defs = [{ id: 1, t: 'text', text: sum.a, v: 'a' }, { id: 2, t: 'kpis' }, { id: 3, t: 'line' }, { id: 4, t: 'donut' }, { id: 5, t: 'heading', text: 'Next steps' }, { id: 6, t: 'text', text: nextT, v: 'n' }];
@@ -132,7 +135,7 @@ export function reportingVals(app, ctx) {
         };
       })(),
       ...(() => {
-        const N = S.newRep, cl = S.sel != null ? clients[S.sel] : clients[2];
+        const N = S.newRep, cl = (S.sel != null && clients[S.sel]) || clients[2] || clients[0] || NO_CLIENT;
         const ci = clients.indexOf(cl), Ld = cl.leads || 0, cplV = [12.9, 10.6, 8.73, 7.4, 9.1][ci] ?? 0, spV = [1170, 1968, 960, 1280, 696][ci] ?? 0, up = cl.delta.startsWith('+');
         const nm = cl.name, cplS = '$' + cplV.toFixed(2), spS = '$' + spV.toLocaleString();
         const sumT = nm + ' got ' + Ld + ' leads this week, ' + (up ? 'up ' : 'down ') + cl.delta.replace(/[+−-]/, '') + ' on last week. Each lead cost ' + cplS + ' and ' + spS + ' of the monthly budget has been spent so far. Meta retargeting brought in the most leads (' + Math.round(Ld * 0.45) + ').';
@@ -192,7 +195,7 @@ export function reportingVals(app, ctx) {
         };
       })(),
       ...(() => {
-        const cl = S.sel != null ? clients[S.sel] : clients[2], col = S.wlColor || '#1f6be2';
+        const cl = (S.sel != null && clients[S.sel]) || clients[2] || clients[0] || NO_CLIENT, col = S.wlColor || '#1f6be2';
         const ed = 'contenteditable="true" style="outline:none"';
         const rm = '<button data-remove="1" contenteditable="false" aria-label="Remove widget" style="position:absolute;top:8px;right:8px;height:28px;padding:0 10px;border:0;border-radius:0;background:#ffffff;font:600 12px DM Sans,sans-serif;color:#45505f;cursor:pointer">Remove</button>';
         const hd = '<span data-handle="1" title="Drag to move" style="position:absolute;top:10px;left:-30px;width:22px;height:28px;display:grid;place-items:center;border-radius:0;color:#97a2b2;cursor:grab;font-size:16px;letter-spacing:-2px">⋮⋮</span>';
