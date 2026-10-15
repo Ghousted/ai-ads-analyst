@@ -2,6 +2,7 @@
 // Behaviour for LoginScreen, ported from design/Login.dc.html.
 import React from 'react';
 import View, { css } from './View';
+import { signInAction, signUpAction, googleAction, forgotAction, resetAction } from '@/app/actions/auth';
 
 class Logic extends React.Component {
   static defaultProps = {"startMode":"Log in"};
@@ -35,8 +36,10 @@ class Logic extends React.Component {
     });
     deck.pause = () => this.setState({ paused: true });
     deck.resume = () => this.setState({ paused: false });
-    const mode = this.state.mode ?? (this.props.startMode === 'Sign up' ? 'signup' : 'login');
-    const signup = mode === 'signup';
+    const mode = this.state.mode ?? (this.props.resetToken ? 'reset' : this.props.startMode === 'Sign up' ? 'signup' : 'login');
+    const signup = mode === 'signup', reset = mode === 'reset';
+    // Server actions redirect on success. On failure they return { error } and the form shows it.
+    const fail = r => { if (r && r.error) this.setState({ loading: false, formErr: r.error }); };
     const { email, password, touched } = this.state;
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const emailErr = !email ? 'Enter your email.' : 'That email doesn\u2019t look right.';
@@ -51,27 +54,28 @@ class Logic extends React.Component {
     const spinner = this.state.loading ? React.createElement('span', { key: 'sp', style: { width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', animation: 'clario-spin 700ms linear infinite', display: 'inline-block' } }) : null;
     return {
       ...deck,
-      isSignup: signup, isLogin: !signup,
+      isSignup: signup, isLogin: mode === 'login', showGoogle: !reset, showEmail: !reset,
+      formErr: this.state.formErr || '', hasFormErr: !!this.state.formErr,
       done: this.state.done, notDone: !this.state.done,
-      doneTitle: signup ? 'Your account is ready' : 'Welcome back',
-      doneText: signup ? 'Next, connect your first ad account. It takes about two minutes.' : 'Taking you to your clients\u2026',
-      title: signup ? 'Create your account' : 'Log in to AI Ads Analyst',
-      subtitle: signup ? 'Free for your first two clients. No card needed.' : 'Welcome back. Your reports are waiting.',
+      doneTitle: 'Your new password is set',
+      doneText: 'Log in with it to get back to your clients.',
+      title: reset ? 'Choose a new password' : signup ? 'Create your account' : 'Log in to AI Ads Analyst',
+      subtitle: reset ? 'Use at least 8 characters.' : signup ? 'Free for your first two clients. No card needed.' : 'Welcome back. Your reports are waiting.',
       googleLabel: signup ? 'Sign up with Google' : 'Continue with Google',
       name: this.state.name, email, password,
       setName: e => this.setState({ name: e.target.value }),
-      setEmail: e => this.setState({ email: e.target.value }),
-      setPassword: e => this.setState({ password: e.target.value }),
-      emailBad, pwBad, emailErr, pwErr,
+      setEmail: e => this.setState({ email: e.target.value, formErr: null }),
+      setPassword: e => this.setState({ password: e.target.value, formErr: null }),
+      emailBad: emailBad && !reset, pwBad, emailErr, pwErr,
       emailBorder: emailBad ? '#e0481a' : '#d3dbe6',
       pwBorder: pwBad ? '#e0481a' : '#d3dbe6',
       pwType: this.state.showPw ? 'text' : 'password',
-      pwAuto: signup ? 'new-password' : 'current-password',
-      pwPlaceholder: signup ? 'At least 8 characters' : 'Your password',
+      pwAuto: signup || reset ? 'new-password' : 'current-password',
+      pwPlaceholder: signup || reset ? 'At least 8 characters' : 'Your password',
       pwToggleText: this.state.showPw ? 'Hide' : 'Show',
       pwToggleLabel: this.state.showPw ? 'Hide password' : 'Show password',
       togglePw: () => this.setState(s => ({ showPw: !s.showPw })),
-      showStrength: signup && password.length > 0,
+      showStrength: (signup || reset) && password.length > 0,
       s0: score >= 1 ? sc : '#e6ebf2', s1: score >= 2 ? sc : '#e6ebf2', s2: score >= 3 ? sc : '#e6ebf2',
       strengthLabel: ['Too short', 'Okay', 'Good', 'Strong'][score],
       remember: this.state.remember,
@@ -79,19 +83,21 @@ class Logic extends React.Component {
       loading: this.state.loading,
       btnOpacity: this.state.loading ? 0.8 : 1,
       spinner,
-      submitLabel: this.state.loading ? (signup ? 'Creating account\u2026' : 'Logging in\u2026') : (signup ? 'Create account' : 'Log in'),
+      submitLabel: this.state.loading ? (reset ? 'Saving\u2026' : signup ? 'Creating account\u2026' : 'Logging in\u2026') : (reset ? 'Save new password' : signup ? 'Create account' : 'Log in'),
       submit: e => {
         e.preventDefault();
-        if (!emailOk || !pwOk) { this.setState({ touched: true }); return; }
-        this.setState({ loading: true });
-        this.t = setTimeout(() => (window.location.href = signup ? '/setup' : '/app'), 1200);
+        if ((!emailOk && !reset) || !pwOk) { this.setState({ touched: true }); return; }
+        this.setState({ loading: true, formErr: null });
+        if (reset) return resetAction({ token: this.props.resetToken, password }).then(r => { if (r && r.error) fail(r); else this.setState({ loading: false, done: true }); }, () => fail({ error: 'Something went wrong. Try again.' }));
+        const act = signup ? signUpAction({ name: this.state.name, email, password }) : signInAction({ email, password });
+        act.then(fail, e => { if (!String(e && e.digest).startsWith('NEXT_REDIRECT')) fail({ error: 'Something went wrong. Try again.' }); });
       },
-      google: () => { this.setState({ loading: true }); this.t = setTimeout(() => (window.location.href = signup ? '/setup' : '/app'), 900); },
-      forgot: e => { e.preventDefault(); if (!emailOk) { this.setState({ touched: true, forgotNote: null }); return; } this.setState({ touched: false, forgotNote: 'We emailed a reset link to ' + email.trim() + '.' }); },
+      google: () => { this.setState({ loading: true, formErr: null }); googleAction().then(r => { if (r.url) window.location.href = r.url; else fail(r); }, () => fail({ error: 'Something went wrong. Try again.' })); },
+      forgot: e => { e.preventDefault(); if (!emailOk) { this.setState({ touched: true, forgotNote: null }); return; } forgotAction(email).then(() => this.setState({ touched: false, forgotNote: 'If there is an account for ' + email.trim() + ', we emailed it a reset link.' })); },
       forgotNote: this.state.forgotNote,
-      switchText: signup ? 'Already have an account?' : 'New to AI Ads Analyst?',
-      switchLink: signup ? 'Log in' : 'Start free',
-      switchMode: e => { e.preventDefault(); this.setState({ mode: signup ? 'login' : 'signup', touched: false, password: '' }); }
+      switchText: reset ? 'Remembered it?' : signup ? 'Already have an account?' : 'New to AI Ads Analyst?',
+      switchLink: reset || signup ? 'Log in' : 'Start free',
+      switchMode: e => { e.preventDefault(); this.setState({ mode: reset || signup ? 'login' : 'signup', touched: false, password: '', formErr: null }); }
     };
   }
 }

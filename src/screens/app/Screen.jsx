@@ -9,7 +9,8 @@ import { clSplit, TCOLS, PEOPLE, DEF_TASKS, LOGOS, clientTools } from './data';
 class Logic extends React.Component {
   static defaultProps = {};
 
-  state = { view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
+  // The signed-in person, their agency and team arrive as props from the server page.
+  state = { me: this.props.me, agName: this.props.agency?.name, members: this.props.team, view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
   componentDidMount() {
     try { const r = new URLSearchParams(window.location.search).get('report'); if (r != null && /^\d+$/.test(r)) this.setState({ view: 'repview', repIdx: Number(r) }); } catch (e) {}
     this._hs = () => { const y = (document.scrollingElement || document.documentElement).scrollTop > 8; if (y !== !!this.state.hdrStuck) this.setState({ hdrStuck: y }); }; window.addEventListener('scroll', this._hs, { passive: true });
@@ -146,7 +147,7 @@ class Logic extends React.Component {
           return who ? who.name + ' got ' + who.leads + ' leads this week (' + who.delta + '). ' + who.signals[0].t + '. Ask me to draft a report, set an alert or add a task.' : 'This week: 533 leads across 5 clients, up 6%. Northside Physio needs attention. Ask me to draft a report, set an alert or add a task.';
         };
         const send = text => { const q = (text || '').trim(); if (!q || S.typing) return; this.setState(s => ({ msgs: [...(s.msgs || []), { me: true, text: q }], chatInput: '', typing: true })); clearTimeout(this.ct); this.ct = setTimeout(() => { const a = reply(q); this.setState(s => ({ typing: false, msgs: [...(s.msgs || []), { me: false, text: a }] })); }, 900); };
-        const greet = { me: false, text: who ? 'What should I do for ' + who.name + '?' : 'Hi Alex. Tell me what you need and I will take care of it.' };
+        const greet = { me: false, text: who ? 'What should I do for ' + who.name + '?' : 'Hi ' + (S.me?.name || '').split(/\s+/)[0] + '. Tell me what you need and I will take care of it.' };
         return {
           chatOpen: open, chatO: open ? 1 : 0, chatT: open ? 'scale(1)' : 'scale(0.96) translateY(8px)', chatPe: open ? 'auto' : 'none', chatVis: open ? 'visible' : 'hidden',
           chatBtn: open ? 'Close' : 'Ask Analyst', toggleChat: () => this.setState(s => ({ chatOpen: !s.chatOpen })),
@@ -168,7 +169,7 @@ class Logic extends React.Component {
       hdrShadow: S.hdrStuck ? '0 1px 0 #e6ebf2, 0 8px 20px -16px rgba(11,22,38,.35)' : 'none', showHeader: v !== 'client' && v !== 'builder' && v !== 'repview' && v !== 'settings', crumb: p[0], pageTitle: v === 'kpi' ? 'KPIs & goals' : (v === 'clients' && S.cForm) ? 'New client' : p[1], pageSub: v === 'kpi' ? `${atRisk.length} clients need attention. ${clients.length - atRisk.length} are doing well.` : p[2],
       showSw: v === 'an' || v.startsWith('an-') || v === 'kpi', hasAction: !!p[3] && !(v === 'clients' && S.cForm), actionLabel: p[3], action: v === 'tasks' ? () => this.setState({ tw: { step: 1, title: '', desc: '', client: S.sel != null ? C[S.sel].name : '', due: '', who: ['AR'], items: [], itemVal: '' }, twErr: null }) : v === 'clients' ? () => this.setState({ view: 'clients', sel: null, swOpen: false, cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : v === 'templates' ? () => this.setState({ newRep: { step: 1, name: '', tpl: 'blank', err: false, direct: true } }) : v === 'clients' ? () => this.setState({ cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : () => {},
       vKpi: v === 'kpi', vClient: v === 'client', vTasks: v === 'tasks', vBuilder: v === 'builder',
-      meName: (S.me || {}).name || 'Alex Rivera', meInitials: ((S.me || {}).name || 'Alex Rivera').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), agencyName: S.agName ?? 'Rivera Digital',
+      meName: S.me?.name || '', meInitials: (S.me?.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), meRole: S.me?.role || '', agencyName: S.agName, sampleMode: !!this.props.agency?.sampleMode,
       goSettings: go('settings'), goReports: go('reports'), goHistory: go('reports'), histCount: '', goTemplates: go('templates'), viewRef: this.viewRef, setAria: v === 'settings' ? 'page' : undefined, setBg: v === 'settings' ? '#eef3fd' : 'transparent', setC: v === 'settings' ? '#1f6be2' : '#45505f',
       ...FEATURES.reduce((o, f) => Object.assign(o, f.vals(this, ctx)), {}),
     };

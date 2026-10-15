@@ -146,7 +146,7 @@ export default function View({ v }) {
                 {v.meName}
               </span>
               <span style={{ fontSize: "13px", color: "#5a6474", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {`${v.agencyName} · Owner`}
+                {`${v.agencyName} · ${v.meRole}`}
               </span>
             </span>
             {" "}
@@ -165,6 +165,12 @@ export default function View({ v }) {
           {" "}
           <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
             {" "}
+            {(v.sampleMode) ? (
+              <p role={"note"} style={{ margin: "0", padding: "12px 16px", background: "#fff6c2", color: "#5c4400", fontSize: "15px", textWrap: "pretty" }}>
+                <strong style={{ fontWeight: "700" }}>{"Sample data. "}</strong>
+                {"These clients and numbers are examples so you can look around. Your own clients replace them once you connect Meta or Google Analytics."}
+              </p>
+            ) : null}
             {(v.showHeader) ? (<>
               {" "}
               <header style={{ position: "sticky", top: "0", zIndex: "30", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap", margin: "-32px calc(-1 * clamp(20px,4vw,48px)) 0", padding: "20px clamp(20px,4vw,48px) 16px", background: "#f4f7fb", boxShadow: v.hdrShadow, transition: "box-shadow 200ms ease" }}>

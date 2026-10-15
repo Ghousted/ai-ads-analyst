@@ -2,6 +2,7 @@
 // Behaviour for SetupScreen, ported from design/Setup.dc.html.
 import React from 'react';
 import View, { css } from './View';
+import { createAgencyAction } from '@/app/actions/agency';
 
 class Logic extends React.Component {
   static defaultProps = {};
@@ -37,7 +38,6 @@ class Logic extends React.Component {
       { kind: 'text', title: "What's your business called?", help: 'Your clients will see this name on their reports.', placeholder: 'e.g. Rivera Digital', field: 'workspace' },
       { kind: 'choice', title: 'How many people work with you?', help: 'This helps us set up your workspace.', field: 'team', opts: [['Just me', 'Freelancer'], ['2 to 5 people', 'Small team'], ['6 or more', 'Agency']] },
       { kind: 'multi', title: 'Which tools does your agency use?', help: 'Pick the ad and analytics tools you manage client accounts in. Meta covers both Facebook and Instagram ads.' },
-      { kind: 'connect', title: 'Connect your agency accounts', help: 'Sign in once with your agency login. Analyst finds every client account you manage. It only reads your data and never changes your ads.' },
       { kind: 'choice', title: 'How often should reports go out?', help: 'Analyst writes them on schedule so they are ready to review.', field: 'freq', opts: [['Every Monday', 'Most popular'], ['Every two weeks', ''], ['Once a month', '']] },
       { kind: 'choice', title: 'How should reports sound?', help: 'You can change this for each client later.', field: 'tone', opts: [['Friendly', 'Warm and easy to read'], ['Professional', 'Clear and polished'], ['Short and direct', 'Just the key points']] }
     ];
@@ -61,12 +61,12 @@ class Logic extends React.Component {
     }
     const answered = q.isText ? !!(S[cur.field] || '').trim() : q.isChoice ? !!S[cur.field] : q.isMulti ? S.platforms.length > 0 : q.isConnect ? Object.values(S.conn).includes('done') : true;
     const required = S.step === 0;
-    const errs = ['Enter your business name to continue.', 'Pick one option to continue, or set this up later.', 'Pick at least one tool, or set this up later.', 'Connect at least one account, or set this up later.', 'Pick how often reports should go out, or set this up later.', 'Pick a tone, or set this up later.'];
+    const errs = ['Enter your business name to continue.', 'Pick one option to continue, or set this up later.', 'Pick at least one tool, or set this up later.', 'Pick how often reports should go out, or set this up later.', 'Pick a tone, or set this up later.'];
     const next = () => { if (!answered) { this.setState({ error: true }); return; } this.go(S.step + 1); };
-    const TIP = [null, ['your team size', 'You can invite teammates anytime.', 'Settings', 'Team members'], ['picking your tools', 'Analyst will use sample data until your tools are connected.', 'Settings', 'Integrations'], ['connecting your tools', 'Analyst will use sample data until your tools are connected.', 'Settings', 'Integrations'], ['the report schedule', 'Reports will go out every Monday at 8:00am until you change it.', 'Settings', 'Agency and branding'], ['the report tone', 'Reports will use a friendly tone until you change it.', 'Settings', 'Agency and branding']];
+    const TIP = [null, ['your team size', 'You can invite teammates anytime.', 'Settings', 'Team members'], ['picking your tools', 'Analyst will use sample data until your tools are connected.', 'Settings', 'Integrations'], ['the report schedule', 'Reports will go out every Monday at 8:00am until you change it.', 'Settings', 'Agency and branding'], ['the report tone', 'Reports will use a friendly tone until you change it.', 'Settings', 'Agency and branding']];
     const skip = () => this.setState({ skipAsk: true });
     const tip = TIP[Math.min(S.step, total - 1)] || TIP[2];
-    const stageOf = [0, 0, 1, 1, 2, 2];
+    const stageOf = [0, 0, 1, 2, 2];
     const curStage = done ? 3 : stageOf[S.step];
     const stageNames = ['About you', 'Your tools', 'Reports'];
     const stages = stageNames.map((label, i) => {
@@ -107,10 +107,12 @@ class Logic extends React.Component {
       dashMsgKey: String(S.dashMsg || 0),
       goDash: () => {
         this.setState({ dash: true, dashMsg: 0 });
+        // Save the agency while the transition plays; only leave once it is stored.
+        const saved = createAgencyAction({ workspace: S.workspace, team: S.team, freq: S.freq, tone: S.tone, client: cnRaw || null });
         this.dm1 = setTimeout(() => this.setState({ dashMsg: 1 }), 800);
         this.dm2 = setTimeout(() => this.setState({ dashMsg: 2 }), 1600);
         this.dm3 = setTimeout(() => this.setState({ dashOut: true }), 2450);
-        this.dm4 = setTimeout(() => { try { sessionStorage.setItem('clario-fade-in', '1'); } catch (e) {} window.location.href = '/app'; }, 3300);
+        this.dm4 = setTimeout(() => saved.then(r => { if (r && r.error) { clearTimeout(this.dm3); this.setState({ dash: false, dashOut: false, step: 0, error: true }); return; } try { sessionStorage.setItem('clario-fade-in', '1'); } catch (e) {} window.location.href = '/app'; }, () => this.setState({ dash: false, dashOut: false })), 3300);
       },
       doneHasClient: !!cnRaw,
       doneLogos: P.filter(p => S.conn[p[0]] === 'done').map(p => p[2]).concat(Object.values(S.conn).includes('done') ? [] : []),
