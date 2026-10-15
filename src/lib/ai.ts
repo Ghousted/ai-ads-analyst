@@ -25,7 +25,7 @@ export function getClaude(): Anthropic | null {
 export const aiModel = () => process.env.AI_MODEL || config()?.model || 'claude-sonnet-5-5';
 
 // Per-agency daily limits on paid AI calls. Override with AI_LIMIT_<ACTION>, e.g. AI_LIMIT_REPORT=100.
-const LIMITS: Record<string, number> = { report: 40, revise: 80, email: 100 };
+const LIMITS: Record<string, number> = { report: 40, revise: 80, chat: 150, email: 100 };
 
 export async function takeAiQuota(agencyId: string, action: string): Promise<boolean> {
   const limit = Number(process.env['AI_LIMIT_' + action.toUpperCase()]) || LIMITS[action] || 20;
@@ -40,11 +40,11 @@ export async function recordAiUsage(agencyId: string, action: string, usage?: { 
 }
 
 // A short, user-facing reason for a failed AI call. Typed SDK errors, most specific first.
-export function aiErrorMessage(e: unknown): string {
+export function aiErrorMessage(e: unknown, fallback = 'Writing the report failed. Try again.'): string {
   if (e instanceof Anthropic.RateLimitError) return 'The AI service is busy. Try again in a minute.';
   if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) return 'The AI key was rejected. Check the AI settings on the server.';
   if (e instanceof Anthropic.BadRequestError) return 'The AI service rejected the request.';
   if (e instanceof Anthropic.APIConnectionError) return 'Couldn’t reach the AI service. Try again.';
   if (e instanceof Anthropic.APIError) return 'The AI service had a problem (' + e.status + '). Try again.';
-  return 'Writing the report failed. Try again.';
+  return fallback;
 }

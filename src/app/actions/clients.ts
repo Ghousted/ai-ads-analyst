@@ -5,7 +5,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
 import { requireAgency } from '@/lib/auth';
-import { syncGa4Account } from '@/lib/ga4';
+import { syncAccount } from '@/lib/sync';
 
 // Adds a client and links the chosen unassigned accounts to it.
 export async function createClientAction(input: { name: string; email: string; accountIds: string[] }) {
@@ -20,7 +20,7 @@ export async function createClientAction(input: { name: string; email: string; a
   });
   // Pull numbers only for the accounts this agency actually linked.
   const ag = agency.id;
-  after(async () => { for (const a of res.linked) await syncGa4Account(a, ag); });
+  after(async () => { for (const a of res.linked) await syncAccount(a, ag); });
   revalidatePath('/app');
   return { ok: true, id: res.id };
 }

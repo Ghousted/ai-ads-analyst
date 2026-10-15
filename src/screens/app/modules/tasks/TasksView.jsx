@@ -185,259 +185,7 @@ export function TasksView({ v }) {
           {" "}
         </div>
         {" "}
-        <div onClick={v.rpClose} aria-hidden={"true"} style={{ position: "fixed", inset: "0", zIndex: "55", background: "rgba(11,22,38,.28)", opacity: v.rpO, pointerEvents: v.rpPe, transition: "opacity 200ms ease" }}></div>
         {" "}
-        <aside role={"dialog"} aria-modal={"true"} aria-label={"Flagged client details"} style={{ position: "fixed", top: "0", bottom: "0", right: "0", zIndex: "60", width: "min(480px,100vw)", background: "#ffffff", boxShadow: "-24px 0 48px -24px rgba(11,22,38,.35)", display: "flex", flexDirection: "column", transform: `translateX(${v.rpX ?? ""})`, visibility: v.rpVis, transition: "transform 260ms cubic-bezier(0.23,1,0.32,1),visibility 260ms" }}>
-          {" "}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "16px 20px", borderBottom: "1px solid #eef1f6" }}>
-            {" "}
-            <span style={{ fontSize: "14px", fontWeight: "600", color: "#5a6474" }}>
-              {"Flagged by "}
-              <span style={{ color: "#1f6be2" }}>
-                {"Analyst"}
-              </span>
-            </span>
-            {" "}
-            <button onClick={v.rpClose} aria-label={"Close details"} style={{ width: "44px", height: "44px", marginRight: "-10px", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcf0b705f">
-              <svg width={"20"} height={"20"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#45505f"} strokeWidth={"2.4"} strokeLinecap={"round"}>
-                <path d={"M6 6l12 12M18 6L6 18"}></path>
-              </svg>
-            </button>
-            {" "}
-          </div>
-          {" "}
-          <div style={{ flex: "1", overflowY: "auto", padding: "20px 24px 32px", display: "flex", flexDirection: "column", gap: "28px" }}>
-            {" "}
-            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              {" "}
-              <span style={{ flex: "none", width: "48px", height: "48px", borderRadius: "50%", background: "#d6e4f8", display: "grid", placeItems: "center", fontWeight: "700" }}>
-                {v.rpInitials}
-              </span>
-              {" "}
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <h2 style={{ margin: "0", fontSize: "24px", fontWeight: "700", letterSpacing: "-0.6px" }}>
-                  {v.rpName}
-                </h2>
-                <span style={{ alignSelf: "flex-start", padding: "2px 10px", borderRadius: "999px", background: v.rpPBg, color: v.rpPC, fontSize: "13px", fontWeight: "600" }}>
-                  {v.rpStatus}
-                </span>
-              </div>
-              {" "}
-            </div>
-            {" "}
-            <section style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {" "}
-              <h3 style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>
-                {"Why "}
-                <span style={{ color: "#1f6be2" }}>
-                  {"Analyst"}
-                </span>
-                {" flagged them"}
-              </h3>
-              {" "}
-              <ul style={{ margin: "0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "6px", color: "#45505f", lineHeight: "1.5" }}>
-                {((v.rpReasons) || []).map((rs, $index) => (
-                  <React.Fragment key={$index}>
-                    <li style={{ textWrap: "pretty" }}>
-                      {rs}
-                    </li>
-                  </React.Fragment>
-                ))}
-              </ul>
-              {" "}
-            </section>
-            {" "}
-            <section style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {" "}
-              <h3 style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>
-                {"Leads, last 6 weeks"}
-              </h3>
-              {" "}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6,minmax(0,1fr))", gap: "8px", alignItems: "end", height: "140px" }}>
-                {" "}
-                {((v.rpBars) || []).map((b, $index) => (
-                  <React.Fragment key={$index}>
-                    {" "}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "4px", height: "100%" }}>
-                      <span style={{ fontSize: "12px", fontWeight: "600", fontVariantNumeric: "tabular-nums", color: "#45505f" }}>
-                        {b?.v}
-                      </span>
-                      <span style={{ width: "100%", height: b?.h, background: b?.c }}></span>
-                      <span style={{ fontSize: "12px", color: "#5a6474" }}>
-                        {b?.wk}
-                      </span>
-                    </div>
-                    {" "}
-                  </React.Fragment>
-                ))}
-                {" "}
-              </div>
-              {" "}
-            </section>
-            {" "}
-            <dl style={{ margin: "0", display: "grid", gridTemplateColumns: "130px minmax(0,1fr)", gap: "12px 16px" }}>
-              {((v.rpFacts) || []).map((f, $index) => (
-                <React.Fragment key={$index}>
-                  <dt style={{ color: "#5a6474", fontSize: "14px" }}>
-                    {f?.k}
-                  </dt>
-                  <dd style={{ margin: "0", fontWeight: "600" }}>
-                    {f?.v}
-                  </dd>
-                </React.Fragment>
-              ))}
-            </dl>
-            {" "}
-            <section style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "16px", background: "#f4f7fb" }}>
-              {" "}
-              <h3 style={{ margin: "0", fontSize: "15px", fontWeight: "700" }}>
-                {"Suggested next step"}
-              </h3>
-              {" "}
-              <p style={{ margin: "0", lineHeight: "1.5", textWrap: "pretty" }}>
-                {v.rpAction}
-              </p>
-              {" "}
-            </section>
-            {" "}
-          </div>
-          {" "}
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", padding: "16px 24px", borderTop: "1px solid #eef1f6" }}>
-            {" "}
-            <button onClick={v.rpCreate} style={{ height: "44px", padding: "0 16px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">
-              {"Create task"}
-            </button>
-            {" "}
-            <button onClick={v.rpAsk} style={{ height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
-              {"Ask "}
-              <span style={{ color: "#1f6be2" }}>
-                {"Analyst"}
-              </span>
-            </button>
-            {" "}
-            <button onClick={v.rpProfile} style={{ height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
-              {"View profile"}
-            </button>
-            {" "}
-            <button onClick={v.rpDismiss} style={{ height: "44px", padding: "0 12px", marginLeft: "auto", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#5a6474", cursor: "pointer" }} className="dc20c6b10">
-              {"Dismiss"}
-            </button>
-            {" "}
-          </div>
-          {" "}
-        </aside>
-        {" "}
-        {(v.rkHas) ? (<>
-          {" "}
-          <section aria-labelledby={"rk-h"} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {" "}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", flexWrap: "wrap" }}>
-              {" "}
-              <h2 id={"rk-h"} style={{ margin: "0", fontSize: "18px", fontWeight: "700" }}>
-                {v.rkTitle?.a}
-                <span style={{ color: "#1f6be2" }}>
-                  {v.rkTitle?.b}
-                </span>
-                {v.rkTitle?.c}
-              </h2>
-              {" "}
-              <span style={{ fontSize: "14px", color: "#5a6474" }}>
-                {"Also emailed to alex@riveradigital.com"}
-              </span>
-              {" "}
-            </div>
-            {" "}
-            {((v.rkList) || []).map((rk, $index) => (
-              <React.Fragment key={$index}>
-                {" "}
-                <div onClick={rk?.open} style={{ display: "grid", gridTemplateColumns: "auto minmax(0,1fr)", gap: "14px", alignItems: "start", padding: "16px 18px", background: rk?.rowBg, cursor: "pointer", transition: "background-color 140ms ease" }} className="dc6bffc71">
-                  {" "}
-                  <span style={{ position: "relative", flex: "none", width: "40px", height: "40px", borderRadius: "50%", background: "#d6e4f8", display: "grid", placeItems: "center", fontSize: "13px", fontWeight: "700" }}>
-                    {rk?.initials}
-                    <span aria-hidden={"true"} style={{ position: "absolute", right: "-1px", bottom: "-1px", width: "12px", height: "12px", borderRadius: "50%", background: rk?.dot, boxShadow: "0 0 0 2px #ffffff" }}></span>
-                  </span>
-                  {" "}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", minWidth: "0" }}>
-                    {" "}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                      {" "}
-                      <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: "700" }}>
-                          {rk?.name}
-                        </span>
-                        <span style={{ padding: "2px 10px", borderRadius: "999px", background: rk?.pillBg, color: rk?.pillC, fontSize: "13px", fontWeight: "600" }}>
-                          {rk?.status}
-                        </span>
-                      </span>
-                      {" "}
-                      <ul style={{ margin: "4px 0 0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "2px", color: "#45505f" }}>
-                        {((rk?.reasons) || []).map((rs, $index) => (
-                          <React.Fragment key={$index}>
-                            <li style={{ textWrap: "pretty" }}>
-                              {rs}
-                            </li>
-                          </React.Fragment>
-                        ))}
-                      </ul>
-                      {" "}
-                      <span style={{ color: "#0b1626", textWrap: "pretty" }}>
-                        <strong style={{ fontWeight: "600" }}>
-                          {"Suggested:"}
-                        </strong>
-                        {" "}{rk?.action}
-                      </span>
-                      {" "}
-                    </div>
-                    {" "}
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {" "}
-                      <button onClick={rk?.create} style={{ height: "44px", padding: "0 16px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">
-                        {"Create task"}
-                      </button>
-                      {" "}
-                      <button onClick={rk?.ask} style={{ height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
-                        {"Ask "}
-                        <span style={{ color: "#1f6be2" }}>
-                          {"Analyst"}
-                        </span>
-                        {" why"}
-                      </button>
-                      {" "}
-                      <button onClick={rk?.dismiss} aria-label={rk?.dismissLabel} style={{ height: "44px", padding: "0 12px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#5a6474", cursor: "pointer" }} className="dc20c6b10">
-                        {"Dismiss"}
-                      </button>
-                      {" "}
-                    </div>
-                    {" "}
-                  </div>
-                  {" "}
-                </div>
-                {" "}
-              </React.Fragment>
-            ))}
-            {" "}
-          </section>
-          {" "}
-        </>) : null}
-        {" "}
-        {(v.rkNone) ? (<>
-          {" "}
-          <div style={{ minHeight: "40vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "6px", textAlign: "center", padding: "24px" }}>
-            {" "}
-            <span style={{ fontWeight: "700", fontSize: "18px" }}>
-              {"Nothing flagged"}
-            </span>
-            {" "}
-            <span style={{ color: "#5a6474", maxWidth: "380px" }}>
-              <span style={{ color: "#1f6be2" }}>
-                {"Analyst"}
-              </span>
-              {" will message you here, in Ask Analyst and by email when a client starts slipping."}
-            </span>
-            {" "}
-          </div>
-          {" "}
-        </>) : null}
         {" "}
         {(v.tkIsBoard) ? (<>
           {" "}
@@ -903,6 +651,248 @@ export function TasksOverlay({ v }) {
     </div>
     {" "}
   </>) : null}
+      {/* Flag details: opens from Ask Analyst, so it shows on every page. */}
+      <>
+        <div onClick={v.rpClose} aria-hidden={"true"} style={{ position: "fixed", inset: "0", zIndex: "55", background: "rgba(11,22,38,.28)", opacity: v.rpO, pointerEvents: v.rpPe, transition: "opacity 200ms ease" }}></div>
+        {" "}
+        <aside role={"dialog"} aria-modal={"true"} aria-label={"Flagged client details"} style={{ position: "fixed", top: "0", bottom: "0", right: "0", zIndex: "60", width: "min(480px,100vw)", background: "#ffffff", boxShadow: "-24px 0 48px -24px rgba(11,22,38,.35)", display: "flex", flexDirection: "column", transform: `translateX(${v.rpX ?? ""})`, visibility: v.rpVis, transition: "transform 260ms cubic-bezier(0.23,1,0.32,1),visibility 260ms" }}>
+          {" "}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "16px 20px", borderBottom: "1px solid #eef1f6" }}>
+            {" "}
+            <span style={{ fontSize: "14px", fontWeight: "600", color: "#5a6474" }}>
+              {"Flagged by "}
+              <span style={{ color: "#1f6be2" }}>
+                {"Analyst"}
+              </span>
+            </span>
+            {" "}
+            <button onClick={v.rpClose} aria-label={"Close details"} style={{ width: "44px", height: "44px", marginRight: "-10px", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcf0b705f">
+              <svg width={"20"} height={"20"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#45505f"} strokeWidth={"2.4"} strokeLinecap={"round"}>
+                <path d={"M6 6l12 12M18 6L6 18"}></path>
+              </svg>
+            </button>
+            {" "}
+          </div>
+          {" "}
+          <div style={{ flex: "1", overflowY: "auto", padding: "20px 24px 32px", display: "flex", flexDirection: "column", gap: "28px" }}>
+            {" "}
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              {" "}
+              <span style={{ flex: "none", width: "48px", height: "48px", borderRadius: "50%", background: "#d6e4f8", display: "grid", placeItems: "center", fontWeight: "700" }}>
+                {v.rpInitials}
+              </span>
+              {" "}
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <h2 style={{ margin: "0", fontSize: "24px", fontWeight: "700", letterSpacing: "-0.6px" }}>
+                  {v.rpName}
+                </h2>
+                <span style={{ alignSelf: "flex-start", padding: "2px 10px", borderRadius: "999px", background: v.rpPBg, color: v.rpPC, fontSize: "13px", fontWeight: "600" }}>
+                  {v.rpStatus}
+                </span>
+              </div>
+              {" "}
+            </div>
+            {" "}
+            <section style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {" "}
+              <h3 style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>
+                {"Why "}
+                <span style={{ color: "#1f6be2" }}>
+                  {"Analyst"}
+                </span>
+                {" flagged them"}
+              </h3>
+              {" "}
+              <ul style={{ margin: "0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "6px", color: "#45505f", lineHeight: "1.5" }}>
+                {((v.rpReasons) || []).map((rs, $index) => (
+                  <React.Fragment key={$index}>
+                    <li style={{ textWrap: "pretty" }}>
+                      {rs}
+                    </li>
+                  </React.Fragment>
+                ))}
+              </ul>
+              {" "}
+            </section>
+            {" "}
+            <section style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {" "}
+              <h3 style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>
+                {"Leads, last 6 weeks"}
+              </h3>
+              {" "}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(6,minmax(0,1fr))", gap: "8px", alignItems: "end", height: "140px" }}>
+                {" "}
+                {((v.rpBars) || []).map((b, $index) => (
+                  <React.Fragment key={$index}>
+                    {" "}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "4px", height: "100%" }}>
+                      <span style={{ fontSize: "12px", fontWeight: "600", fontVariantNumeric: "tabular-nums", color: "#45505f" }}>
+                        {b?.v}
+                      </span>
+                      <span style={{ width: "100%", height: b?.h, background: b?.c }}></span>
+                      <span style={{ fontSize: "12px", color: "#5a6474" }}>
+                        {b?.wk}
+                      </span>
+                    </div>
+                    {" "}
+                  </React.Fragment>
+                ))}
+                {" "}
+              </div>
+              {" "}
+            </section>
+            {" "}
+            <dl style={{ margin: "0", display: "grid", gridTemplateColumns: "130px minmax(0,1fr)", gap: "12px 16px" }}>
+              {((v.rpFacts) || []).map((f, $index) => (
+                <React.Fragment key={$index}>
+                  <dt style={{ color: "#5a6474", fontSize: "14px" }}>
+                    {f?.k}
+                  </dt>
+                  <dd style={{ margin: "0", fontWeight: "600" }}>
+                    {f?.v}
+                  </dd>
+                </React.Fragment>
+              ))}
+            </dl>
+            {" "}
+            <section aria-busy={v.rpAiBusy ? "true" : "false"} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", minHeight: "44px", marginBottom: "-8px" }}>
+                <h3 style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>
+                  <span style={{ color: "#1f6be2" }}>
+                    {"Analyst"}
+                  </span>
+                  {"’s read"}
+                </h3>
+                {(v.rpAiHas && v.rpAiRefresh) ? (
+                  <button onClick={v.rpAiRefresh} style={{ height: "44px", padding: "0 12px", marginRight: "-12px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#1f6be2", cursor: "pointer" }} className="dc20c6b10">
+                    {"Write again"}
+                  </button>
+                ) : null}
+              </div>
+              {(v.rpAiBusy) ? (<>
+                <p role={"status"} style={{ margin: "0", color: "#5a6474" }}>
+                  {"Reading " + v.rpName + "’s numbers…"}
+                </p>
+                <span aria-hidden={"true"} style={{ height: "12px", width: "100%", background: "#eef1f6" }}></span>
+                <span aria-hidden={"true"} style={{ height: "12px", width: "92%", background: "#eef1f6" }}></span>
+                <span aria-hidden={"true"} style={{ height: "12px", width: "64%", background: "#eef1f6" }}></span>
+              </>) : null}
+              {(v.rpAiErr) ? (<>
+                <p role={"alert"} style={{ margin: "0", color: "#a3330c", lineHeight: "1.5" }}>
+                  {v.rpAiErr}
+                </p>
+                <button onClick={v.rpAiRetry} style={{ alignSelf: "flex-start", height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
+                  {"Try again"}
+                </button>
+              </>) : null}
+              {(v.rpAiNone) ? (
+                <button onClick={v.rpAiRetry} style={{ alignSelf: "flex-start", height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
+                  {"Explain this flag"}
+                </button>
+              ) : null}
+              {(v.rpAiHas) ? (<>
+                <p style={{ margin: "0", lineHeight: "1.5", textWrap: "pretty" }}>
+                  {v.rpSummary}
+                </p>
+                {(v.rpHasCauses) ? (
+                  <ul aria-label={"Likely causes"} style={{ margin: "0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "6px", color: "#45505f", lineHeight: "1.5" }}>
+                    {((v.rpCauses) || []).map((cs, $index) => (
+                      <li key={$index} style={{ textWrap: "pretty" }}>
+                        {cs}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>) : null}
+              {(v.rpAiRefreshErr) ? (
+                <p role={"alert"} style={{ margin: "0", fontSize: "14px", color: "#a3330c" }}>
+                  {v.rpAiRefreshErr}
+                </p>
+              ) : null}
+            </section>
+            {" "}
+            {(v.rpAiHas) ? (<>
+              <section style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <h3 style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>
+                  {"What to do"}
+                </h3>
+                <ol style={{ margin: "0", padding: "0", listStyle: "none", display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {((v.rpSteps) || []).map((st, $index) => (
+                    <li key={$index} style={{ display: "grid", gridTemplateColumns: "20px minmax(0,1fr) auto", gap: "4px 10px", alignItems: "center" }}>
+                      <span aria-hidden={"true"} style={{ alignSelf: "start", paddingTop: "1px", fontWeight: "700", color: "#5a6474", fontVariantNumeric: "tabular-nums" }}>
+                        {st?.n}
+                      </span>
+                      <span style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: "0" }}>
+                        <span style={{ fontWeight: "600", textWrap: "pretty" }}>
+                          {st?.action}
+                        </span>
+                        <span style={{ fontSize: "14px", color: "#45505f", lineHeight: "1.45", textWrap: "pretty" }}>
+                          {st?.why}
+                        </span>
+                      </span>
+                      <button onClick={st?.add} aria-label={st?.addAria} aria-disabled={st?.added ? "true" : "false"} style={{ height: "44px", padding: "0 10px", marginRight: "-10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: st?.added ? "#1d6b3a" : "#1f6be2", cursor: st?.added ? "default" : "pointer", whiteSpace: "nowrap" }} className="dc20c6b10">
+                        {st?.addLabel}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+              {" "}
+              <section style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "16px", background: "#f4f7fb" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <h3 style={{ margin: "0", fontSize: "15px", fontWeight: "700" }}>
+                    {"Check-in message"}
+                  </h3>
+                  {(v.rpMsgTo) ? (
+                    <span style={{ fontSize: "13px", color: "#5a6474" }}>
+                      {v.rpMsgTo}
+                    </span>
+                  ) : null}
+                </div>
+                <p style={{ margin: "0", lineHeight: "1.5", whiteSpace: "pre-wrap", textWrap: "pretty" }}>
+                  {v.rpMsg}
+                </p>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "4px" }}>
+                  <button onClick={v.rpCopy} aria-live={"polite"} style={{ height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
+                    {v.rpCopyLabel}
+                  </button>
+                  {(v.rpHasMail) ? (
+                    <a href={v.rpMailHref} style={{ height: "44px", padding: "0 16px", display: "inline-flex", alignItems: "center", border: "1px solid #d3dbe6", background: "#ffffff", fontWeight: "600", color: "#0b1626", textDecoration: "none" }} className="dce60d758">
+                      {"Open in email"}
+                    </a>
+                  ) : null}
+                </div>
+              </section>
+            </>) : null}
+            {" "}
+          </div>
+          {" "}
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", padding: "16px 24px", borderTop: "1px solid #eef1f6" }}>
+            {" "}
+            <button onClick={v.rpCreate} style={{ height: "44px", padding: "0 16px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">
+              {"Create task"}
+            </button>
+            {" "}
+            <button onClick={v.rpAsk} style={{ height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
+              {"Ask "}
+              <span style={{ color: "#1f6be2" }}>
+                {"Analyst"}
+              </span>
+            </button>
+            {" "}
+            <button onClick={v.rpProfile} style={{ height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
+              {"View profile"}
+            </button>
+            {" "}
+            <button onClick={v.rpDismiss} style={{ height: "44px", padding: "0 12px", marginLeft: "auto", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#5a6474", cursor: "pointer" }} className="dc20c6b10">
+              {"Dismiss"}
+            </button>
+            {" "}
+          </div>
+          {" "}
+        </aside>
+      </>
     </>
   );
 }

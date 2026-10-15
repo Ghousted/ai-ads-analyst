@@ -1,28 +1,46 @@
 // Tasks: board, list, flagged clients and the new-task wizard.
 import { clSplit } from '../../data';
+import { analyzeFlagAction, dismissFlagAction } from '@/app/actions/flags';
 
 export function tasksVals(app, ctx) {
   // eslint-disable-next-line no-unused-vars
-  const { S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
+  const { live, S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
   return {
-      ...(() => { const gone = S.rkGone || {}; const list = C.map((c, i) => ({ c, i })).filter(({ c }) => c.s !== 'h' && !gone[c.name]);
+      ...(() => { const gone = S.rkGone || {}; const list = C.map((c, i) => ({ c, i })).filter(({ c }) => c.s !== 'h' && !c.dismissed && !gone[c.name]);
         const PILL = { r: ['#fde2d6', '#a3330c', 'At risk', '#e0481a'], n: ['#fff6c2', '#7a5a00', 'Needs attention', '#e8a33a'] };
-        const hide = n => app.setState(s => ({ rkGone: { ...(s.rkGone || {}), [n]: true } }));
+        const hide = c => { app.setState(s => ({ rkGone: { ...(s.rkGone || {}), [c.name]: true } })); if (live && c.extra) dismissFlagAction({ clientId: c.extra.id, keys: c.flagKeys || '' }); };
         const fl = S.tkView === 'flagged';
-          const rows = list.map(({ c, i }) => { const act = (c.action || 'check in with the client this week.').replace(/\.$/, ''), title = act[0].toUpperCase() + act.slice(1), bad = c.signals.filter(s => !/normal|steady|on budget|\bup\b|growing|^views every|^reports viewed/i.test(s[0])), SAY = { 'Leads down 3 weeks': 'Leads have dropped three weeks in a row (−9%, −14%, then −6%).', 'Portal not visited': 'They haven\'t opened their client portal since Sep 12.', 'Last report not viewed': 'They haven\'t viewed the last report, sent Sep 26.', 'Cost per lead rising': 'Each lead costs 18% more than two weeks ago.', 'Budget pacing ahead': '82% of the monthly budget is spent, with 11 days still to go.' }, reasons = bad.map(s => SAY[s[0]] || s[0] + ': ' + s[1] + '.'), why = reasons.join(' ');
-            return { reasons, name: c.name, initials: c.i, status: PILL[c.s][2], pillBg: PILL[c.s][0], pillC: PILL[c.s][1], dot: PILL[c.s][3], why, action: title + '.', dismissLabel: 'Dismiss alert for ' + c.name,
-              create: () => app.setState(s => ({ rkGone: { ...(s.rkGone || {}), [c.name]: true }, tasks: [{ title, desc: 'Flagged by Analyst: ' + why + '.', client: c.name, status: 'todo', sub: [0, 1], due: 'This week', who: ['AR'], cm: 0 }, ...(s.tasks || defTasks)] })),
-              ask: () => app.setState(s => ({ chatOpen: true, msgs: [...(s.msgs || []), { me: true, text: 'Why was ' + c.name + ' flagged?' }, { me: false, text: c.name + ' was flagged because:\n' + reasons.map(x => '· ' + x).join('\n') + '\n\nI suggest you ' + act + '. Want me to create the task?' }] })),
-              dismiss: () => hide(c.name), rowBg: S.rkOpen === c.name ? '#eef3fd' : '#ffffff', open: e => { if (e.target.closest('button')) return; app.setState({ rkOpen: c.name }); } }; });
+        // Claude's analysis of a flag: saved with the client (live), built in (sample), or being written now.
+        const AI = S.flagAi || {}, setAi = (n, o) => app.setState(s => ({ flagAi: { ...(s.flagAi || {}), [n]: { ...((s.flagAi || {})[n] || {}), ...o } } }));
+        const analyse = (c, fresh) => { if (!live || !c.extra) return; setAi(c.name, { busy: true, err: '' });
+          analyzeFlagAction({ clientId: c.extra.id, fresh }).then(r => setAi(c.name, r.error ? { busy: false, err: r.error } : { busy: false, analysis: r.analysis }), () => setAi(c.name, { busy: false, err: 'Couldn’t reach the server. Try again.' })); };
+        const addTask = (c, title, desc) => app.setState(s => ({ tasks: [{ title, desc, client: c.name, status: 'todo', sub: [0, 1], due: 'This week', who: ['AR'], cm: 0 }, ...(s.tasks || defTasks)] }));
+          const rows = list.map(({ c, i }) => { const an = (AI[c.name] || {}).analysis || c.analysis || null, act = (an ? an.steps[0].action : c.action || 'check in with the client this week.').replace(/\.$/, ''), title = act[0].toUpperCase() + act.slice(1), bad = c.signals.filter(s => !/normal|steady|on budget|\bup\b|growing|^views every|^reports viewed/i.test(s[0])), SAY = { 'Leads down 3 weeks': 'Leads have dropped three weeks in a row (−9%, −14%, then −6%).', 'Portal not visited': 'They haven\'t opened their client portal since Sep 12.', 'Last report not viewed': 'They haven\'t viewed the last report, sent Sep 26.', 'Cost per lead rising': 'Each lead costs 18% more than two weeks ago.', 'Budget pacing ahead': '82% of the monthly budget is spent, with 11 days still to go.' }, reasons = c.reasons || bad.map(s => SAY[s[0]] || s[0] + ': ' + s[1] + '.'), why = reasons.join(' ');
+            return { c, an, reasons, name: c.name, initials: c.i, status: PILL[c.s][2], pillBg: PILL[c.s][0], pillC: PILL[c.s][1], dot: PILL[c.s][3], why, action: title + '.', dismissLabel: 'Dismiss alert for ' + c.name,
+              create: () => { addTask(c, title, 'Flagged by Analyst: ' + why); app.setState(s => ({ rkGone: { ...(s.rkGone || {}), [c.name]: true } })); },
+              ask: () => app.setState(s => ({ chatOpen: true, msgs: [...(s.msgs || []), { me: true, text: 'Why was ' + c.name + ' flagged?' }, { me: false, text: c.name + ' was flagged because:\n' + reasons.map(x => '· ' + x).join('\n') + (an ? '\n\n' + an.summary : '') + '\n\nI suggest you ' + act[0].toLowerCase() + act.slice(1) + '. Want me to create the task?' }] })),
+              // From Ask Analyst: open the flag's details and start Claude's analysis if there isn't one yet.
+              see: () => { app.setState({ rkOpen: c.name }); if (!an && !(AI[c.name] || {}).busy) analyse(c); },
+              dismiss: () => hide(c), rowBg: S.rkOpen === c.name ? '#eef3fd' : '#ffffff', open: e => { if (e.target.closest('button')) return; app.setState({ rkOpen: c.name }); if (!an && !(AI[c.name] || {}).busy) analyse(c); } }; });
         const cur = rows.find(r => r.name === S.rkOpen), ci = cur ? C.findIndex(c => c.name === cur.name) : -1, cc = ci >= 0 ? C[ci] : null, mxb = cc ? Math.max(...cc.bars) : 1;
         const WK = ['Sep 7', 'Sep 14', 'Sep 21', 'Sep 28', 'Oct 5', 'Oct 12'];
+        const ai = cur ? AI[cur.name] || {} : {}, an = cur && cur.an, added = (cur && (S.flagAdded || {})[cur.name]) || {};
         const rp = cur ? { rpOn: true, rpO: 1, rpPe: 'auto', rpX: '0', rpVis: 'visible', rpName: cur.name, rpInitials: cur.initials, rpStatus: cur.status, rpPBg: cur.pillBg, rpPC: cur.pillC, rpReasons: cur.reasons, rpAction: cur.action,
-            rpBars: cc.bars.map((b, j) => ({ h: Math.max(6, Math.round(b / mxb * 96)) + 'px', c: j === 5 ? cur.dot : '#d6e4f8', v: String(b), wk: WK[j] })),
+            rpBars: cc.bars.map((b, j) => ({ h: Math.max(6, Math.round(b / mxb * 96)) + 'px', c: j === 5 ? cur.dot : '#d6e4f8', v: String(Math.round(b)), wk: live ? (j === 5 ? 'This wk' : (5 - j) + ' wk ago') : WK[j] })),
             rpFacts: [{ k: 'Last report', v: cc.last }, { k: 'Report tone', v: cc.tone }, { k: 'Leads this week', v: cc.leads + ' (' + cc.delta + ')' }],
+            rpAiBusy: !!ai.busy, rpAiErr: !ai.busy && !an ? ai.err || '' : '', rpAiHas: !ai.busy && !!an, rpAiNone: !ai.busy && !an && !ai.err,
+            rpAiRetry: () => analyse(cur.c, true), rpAiRefresh: live ? () => analyse(cur.c, true) : null, rpAiRefreshErr: !ai.busy && an ? ai.err || '' : '',
+            rpSummary: an ? an.summary : '', rpCauses: an ? an.causes : [], rpHasCauses: !!(an && an.causes.length),
+            rpSteps: an ? an.steps.map((st, j) => ({ n: String(j + 1), action: st.action, why: st.why, added: !!added[j], addLabel: added[j] ? 'Added' : 'Add as task', addAria: 'Add "' + st.action + '" as a task',
+              add: () => { if (added[j]) return; addTask(cur.c, st.action, st.why); app.setState(s => ({ flagAdded: { ...(s.flagAdded || {}), [cur.name]: { ...((s.flagAdded || {})[cur.name] || {}), [j]: true } } })); } })) : [],
+            rpMsg: an ? an.message : '', rpMsgTo: cc.contact ? 'To ' + cc.contact + (cc.email ? ', ' + cc.email : '') : '',
+            rpCopyLabel: S.flagCopied === cur.name ? 'Copied' : 'Copy message',
+            rpCopy: () => { const done = () => { app.setState({ flagCopied: cur.name }); clearTimeout(app.fcT); app.fcT = setTimeout(() => app.setState({ flagCopied: null }), 2000); }; navigator.clipboard ? navigator.clipboard.writeText(an.message).then(done, () => {}) : done(); },
+            rpMailHref: an && cc.email ? 'mailto:' + encodeURIComponent(cc.email) + '?subject=' + encodeURIComponent('Quick check-in') + '&body=' + encodeURIComponent(an.message) : '', rpHasMail: !!(an && cc.email),
             rpCreate: () => { cur.create(); app.setState({ rkOpen: null }); }, rpAsk: () => { cur.ask(); app.setState({ rkOpen: null }); }, rpDismiss: () => { cur.dismiss(); app.setState({ rkOpen: null }); },
             rpProfile: () => app.setState({ rkOpen: null, pfPanel: true, pfI: ci, cid: ci, pfDraft: null }) }
-          : { rpOn: false, rpO: 0, rpPe: 'none', rpX: '100%', rpVis: 'hidden', rpReasons: [], rpBars: [], rpFacts: [] };
-        return { ...rp, rpClose: () => app.setState({ rkOpen: null }), rkList: rows, rkHas: fl && list.length > 0, rkNone: fl && list.length === 0, rkTitle: clSplit('Analyst flagged ' + list.length + (list.length === 1 ? ' client' : ' clients')) }; })(),
+          : { rpOn: false, rpO: 0, rpPe: 'none', rpX: '100%', rpVis: 'hidden', rpReasons: [], rpBars: [], rpFacts: [], rpCauses: [], rpSteps: [] };
+        return { ...rp, rpClose: () => app.setState({ rkOpen: null }), rkList: rows, rkHas: fl && list.length > 0, rkNone: fl && list.length === 0, rkMail: !live, rkTitle: clSplit('Analyst flagged ' + list.length + (list.length === 1 ? ' client' : ' clients')) }; })(),
       ...(() => { const W = S.tw; if (!W) return { twOpen: false, twStep: 1, twBars: [], twS1: false, twS2: false, twS3: false, twClients: [], twPeople: [], twItems: [] };
         const set = o => app.setState(s => ({ tw: { ...s.tw, ...o } })), E = S.twErr || {}, st = W.step;
         const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -65,7 +83,7 @@ export function tasksVals(app, ctx) {
           tdCmVal: S.tkCmVal || '', tdSetCm: e => app.setState({ tkCmVal: e.target.value }),
           tdAddCm: e => { e.preventDefault(); const t2 = (S.tkCmVal || '').trim(); if (!t2) return; const next = [...cms, ['AR', 'Just now', t2]]; app.setState(s => { const tasks = (s.tasks || defTasks).map(x => ({ ...x })); tasks[ti].cm = next.length; return { tasks, tkCmVal: '', tkCms: { ...(s.tkCms || {}), [ti]: next } }; }); } };
         return { ...td, tasksEmpty: list.length === 0, tasks: list, tkIsBoard: board, tkIsList: (S.tkView || 'board') === 'list',
-          tkViews: [['board', 'Board'], ['list', 'List'], ['flagged', 'Flagged' + (rkCount ? ' (' + rkCount + ')' : '')]].map(([k, label]) => { const on = (S.tkView || 'board') === k; return { label, on: on ? 'true' : 'false', bd: on ? '#0b1626' : 'transparent', c: on ? '#0b1626' : '#5a6474', fw: on ? 700 : 500, pick: () => app.setState({ tkView: k }) }; }),
+          tkViews: [['board', 'Board'], ['list', 'List']].map(([k, label]) => { const on = (S.tkView === 'list' ? 'list' : 'board') === k; return { label, on: on ? 'true' : 'false', bd: on ? '#0b1626' : 'transparent', c: on ? '#0b1626' : '#5a6474', fw: on ? 700 : 500, pick: () => app.setState({ tkView: k }) }; }),
           tkAddVal: S.tkAddVal || '', tkAddErr: !!S.tkAddErr, tkSetAdd: e => app.setState({ tkAddVal: e.target.value, tkAddErr: false }), tkCancelAdd: () => app.setState({ tkAdd: null, tkAddVal: '', tkAddErr: false }), tkAddKey: e => { if (e.key === 'Escape') app.setState({ tkAdd: null, tkAddVal: '', tkAddErr: false }); },
           tkBoard: TCOLS.map(([k, label]) => { const items = list.filter(t => t.status === k); const over = S.tkOver === k;
             return { label, count: String(items.length), cBg: k === 'done' ? '#d4f0dd' : '#e6ebf2', cC: k === 'done' ? '#1d6b3a' : '#45505f', bg: over ? '#eaf1fc' : 'transparent', ring: over ? 'inset 0 0 0 2px #1f6be2' : 'none',

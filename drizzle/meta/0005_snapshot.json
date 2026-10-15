@@ -1,5 +1,5 @@
 {
-  "id": "dd705aee-c8fe-4751-b786-e761b18ce813",
+  "id": "d4da30f7-7202-4f3d-93a4-df43ba5d6c99",
   "prevId": "aa917b23-5754-4ec9-b5d1-fe150f8e31f1",
   "version": "7",
   "dialect": "postgresql",
@@ -406,6 +406,104 @@
         "ai_usage_agency_id_agencies_id_fk": {
           "name": "ai_usage_agency_id_agencies_id_fk",
           "tableFrom": "ai_usage",
+          "tableTo": "agencies",
+          "columnsFrom": [
+            "agency_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.client_flags": {
+      "name": "client_flags",
+      "schema": "",
+      "columns": {
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "agency_id": {
+          "name": "agency_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signature": {
+          "name": "signature",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "analysis": {
+          "name": "analysis",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "analyzed_at": {
+          "name": "analyzed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dismissed_keys": {
+          "name": "dismissed_keys",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "client_flags_agency_idx": {
+          "name": "client_flags_agency_idx",
+          "columns": [
+            {
+              "expression": "agency_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "client_flags_client_id_clients_id_fk": {
+          "name": "client_flags_client_id_clients_id_fk",
+          "tableFrom": "client_flags",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "client_flags_agency_id_agencies_id_fk": {
+          "name": "client_flags_agency_id_agencies_id_fk",
+          "tableFrom": "client_flags",
           "tableTo": "agencies",
           "columnsFrom": [
             "agency_id"
@@ -969,37 +1067,6 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
-        },
-        "sent_to": {
-          "name": "sent_to",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "share_token": {
-          "name": "share_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "view_count": {
-          "name": "view_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "first_viewed_at": {
-          "name": "first_viewed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_viewed_at": {
-          "name": "last_viewed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -1020,21 +1087,6 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "reports_share_token_idx": {
-          "name": "reports_share_token_idx",
-          "columns": [
-            {
-              "expression": "share_token",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}

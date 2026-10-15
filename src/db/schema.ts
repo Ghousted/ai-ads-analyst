@@ -147,3 +147,16 @@ export const aiUsage = pgTable('ai_usage', {
   outputTokens: doublePrecision('output_tokens').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [index('ai_usage_agency_idx').on(t.agencyId, t.createdAt)]);
+
+// A flagged client's latest AI analysis, and the flag the agency dismissed. signature is the data day plus the
+// signals the analysis was written for, so a new day or a new signal asks for a fresh one. dismissedKeys hides the
+// flag until its signals change.
+export const clientFlags = pgTable('client_flags', {
+  clientId: uuid('client_id').primaryKey().references(() => clients.id, { onDelete: 'cascade' }),
+  agencyId: uuid('agency_id').notNull().references(() => agencies.id, { onDelete: 'cascade' }),
+  signature: text('signature'),
+  analysis: jsonb('analysis'),
+  model: text('model'),
+  analyzedAt: timestamp('analyzed_at', { withTimezone: true }),
+  dismissedKeys: text('dismissed_keys'),
+}, t => [index('client_flags_agency_idx').on(t.agencyId)]);
