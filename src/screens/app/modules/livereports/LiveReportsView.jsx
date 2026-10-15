@@ -346,7 +346,7 @@ function TemplateCard({ t }) {
           <span style={{ fontSize: "14px", color: "#5a6474", lineHeight: "1.4" }}>{t.desc}</span>
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: "12px", minHeight: "20px", marginTop: "auto" }}>
-          {t.logos.map(lg => <span key={lg} aria-hidden="true" style={{ display: "block", width: "20px", height: "20px", background: `url('${lg}') center / contain no-repeat` }}></span>)}
+          {(t.logos || []).map(lg => <span key={lg} aria-hidden="true" style={{ display: "block", width: "20px", height: "20px", background: `url('${lg}') center / contain no-repeat` }}></span>)}
         </span>
         <button type="button" onClick={t.create} style={{ alignSelf: "flex-start", height: "40px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">{t.btn}</button>
       </span>
@@ -379,20 +379,20 @@ export function LiveReportsOverlay({ v }) {
               <button type="button" onClick={v.lrClose} style={ghost}>{"Cancel"}</button>
               <button type="button" onClick={v.lrGoInt} style={go} className="dc9482609">{"Open integrations"}</button>
             </div>
-          </>) : v.lrStep1 ? (
+          </>) : !v.lrStep2 ? (
             <form onSubmit={v.lrNext} noValidate style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"Which client is this report for?"}</h2>
               <div role="radiogroup" aria-label="Client" style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "320px", overflowY: "auto" }}>
-                {v.lrClients.map(c => (
+                {(v.lrClients || []).map(c => (
                   <button key={c.id} type="button" role="radio" aria-checked={c.on} onClick={c.pick} style={{ display: "flex", alignItems: "center", gap: "12px", minHeight: "56px", padding: "8px 14px", border: `1.5px solid ${c.bd}`, borderRadius: "0", background: c.bg, font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }}>
                     <span style={{ flex: "1", fontWeight: "600" }}>{c.name}</span>
-                    {c.logos.map(lg => <span key={lg} aria-hidden="true" style={{ flex: "none", width: "20px", height: "20px", background: `url('${lg}') center / contain no-repeat` }}></span>)}
+                    {(c.logos || []).map(lg => <span key={lg} aria-hidden="true" style={{ flex: "none", width: "20px", height: "20px", background: `url('${lg}') center / contain no-repeat` }}></span>)}
                   </button>
                 ))}
               </div>
               <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <span style={{ fontWeight: "600" }}>{"Period"}</span>
-                <select value={v.lrDays} onChange={v.lrSetDays} style={select}>{v.lrDaysOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+                <select value={v.lrDays} onChange={v.lrSetDays} style={select}>{(v.lrDaysOpts || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
               </label>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
                 <button type="button" onClick={v.lrClose} style={ghost}>{"Cancel"}</button>
@@ -412,7 +412,7 @@ export function LiveReportsOverlay({ v }) {
                   <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a6474" strokeWidth="2.4" strokeLinecap="round" style={{ position: "absolute", left: "12px", top: "14px" }}><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
                   <input type="search" value={v.lrQ} onChange={v.lrSetQ} placeholder="Search templates" style={{ width: "100%", height: "44px", padding: "0 12px 0 36px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", fontSize: "15px", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
                 </label>
-                {v.lrCats.map(c => (
+                {(v.lrCats || []).map(c => (
                   <button key={c.label} type="button" onClick={c.pick} aria-current={c.aria} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", minHeight: "42px", padding: "0 12px", border: "0", borderRadius: "0", background: c.bg, font: "inherit", fontSize: "16px", fontWeight: c.fw, letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }}>
                     <span>{c.label}</span><span style={{ fontSize: "13px", fontWeight: "500", color: "#97a2b2" }}>{c.count}</span>
                   </button>
@@ -427,7 +427,7 @@ export function LiveReportsOverlay({ v }) {
                     <button type="button" onClick={v.lrClearQ} style={{ marginTop: "6px", height: "40px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }}>{"Clear search"}</button>
                   </div>
                 ) : null}
-                {v.lrTpls.map(t => <TemplateCard key={t.id} t={t} />)}
+                {(v.lrTpls || []).map(t => <TemplateCard key={t.id} t={t} />)}
               </div>
             </div>
           </>)}
