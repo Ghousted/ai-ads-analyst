@@ -1,7 +1,7 @@
-import { randomBytes } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { requireAgency } from '@/lib/auth';
+import { reportLink } from '@/lib/report-link';
 import { pdfName, reportPdf } from '@/lib/report-pdf';
 
 export const maxDuration = 60;
@@ -15,11 +15,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     .innerJoin(schema.clients, eq(schema.clients.id, schema.reports.clientId))
     .where(and(eq(schema.reports.id, id), eq(schema.reports.agencyId, agency.id)));
   if (!r) return new Response('That report was deleted.', { status: 404 });
-  // The PDF is printed from the report's private page, so the report needs its link first.
-  let token = r.report.shareToken;
-  if (!token) { token = randomBytes(18).toString('base64url'); await db.update(schema.reports).set({ shareToken: token }).where(eq(schema.reports.id, id)); }
   try {
-    const pdf = await reportPdf(token);
+    // The PDF is printed from the report's private page, so the report needs its link first.
+    const pdf = await reportPdf(await reportLink(id));
     return new Response(new Uint8Array(pdf), { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename*=UTF-8\'\'' + encodeURIComponent(pdfName(r.client.name, r.report.title)), 'Cache-Control': 'no-store' } });
   } catch (e) {
     console.error('[pdf]', e);

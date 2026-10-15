@@ -3,10 +3,10 @@ import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
-import { randomBytes } from 'node:crypto';
 import { requireAgency } from '@/lib/auth';
 import { emailConfigured, sendEmail } from '@/lib/email';
 import { reportEmail } from '@/lib/report-email';
+import { reportLink } from '@/lib/report-link';
 import { pdfName, reportPdf } from '@/lib/report-pdf';
 import { aiErrorMessage, aiModel, recordAiUsage, takeAiQuota } from '@/lib/ai';
 import { buildFacts, rewritePart, writeReport } from '@/lib/report-writer';
@@ -98,7 +98,8 @@ function buildEmail(agency: { id: string; name: string; brandColor: string; bran
   const base = (process.env.APP_URL || '').replace(/\/$/, '');
   const content = normalizeContent(r.report.content, r.report.facts as never);
   return reportEmail({
-    agency: agency.name, color: agency.brandColor, logoUrl: agency.brandLogo && base.startsWith('https://') ? base + '/api/brand/' + agency.id : null,
+    agency: agency.name, color: agency.brandColor, // Email apps don't show SVG, so only image logos go in the email.
+    logoUrl: agency.brandLogo && !agency.brandLogo.startsWith('data:image/svg') && base.startsWith('https://') ? base + '/api/brand/' + agency.id : null,
     client: r.client.name, title: r.report.title, period: label(r.report.periodStart) + ' – ' + label(r.report.periodEnd),
     message, doc: content.doc as Doc, facts: r.report.facts, link: base + '/r/' + token,
   });
@@ -123,22 +124,24 @@ export async function sendReportAction(input: { id: string; to: string[]; subjec
   const r = await emailFor(agency.id, p.data.id);
   if (!r) return { error: 'That report was deleted.' };
   if (!(await takeAiQuota(agency.id, 'email'))) return { error: 'You’ve reached today’s limit for sending reports. It resets within 24 hours.' };
-  const token = r.report.shareToken || randomBytes(18).toString('base64url');
-  const { html, text } = buildEmail(agency, r, p.data.message, token);
-  // The PDF is printed from the report's private page, so the link has to exist before it's made.
-  let attachments: { filename: string; content: Buffer }[] | undefined;
-  if (p.data.attachPdf) {
-    if (!r.report.shareToken) await db.update(schema.reports).set({ shareToken: token }).where(eq(schema.reports.id, r.report.id));
-    try { attachments = [{ filename: pdfName(r.client.name, r.report.title), content: await reportPdf(token) }]; }
-    catch (e) { console.error('[pdf]', e); return { error: 'The PDF couldn’t be made, so nothing was sent. Try again, or send without the PDF.' }; }
-  }
+  // Count the send before it goes out, so sends fired together can't all slip under the limit. A failed send gives it back.
+  const [use] = await db.insert(schema.aiUsage).values({ agencyId: agency.id, action: 'email' }).returning({ id: schema.aiUsage.id });
+  const giveBack = () => db.delete(schema.aiUsage).where(eq(schema.aiUsage.id, use.id));
   try {
+    const token = await reportLink(r.report.id);
+    const { html, text } = buildEmail(agency, r, p.data.message, token);
+    // The PDF is printed from the report's private page, made above.
+    let attachments: { filename: string; content: Buffer }[] | undefined;
+    if (p.data.attachPdf) {
+      try { attachments = [{ filename: pdfName(r.client.name, r.report.title), content: await reportPdf(token) }]; }
+      catch (e) { console.error('[pdf]', e); await giveBack(); return { error: 'The PDF couldn’t be made, so nothing was sent. Try again, or send without the PDF.' }; }
+    }
     await sendEmail({ fromName: agency.name, replyTo: user.email, to: p.data.to, subject: p.data.subject, html, text, tag: 'report', attachments });
   } catch (e) {
+    await giveBack();
     return { error: e instanceof Error ? e.message : 'Sending failed. Try again.' };
   }
-  await recordAiUsage(agency.id, 'email');
-  await db.update(schema.reports).set({ status: 'sent', sentAt: new Date(), sentTo: p.data.to.join(', '), shareToken: token, updatedAt: new Date() }).where(eq(schema.reports.id, r.report.id));
+  await db.update(schema.reports).set({ status: 'sent', sentAt: new Date(), sentTo: p.data.to.join(', '), updatedAt: new Date() }).where(eq(schema.reports.id, r.report.id));
   revalidatePath('/app');
   return { ok: true };
 }
