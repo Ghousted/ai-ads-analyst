@@ -245,49 +245,194 @@ function Writing({ v }) {
   );
 }
 
+// A template card from the design's gallery: preview, name, description, tools, and the button that creates the report.
+function TemplateCard({ t }) {
+  return (
+    <div role="radio" tabIndex="0" aria-checked="false" aria-label={t.label} onDoubleClick={t.create} style={{ display: "flex", flexDirection: "column", overflow: "hidden", background: "#ffffff", boxShadow: "0 1px 2px rgba(11,22,38,.06),0 8px 24px -16px rgba(11,22,38,.25)" }}>
+      {t.blank ? (
+        <span aria-hidden="true" style={{ display: "grid", placeItems: "center", height: "150px", background: "#eef1fd" }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#97a2b2" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        </span>
+      ) : (<>
+                    <span aria-hidden={"true"} style={{ display: "block", height: "150px", background: "#eef1fd", padding: "16px 18px 0", overflow: "hidden" }}>
+                      {" "}
+                      <span style={{ display: "flex", flexDirection: "column", gap: "6px", height: "100%", background: "#ffffff", borderRadius: "0 0 0", padding: "10px", boxShadow: "0 0 0 1px #e6e9f8" }}>
+                        {" "}
+                        {((t.prev) || []).map((p, $index) => (
+                          <React.Fragment key={$index}>
+                            {" "}
+                            {(p?.kpis) ? (<>
+                              <span style={{ display: "flex", gap: "4px", flex: "none" }}>
+                                {((p?.tiles) || []).map((tl, $index) => (
+                                  <React.Fragment key={$index}>
+                                    <span style={{ flex: "1", minWidth: "0", border: "1px solid #eef1f6", borderRadius: "0", padding: "4px", display: "flex", flexDirection: "column", gap: "3px" }}>
+                                      <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                                        <span style={{ flex: "none", width: "7px", height: "7px", background: `url('${tl?.logo ?? ""}') center / contain no-repeat` }}></span>
+                                        <span style={{ display: "block", height: "3px", width: "60%", borderRadius: "0", background: "#d3dbe6" }}></span>
+                                      </span>
+                                      <span style={{ display: "block", height: "4px", width: "70%", borderRadius: "0", background: "#e6ebf2" }}></span>
+                                      <span style={{ display: "block", height: "3px", width: "35%", borderRadius: "0", background: tl?.c }}></span>
+                                    </span>
+                                  </React.Fragment>
+                                ))}
+                              </span>
+                            </>) : null}
+                            {" "}
+                            {(p?.line) ? (<>
+                              <span style={{ flex: "none", display: "block", height: "46px", border: "1px solid #eef1f6", borderRadius: "0", padding: "4px" }}>
+                                <svg viewBox={"0 0 100 30"} preserveAspectRatio={"none"} style={{ width: "100%", height: "100%", display: "block" }}>
+                                  <path d={"M0 16 C12 6 22 26 38 15 S68 4 100 18"} stroke={"#8f9cf5"} strokeWidth={"1"} fill={"none"} vectorEffect={"non-scaling-stroke"}></path>
+                                  <path d={"M0 23 C18 30 30 12 50 23 S82 17 100 21"} stroke={"#9bd8a8"} strokeWidth={"1"} fill={"none"} vectorEffect={"non-scaling-stroke"}></path>
+                                </svg>
+                              </span>
+                            </>) : null}
+                            {" "}
+                            {(p?.table) ? (<>
+                              <span style={{ flex: "none", display: "flex", flexDirection: "column", gap: "4px", border: "1px solid #eef1f6", borderRadius: "0", padding: "6px" }}>
+                                {((p?.rowsT) || []).map((rt, $index) => (
+                                  <React.Fragment key={$index}>
+                                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                      <span style={{ display: "block", height: "3px", width: rt?.w, borderRadius: "0", background: "#e1e5ec" }}></span>
+                                      <span style={{ flex: "1" }}></span>
+                                      <span style={{ display: "block", height: "3px", width: "10%", borderRadius: "0", background: "#e6ebf2" }}></span>
+                                      <span style={{ display: "block", height: "3px", width: "10%", borderRadius: "0", background: "#e6ebf2" }}></span>
+                                      <span style={{ display: "block", height: "3px", width: "10%", borderRadius: "0", background: "#e6ebf2" }}></span>
+                                    </span>
+                                  </React.Fragment>
+                                ))}
+                              </span>
+                            </>) : null}
+                            {" "}
+                            {(p?.donut) ? (<>
+                              <span style={{ flex: "none", display: "flex", alignItems: "center", gap: "8px", border: "1px solid #eef1f6", borderRadius: "0", padding: "6px" }}>
+                                <span style={{ flex: "none", width: "24px", height: "24px", borderRadius: "50%", border: "5px solid #8f9cf5", borderRightColor: "#9bd8a8" }}></span>
+                                <span style={{ flex: "1", display: "flex", flexDirection: "column", gap: "4px" }}>
+                                  <span style={{ display: "block", height: "3px", width: "70%", borderRadius: "0", background: "#e1e5ec" }}></span>
+                                  <span style={{ display: "block", height: "3px", width: "50%", borderRadius: "0", background: "#e1e5ec" }}></span>
+                                  <span style={{ display: "block", height: "3px", width: "35%", borderRadius: "0", background: "#e1e5ec" }}></span>
+                                </span>
+                              </span>
+                            </>) : null}
+                            {" "}
+                            {(p?.text) ? (<>
+                              <span style={{ flex: "none", display: "flex", flexDirection: "column", gap: "4px", padding: "2px 0" }}>
+                                <span style={{ display: "block", height: "3px", width: "100%", borderRadius: "0", background: "#e1e5ec" }}></span>
+                                <span style={{ display: "block", height: "3px", width: "75%", borderRadius: "0", background: "#e1e5ec" }}></span>
+                              </span>
+                            </>) : null}
+                            {" "}
+                            {(p?.heading) ? (<>
+                              <span style={{ flex: "none", display: "block", height: "5px", width: "40%", borderRadius: "0", background: "#97a2b2", marginTop: "2px" }}></span>
+                            </>) : null}
+                            {" "}
+                            {(p?.goals) ? (<>
+                              <span style={{ flex: "none", display: "flex", flexDirection: "column", gap: "5px", border: "1px solid #eef1f6", borderRadius: "0", padding: "6px" }}>
+                                <span style={{ display: "block", height: "4px", borderRadius: "0", background: "linear-gradient(90deg,#9bd8a8 60%,#eef1f6 60%)" }}></span>
+                                <span style={{ display: "block", height: "4px", borderRadius: "0", background: "linear-gradient(90deg,#9bd8a8 40%,#eef1f6 40%)" }}></span>
+                              </span>
+                            </>) : null}
+                            {" "}
+                          </React.Fragment>
+                        ))}
+                        {" "}
+                      </span>
+                      {" "}
+                    </span>
+                    {" "}
+      </>)}
+      <span style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "16px 18px 18px", flex: "1" }}>
+        <span style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <span style={{ fontSize: "17px", fontWeight: "600", letterSpacing: "-0.3px", lineHeight: "1.3" }}>{t.label}</span>
+          <span style={{ fontSize: "14px", color: "#5a6474", lineHeight: "1.4" }}>{t.desc}</span>
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: "12px", minHeight: "20px", marginTop: "auto" }}>
+          {t.logos.map(lg => <span key={lg} aria-hidden="true" style={{ display: "block", width: "20px", height: "20px", background: `url('${lg}') center / contain no-repeat` }}></span>)}
+        </span>
+        <button type="button" onClick={t.create} style={{ alignSelf: "flex-start", height: "40px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">{t.btn}</button>
+      </span>
+    </div>
+  );
+}
+
 export function LiveReportsOverlay({ v }) {
   if (!v.lrModal) return null;
+  const ghost = { height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" };
+  const go = { height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" };
   return (
     <div onClick={v.lrBackdrop} style={{ position: "fixed", inset: "0", zIndex: "70", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
-      <form role="dialog" aria-modal="true" aria-labelledby={v.lrWriting ? undefined : "lr-title"} aria-label={v.lrWriting ? v.lrWritingTitle : undefined} onSubmit={v.lrWrite} noValidate style={{ width: "min(600px,100%)", maxHeight: "calc(100vh - 48px)", overflowY: "auto", background: "#ffffff", padding: "28px", display: "flex", flexDirection: "column", gap: "20px", boxShadow: "0 30px 80px -30px rgba(11,22,38,.5)" }}>
+      <div role="dialog" aria-modal="true" aria-labelledby={v.lrWriting ? undefined : "lr-title"} aria-label={v.lrWriting ? v.lrWritingTitle : undefined} style={{ width: `min(${v.lrW},100%)`, height: v.lrH, maxHeight: "calc(100vh - 48px)", overflowX: "hidden", overflowY: v.lrStep2 && !v.lrWriting ? "hidden" : "auto", background: "#ffffff", padding: "28px", display: "flex", flexDirection: "column", gap: "20px", boxShadow: "0 30px 80px -30px rgba(11,22,38,.5)" }}>
         {v.lrWriting ? <Writing v={v} /> : (<>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"Write a report"}</h2>
-            <p style={{ margin: "0", color: "#5a6474", textWrap: "pretty" }}>{v.lrCanWrite ? "Pick a template and Analyst writes a draft from the client's Google Analytics numbers, or start blank and build it yourself." : v.lrNoDataText}</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+            <span style={{ fontSize: "14px", fontWeight: "600", color: "#5a6474" }}>{v.lrCanWrite ? "New report \u00b7 " + v.lrStepLabel : "New report"}</span>
+            <button type="button" onClick={v.lrClose} aria-label="Cancel and go back" style={{ width: "44px", height: "44px", margin: "-10px -10px -10px 0", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#45505f" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
           </div>
-          <button type="button" onClick={v.lrClose} aria-label="Close" style={{ flex: "none", width: "44px", height: "44px", margin: "-10px -10px 0 0", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#45505f" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
-        </div>
-        {v.lrCanWrite ? (<>
-          <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <span style={{ fontWeight: "600" }}>{"Client"}</span>
-            <select autoFocus value={v.lrClient} onChange={v.lrSetClient} disabled={v.lrBusy} style={select}>{v.lrClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-          </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <span style={{ fontWeight: "600" }}>{"Period"}</span>
-            <select value={v.lrDays} onChange={v.lrSetDays} disabled={v.lrBusy} style={select}>{v.lrDaysOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
-          </label>
-          <fieldset style={{ margin: "0", padding: "0", border: "0", display: "flex", flexDirection: "column", gap: "8px" }}>
-            <legend style={{ padding: "0 0 8px", fontWeight: "600" }}>{"Start from"}</legend>
-            <div role="radiogroup" aria-label="Start from" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,200px),1fr))", gap: "8px" }}>
-              {v.lrTemplates.map(t => (
-                <button key={t.id} type="button" role="radio" aria-checked={t.on} onClick={t.pick} style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "2px", minHeight: "56px", padding: "10px 14px", border: `1.5px solid ${t.bd}`, borderRadius: "0", background: t.bg, font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left", lineHeight: "1.3" }}>
-                  <span style={{ fontWeight: "600" }}>{t.label}</span>
-                  <span style={{ fontSize: "13px", color: "#5a6474" }}>{t.desc}</span>
-                </button>
-              ))}
+          {v.lrCanWrite ? (
+            <div style={{ display: "flex", gap: "6px" }}>
+              <span style={{ flex: "1", height: "4px", background: "#1f6be2" }}></span>
+              <span style={{ flex: "1", height: "4px", background: v.lrBar2, transition: "background-color 200ms ease" }}></span>
             </div>
-          </fieldset>
-        </>) : null}
-        {v.lrHasErr ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.lrErr}</span> : null}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-          <button type="button" onClick={v.lrClose} disabled={v.lrBusy} style={{ height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{"Cancel"}</button>
-          {v.lrCanWrite
-            ? <button type="submit" disabled={v.lrBusy} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer", opacity: v.lrBusy ? 0.8 : 1 }} className="dc9482609">{v.lrWriteLabel}</button>
-            : <button type="button" onClick={v.lrGoInt} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{"Open integrations"}</button>}
-        </div>
+          ) : null}
+          {!v.lrCanWrite ? (<>
+            <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"No client has numbers yet"}</h2>
+            <p style={{ margin: "0", color: "#5a6474", textWrap: "pretty" }}>{v.lrNoDataText}</p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+              <button type="button" onClick={v.lrClose} style={ghost}>{"Cancel"}</button>
+              <button type="button" onClick={v.lrGoInt} style={go} className="dc9482609">{"Open integrations"}</button>
+            </div>
+          </>) : v.lrStep1 ? (
+            <form onSubmit={v.lrNext} noValidate style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"Which client is this report for?"}</h2>
+              <div role="radiogroup" aria-label="Client" style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "320px", overflowY: "auto" }}>
+                {v.lrClients.map(c => (
+                  <button key={c.id} type="button" role="radio" aria-checked={c.on} onClick={c.pick} style={{ display: "flex", alignItems: "center", gap: "12px", minHeight: "56px", padding: "8px 14px", border: `1.5px solid ${c.bd}`, borderRadius: "0", background: c.bg, font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }}>
+                    <span style={{ flex: "1", fontWeight: "600" }}>{c.name}</span>
+                    {c.logos.map(lg => <span key={lg} aria-hidden="true" style={{ flex: "none", width: "20px", height: "20px", background: `url('${lg}') center / contain no-repeat` }}></span>)}
+                  </button>
+                ))}
+              </div>
+              <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <span style={{ fontWeight: "600" }}>{"Period"}</span>
+                <select value={v.lrDays} onChange={v.lrSetDays} style={select}>{v.lrDaysOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+              </label>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                <button type="button" onClick={v.lrClose} style={ghost}>{"Cancel"}</button>
+                <button type="submit" style={go} className="dc9482609">{"Next"}</button>
+              </div>
+            </form>
+          ) : (<>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"What kind of report for " + v.lrClientName + "?"}</h2>
+              <span style={{ color: "#5a6474" }}>{"Pick a template and Analyst writes it from the numbers, or start blank. You can add, remove and resize everything after."}</span>
+            </div>
+            {v.lrHasErr ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.lrErr}</span> : null}
+            <div style={{ flex: "1 1 auto", minHeight: "0", overflowY: "auto", margin: "0 -28px", padding: "2px 28px 8px", display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
+              <nav aria-label="Template categories" style={{ flex: "0 0 180px", position: "sticky", top: "0", alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: "2px", background: "#ffffff" }}>
+                <label style={{ position: "relative", display: "block", marginBottom: "8px" }}>
+                  <span style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0 0 0 0)" }}>{"Search templates"}</span>
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a6474" strokeWidth="2.4" strokeLinecap="round" style={{ position: "absolute", left: "12px", top: "14px" }}><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+                  <input type="search" value={v.lrQ} onChange={v.lrSetQ} placeholder="Search templates" style={{ width: "100%", height: "44px", padding: "0 12px 0 36px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", fontSize: "15px", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
+                </label>
+                {v.lrCats.map(c => (
+                  <button key={c.label} type="button" onClick={c.pick} aria-current={c.aria} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", minHeight: "42px", padding: "0 12px", border: "0", borderRadius: "0", background: c.bg, font: "inherit", fontSize: "16px", fontWeight: c.fw, letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }}>
+                    <span>{c.label}</span><span style={{ fontSize: "13px", fontWeight: "500", color: "#97a2b2" }}>{c.count}</span>
+                  </button>
+                ))}
+                <button type="button" onClick={v.lrBackStep} style={{ marginTop: "12px", height: "44px", padding: "0 12px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "15px", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer", textAlign: "left" }}>{"Back to client"}</button>
+              </nav>
+              <div role="radiogroup" aria-label="Report template" style={{ flex: "1", minWidth: "260px", display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,220px),1fr))", gap: "16px", alignContent: "start" }}>
+                {v.lrNoMatch ? (
+                  <div style={{ gridColumn: "1 / -1", padding: "48px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", textAlign: "center" }}>
+                    <span style={{ fontWeight: "700" }}>{"No templates match \"" + v.lrQ + "\""}</span>
+                    <span style={{ color: "#5a6474" }}>{"Try another word, or start from Blank."}</span>
+                    <button type="button" onClick={v.lrClearQ} style={{ marginTop: "6px", height: "40px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }}>{"Clear search"}</button>
+                  </div>
+                ) : null}
+                {v.lrTpls.map(t => <TemplateCard key={t.id} t={t} />)}
+              </div>
+            </div>
+          </>)}
         </>)}
-      </form>
+      </div>
     </div>
   );
 }
