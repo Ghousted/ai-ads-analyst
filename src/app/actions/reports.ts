@@ -15,15 +15,16 @@ const label = (d: string) => { const x = new Date(d + 'T00:00:00Z'); return MON[
 // Claude writes a report for one client from their latest numbers. Saved as a draft for the agency to review.
 // With a template, Claude writes the words and the template places them with charts and tables. Blank creates an empty
 // report (no AI) that the agency builds from the same blocks.
-export async function generateReportAction(input: { clientId: string; days: number; template: string }) {
+export async function generateReportAction(input: { clientId: string; days: number; template: string; title?: string }) {
   const { user, agency } = await requireAgency();
-  const p = z.object({ clientId: Id, days: z.union([z.literal(7), z.literal(14), z.literal(30)]), template: z.enum(['blank', ...TEMPLATES.map(t => t.id)] as [string, ...string[]]) }).safeParse(input);
+  const p = z.object({ clientId: Id, days: z.union([z.literal(7), z.literal(14), z.literal(30)]), template: z.enum(['blank', ...TEMPLATES.map(t => t.id)] as [string, ...string[]]), title: z.string().trim().max(160).optional() }).safeParse(input);
   if (!p.success) return { error: 'Pick a client, a period and a template.' };
   const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.id, p.data.clientId), eq(schema.clients.agencyId, agency.id)));
   if (!client) return { error: 'That client no longer exists.' };
   const facts = await buildFacts(client.id, p.data.days);
   if (!facts) return { error: client.name + ' has no Google Analytics numbers yet. Link their property in Integrations first.' };
-  const title = (p.data.days === 30 ? 'Monthly' : p.data.days === 14 ? 'Two-week' : 'Weekly') + ' report · ' + label(facts.start) + ' – ' + label(facts.end);
+  // The agency's name for the report, or one from the period.
+  const title = p.data.title || (p.data.days === 30 ? 'Monthly' : p.data.days === 14 ? 'Two-week' : 'Weekly') + ' report · ' + label(facts.start) + ' – ' + label(facts.end);
   const save = async (content: Content, model: string | null) => {
     const [r] = await db.insert(schema.reports).values({ agencyId: agency.id, clientId: client.id, title, periodStart: facts.start, periodEnd: facts.end, facts, content, model, createdBy: user.id }).returning({ id: schema.reports.id });
     revalidatePath('/app');
