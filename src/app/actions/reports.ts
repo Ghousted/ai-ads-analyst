@@ -86,25 +86,44 @@ export async function deleteReportAction(id: string) {
   return { ok: true };
 }
 
+// The report and client for sending, and the email built from them. Shared by the preview and the send.
+async function emailFor(agencyId: string, id: string) {
+  const [r] = await db.select({ report: schema.reports, client: schema.clients }).from(schema.reports)
+    .innerJoin(schema.clients, eq(schema.clients.id, schema.reports.clientId))
+    .where(and(eq(schema.reports.id, id), eq(schema.reports.agencyId, agencyId)));
+  return r || null;
+}
+function buildEmail(agency: { id: string; name: string; brandColor: string; brandLogo: string | null }, r: NonNullable<Awaited<ReturnType<typeof emailFor>>>, message: string, token: string) {
+  const base = (process.env.APP_URL || '').replace(/\/$/, '');
+  const content = normalizeContent(r.report.content, r.report.facts as never);
+  return reportEmail({
+    agency: agency.name, color: agency.brandColor, logoUrl: agency.brandLogo && base.startsWith('https://') ? base + '/api/brand/' + agency.id : null,
+    client: r.client.name, title: r.report.title, period: label(r.report.periodStart) + ' – ' + label(r.report.periodEnd),
+    message, doc: content.doc as Doc, facts: r.report.facts, link: base + '/r/' + token,
+  });
+}
+
+// What the client will receive, for the send dialog's preview. Nothing is sent.
+export async function previewReportEmailAction(input: { id: string; message: string }) {
+  const { agency } = await requireAgency();
+  const p = z.object({ id: Id, message: z.string().max(3000) }).safeParse(input);
+  if (!p.success) return { error: 'The preview couldn’t be built.' };
+  const r = await emailFor(agency.id, p.data.id);
+  if (!r) return { error: 'That report was deleted.' };
+  return { ok: true, html: buildEmail(agency, r, p.data.message.trim(), r.report.shareToken || 'your-private-link').html, configured: emailConfigured() };
+}
+
 // Sends the saved report to the client: an email with the headline, key numbers and a private link to the full report.
 export async function sendReportAction(input: { id: string; to: string[]; subject: string; message: string }) {
   const { user, agency } = await requireAgency();
   const p = z.object({ id: Id, to: z.array(z.string().trim().email()).min(1).max(5), subject: z.string().trim().min(1).max(200), message: z.string().trim().max(3000) }).safeParse(input);
   if (!p.success) return { error: 'Check the email addresses (up to 5) and the subject.' };
   if (!emailConfigured()) return { error: 'Email isn’t set up on this server yet. Add RESEND_API_KEY and EMAIL_FROM.' };
-  const [r] = await db.select({ report: schema.reports, client: schema.clients }).from(schema.reports)
-    .innerJoin(schema.clients, eq(schema.clients.id, schema.reports.clientId))
-    .where(and(eq(schema.reports.id, p.data.id), eq(schema.reports.agencyId, agency.id)));
+  const r = await emailFor(agency.id, p.data.id);
   if (!r) return { error: 'That report was deleted.' };
   if (!(await takeAiQuota(agency.id, 'email'))) return { error: 'You’ve reached today’s limit for sending reports. It resets within 24 hours.' };
   const token = r.report.shareToken || randomBytes(18).toString('base64url');
-  const base = (process.env.APP_URL || '').replace(/\/$/, '');
-  const content = normalizeContent(r.report.content, r.report.facts as never);
-  const { html, text } = reportEmail({
-    agency: agency.name, color: agency.brandColor, logoUrl: agency.brandLogo && base.startsWith('https://') ? base + '/api/brand/' + agency.id : null,
-    client: r.client.name, title: r.report.title, period: label(r.report.periodStart) + ' – ' + label(r.report.periodEnd),
-    message: p.data.message, doc: content.doc as Doc, facts: r.report.facts, link: base + '/r/' + token,
-  });
+  const { html, text } = buildEmail(agency, r, p.data.message, token);
   try {
     await sendEmail({ fromName: agency.name, replyTo: user.email, to: p.data.to, subject: p.data.subject, html, text, tag: 'report' });
   } catch (e) {

@@ -8,7 +8,7 @@ const select = { height: "44px", padding: "0 36px 0 14px", border: "0", borderRa
 // Text the agency edits in place: looks like the report, not like a form.
 const field = { width: "100%", padding: "4px 6px", margin: "0 -6px", border: "1px solid transparent", borderRadius: "0", background: "transparent", font: "inherit", letterSpacing: "inherit", color: "inherit", resize: "none", outline: "none", fieldSizing: "content" };
 
-const COLS = 'minmax(0,1.6fr) minmax(0,1.2fr) minmax(0,1fr) 90px 110px';
+const COLS = 'minmax(0,1.6fr) minmax(0,1.2fr) minmax(0,1fr) 90px 90px 120px';
 
 export function LiveReportsView({ v }) {
   if (v.lrList) return (
@@ -47,16 +47,17 @@ export function LiveReportsView({ v }) {
             <div style={{ padding: "32px 22px", color: "#5a6474" }}>{"No reports yet. Pick a template above and Analyst drafts one from the client’s real numbers for you to review."}</div>
           ) : (<>
             <div role="row" style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", padding: "10px 22px", background: "#f4f7fb", fontSize: "13px", fontWeight: "600", color: "#5a6474" }}>
-              <span role="columnheader">{"Report"}</span><span role="columnheader">{"Period"}</span><span role="columnheader">{"Client"}</span><span role="columnheader">{"Status"}</span><span role="columnheader" style={{ textAlign: "right" }}>{"Written"}</span>
+              <span role="columnheader">{"Report"}</span><span role="columnheader">{"Period"}</span><span role="columnheader">{"Client"}</span><span role="columnheader">{"Status"}</span><span role="columnheader" style={{ textAlign: "right" }}>{"Written"}</span><span role="columnheader"><span style={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0 0 0 0)" }}>{"Send"}</span></span>
             </div>
           {v.lrRows.map((r, i) => (
-            <button key={i} role="row" onClick={r.open} style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", alignItems: "center", minHeight: "60px", padding: "10px 22px", border: "0", borderTop: i ? "1px solid #eef1f6" : "0", borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }} className="dcbbe0dc7">
+            <div key={i} role="row" tabIndex={0} onClick={r.open} onKeyDown={e => { if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) { e.preventDefault(); r.open(); } }} style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", alignItems: "center", minHeight: "60px", padding: "10px 22px", border: "0", borderTop: i ? "1px solid #eef1f6" : "0", borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }} className="dcbbe0dc7">
               <span style={{ fontWeight: "600", minWidth: "0", overflowWrap: "anywhere" }}>{r.title}</span>
               <span style={{ fontSize: "15px", color: "#45505f", minWidth: "0", fontVariantNumeric: "tabular-nums" }}>{r.period}</span>
               <span style={{ fontSize: "15px", color: "#45505f", minWidth: "0", overflowWrap: "anywhere" }}>{r.client}</span>
               <span><span style={{ padding: "3px 10px", background: r.pBg, color: r.pC, fontSize: "13px", fontWeight: "600" }}>{r.status}</span></span>
               <span style={{ fontSize: "14px", color: "#5a6474", textAlign: "right" }}>{r.date}</span>
-            </button>
+              <span role="cell" style={{ textAlign: "right" }}><button type="button" onClick={r.send} aria-label={r.sendAria} style={{ height: "40px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", whiteSpace: "nowrap" }} className="dce60d758">{r.sendLabel}</button></span>
+            </div>
           ))}
           </>)}
         </div>
@@ -100,37 +101,6 @@ export function LiveReportsView({ v }) {
           </div>
         </>)}
         footer={<span style={{ fontSize: "13px", color: "#5a6474" }}>{v.lrSource}</span>} />
-      {v.lrSendOpen ? (
-        <div onClick={e => { if (e.target === e.currentTarget) v.lrSendClose(); }} onKeyDown={e => { if (e.key === "Escape") v.lrSendClose(); }} style={{ position: "fixed", inset: "0", zIndex: "70", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
-          <form role="dialog" aria-modal="true" aria-labelledby="lr-send-h" onSubmit={v.lrSendGo} noValidate style={{ width: "min(560px,100%)", maxHeight: "calc(100vh - 48px)", overflowY: "auto", display: "flex", flexDirection: "column", gap: "16px", padding: "24px 28px 28px", background: "#ffffff", boxShadow: "0 24px 64px -24px rgba(11,22,38,.45)" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <h2 id="lr-send-h" style={{ margin: "0", fontSize: "24px", fontWeight: "700", letterSpacing: "-0.6px" }}>{v.lrSendTitle}</h2>
-                <span style={{ color: "#5a6474", textWrap: "pretty" }}>{"They get your message, the headline and key numbers, and a private link to the full report. Replies come to you."}</span>
-              </div>
-              <button type="button" onClick={v.lrSendClose} aria-label="Close" style={{ flex: "none", width: "44px", height: "44px", margin: "-8px -10px 0 0", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcf0b705f"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#45505f" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
-            </div>
-            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span style={{ fontWeight: "600" }}>{"To"}</span>
-              <input type="text" inputMode="email" autoFocus value={v.lrSendTo} onChange={v.lrSetTo} placeholder="client@example.com" style={{ height: "44px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
-              <span style={{ fontSize: "13px", color: "#5a6474" }}>{"Up to 5 addresses, separated with commas."}</span>
-            </label>
-            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span style={{ fontWeight: "600" }}>{"Subject"}</span>
-              <input type="text" value={v.lrSendSubject} onChange={v.lrSetSubject} maxLength={200} style={{ height: "44px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
-            </label>
-            <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span style={{ fontWeight: "600" }}>{"Message"}</span>
-              <textarea value={v.lrSendMsg} onChange={v.lrSetMsg} rows={6} maxLength={3000} style={{ padding: "10px 14px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", letterSpacing: "inherit", lineHeight: "1.5", resize: "vertical", outline: "none" }} className="dc120a618" />
-            </label>
-            {v.lrSendErr ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.lrSendErr}</span> : null}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-              <button type="button" onClick={v.lrSendClose} style={{ height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{"Cancel"}</button>
-              <button type="submit" disabled={v.lrSending} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer", opacity: v.lrSending ? 0.6 : 1 }} className="dc9482609">{v.lrSending ? "Sending\u2026" : "Send report"}</button>
-            </div>
-          </form>
-        </div>
-      ) : null}
     </>
   );
 }
@@ -314,7 +284,63 @@ function TemplatePreview({ v }) {
   );
 }
 
+// Sending a report: the email, a live preview of what the client receives, what will happen, then a confirmation.
+function SendDialog({ v }) {
+  const field = { height: "44px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", letterSpacing: "inherit", outline: "none", background: "#ffffff" };
+  return (
+    <div onClick={v.lrSendBackdrop} onKeyDown={e => { if (e.key === "Escape") v.lrSendClose(); }} style={{ position: "fixed", inset: "0", zIndex: "75", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
+      {v.lrSendDone ? (
+        <div role="dialog" aria-modal="true" aria-labelledby="lr-sent-h" style={{ width: "min(460px,100%)", display: "flex", flexDirection: "column", gap: "12px", padding: "28px", background: "#ffffff", boxShadow: "0 24px 64px -24px rgba(11,22,38,.45)" }}>
+          <span aria-hidden="true" style={{ width: "44px", height: "44px", borderRadius: "50%", background: "#e3f3e8", display: "grid", placeItems: "center" }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d6b3a" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
+          <h2 id="lr-sent-h" style={{ margin: "0", fontSize: "22px", fontWeight: "700", letterSpacing: "-0.5px" }}>{"Report sent"}</h2>
+          <p role="status" style={{ margin: "0", color: "#45505f", lineHeight: "1.5", textWrap: "pretty" }}>{"Sent to " + v.lrSendDoneText + ". It\u2019s marked Sent in your reports, and changes to Viewed when they open the full report."}</p>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}><button type="button" autoFocus onClick={v.lrSendClose} style={{ height: "44px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{"Done"}</button></div>
+        </div>
+      ) : (
+        <form role="dialog" aria-modal="true" aria-labelledby="lr-send-h" onSubmit={v.lrSendGo} noValidate style={{ width: "min(1040px,100%)", maxHeight: "calc(100vh - 48px)", display: "flex", flexDirection: "column", background: "#ffffff", boxShadow: "0 24px 64px -24px rgba(11,22,38,.45)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "18px 24px" }}>
+            <h2 id="lr-send-h" style={{ margin: "0", fontSize: "22px", fontWeight: "700", letterSpacing: "-0.5px" }}>{v.lrSendTitle}</h2>
+            <button type="button" onClick={v.lrSendClose} aria-label="Close" style={{ flex: "none", width: "44px", height: "44px", marginRight: "-10px", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcf0b705f"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#45505f" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+          <div style={{ flex: "1", minHeight: "0", overflowY: "auto", display: "flex", flexWrap: "wrap", gap: "24px", padding: "0 24px 20px" }}>
+            <div style={{ flex: "1 1 320px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <span style={{ fontWeight: "600" }}>{"To"}</span>
+                <input type="text" inputMode="email" autoFocus value={v.lrSendTo} onChange={v.lrSetTo} placeholder="client@example.com" style={field} className="dc120a618" />
+                <span style={{ fontSize: "13px", color: "#5a6474" }}>{"Up to 5 addresses, separated with commas."}</span>
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <span style={{ fontWeight: "600" }}>{"Subject"}</span>
+                <input type="text" value={v.lrSendSubject} onChange={v.lrSetSubject} maxLength={200} style={field} className="dc120a618" />
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <span style={{ fontWeight: "600" }}>{"Message"}</span>
+                <textarea value={v.lrSendMsg} onChange={v.lrSetMsg} rows={8} maxLength={3000} style={{ ...field, height: "auto", padding: "10px 14px", lineHeight: "1.5", resize: "vertical" }} className="dc120a618" />
+              </label>
+            </div>
+            <section aria-label="Email preview" style={{ flex: "1.4 1 420px", display: "flex", flexDirection: "column", gap: "6px", minWidth: "0" }}>
+              <span style={{ fontWeight: "600" }}>{"What they\u2019ll receive"}</span>
+              <div style={{ position: "relative", height: "min(560px,60vh)", background: "#f4f7fb" }}>
+                {v.lrSendPv ? <iframe title="Email preview" srcDoc={v.lrSendPv} sandbox="" style={{ width: "100%", height: "100%", border: "0", display: "block" }}></iframe>
+                  : <span role="status" style={{ position: "absolute", inset: "0", display: "grid", placeItems: "center", color: v.lrSendPvErr ? "#a3330c" : "#5a6474", fontSize: "14px", padding: "16px", textAlign: "center" }}>{v.lrSendPvErr || "Building the preview\u2026"}</span>}
+              </div>
+            </section>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px 16px", flexWrap: "wrap", padding: "16px 24px", background: "#f4f7fb" }}>
+            <span style={{ flex: "1 1 320px", fontSize: "14px", color: v.lrSendErr || v.lrSendNotReady ? "#a3330c" : "#45505f", fontWeight: v.lrSendErr ? "600" : "400", textWrap: "pretty" }} role={v.lrSendErr ? "alert" : undefined}>{v.lrSendErr || (v.lrSendNotReady ? "Email isn\u2019t set up on this server yet, so this can\u2019t send." : v.lrSendConfirm)}</span>
+            <span style={{ display: "flex", gap: "8px" }}>
+              <button type="button" onClick={v.lrSendClose} style={{ height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{"Cancel"}</button>
+              <button type="submit" disabled={v.lrSending || v.lrSendNotReady} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: v.lrSending || v.lrSendNotReady ? "default" : "pointer", opacity: v.lrSending || v.lrSendNotReady ? 0.6 : 1 }} className="dc9482609">{v.lrSending ? "Sending\u2026" : "Send report"}</button>
+            </span>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export function LiveReportsOverlay({ v }) {
+  if (v.lrSendOpen) return <SendDialog v={v} />;
   if (v.lrPrevOn && !v.lrModal) return <TemplatePreview v={v} />;
   if (!v.lrModal) return null;
   const ghost = { height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" };
