@@ -69,6 +69,36 @@ export function SettingsView({ v }) {
                     {sg?.title}
                   </h2>
                   {" "}
+                  {(sg?.isBrand) ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "20px", padding: "20px 0" }}>
+                      <span style={{ color: "#5a6474", textWrap: "pretty" }}>{"Your logo and colour go on every report you send: the logo at the top, the colour on the top bar and charts."}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: "600", fontSize: "17px", minWidth: "120px" }}>{"Logo"}</span>
+                        {v.brand.hasLogo ? <img src={v.brand.logo} alt={v.brand.agency + " logo"} style={{ height: "44px", maxWidth: "200px", objectFit: "contain", display: "block" }} /> : <span style={{ color: "#5a6474" }}>{"No logo yet"}</span>}
+                        {v.brand.manager ? (<>
+                          <label style={{ position: "relative", display: "inline-flex", alignItems: "center", height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", background: "#ffffff", fontWeight: "600", cursor: "pointer" }} className="dce60d758">
+                            {v.brand.hasLogo ? "Replace logo" : "Upload logo"}
+                            <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={v.brand.pick} style={{ position: "absolute", width: "1px", height: "1px", opacity: "0" }} />
+                          </label>
+                          {v.brand.hasLogo ? <button type="button" onClick={v.brand.remove} style={{ height: "44px", padding: "0 12px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#a3330c", cursor: "pointer" }}>{"Remove"}</button> : null}
+                        </>) : null}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: "600", fontSize: "17px", minWidth: "120px" }}>{"Brand colour"}</span>
+                        <span role="radiogroup" aria-label="Brand colour" style={{ display: "flex", gap: "6px" }}>
+                          {v.brand.colors.map(c => <button key={c.hex} type="button" role="radio" aria-checked={c.on} aria-label={c.hex} onClick={c.pick} disabled={!v.brand.manager} style={{ width: "44px", height: "44px", borderRadius: "50%", border: `3px solid ${c.on ? c.hex : "transparent"}`, background: "#ffffff", padding: "4px", cursor: v.brand.manager ? "pointer" : "default" }}><span style={{ display: "block", width: "100%", height: "100%", borderRadius: "50%", background: c.hex }}></span></button>)}
+                        </span>
+                      </div>
+                      <div aria-label="Preview" style={{ maxWidth: "460px", background: "#ffffff", boxShadow: "0 1px 2px rgba(11,22,38,.08),0 8px 24px -16px rgba(11,22,38,.3)" }}>
+                        <div style={{ height: "6px", background: v.brand.color }}></div>
+                        <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", fontWeight: "700" }}>{v.brand.hasLogo ? <img src={v.brand.logo} alt="" style={{ height: "24px", maxWidth: "120px", objectFit: "contain" }} /> : null}{v.brand.agency}</span>
+                          <span style={{ fontSize: "20px", fontWeight: "700", letterSpacing: "-0.5px" }}>{"Weekly report preview"}</span>
+                          <span style={{ display: "block", height: "40px", background: v.brand.color + "1f", borderBottom: `2px solid ${v.brand.color}` }}></span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                   {(sg?.hasChecks) ? (<>
                     {" "}
                     <fieldset style={{ margin: "0", padding: "0 0 4px", border: "0", display: "flex", flexDirection: "column", gap: "4px" }}>

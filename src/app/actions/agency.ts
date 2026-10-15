@@ -83,3 +83,15 @@ export async function setRoleAction(input: { userId?: string; email?: string; ro
   revalidatePath('/app');
   return { ok: true };
 }
+
+// Report branding: the agency's logo (a small image as a data URL) and brand colour, used on every report.
+const LOGO = /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/;
+export async function updateBrandAction(input: { logo?: string | null; color?: string }) {
+  const { agency, role } = await requireAgency();
+  if (!canManage(role)) return { error: 'Only the owner and admins can change report branding.' };
+  const p = z.object({ logo: z.string().max(1_500_000).regex(LOGO).nullable().optional(), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional() }).safeParse(input);
+  if (!p.success) return { error: 'Use a PNG, JPG, WebP or SVG logo under 1 MB.' };
+  await db.update(schema.agencies).set({ ...(p.data.logo !== undefined ? { brandLogo: p.data.logo } : {}), ...(p.data.color ? { brandColor: p.data.color } : {}) }).where(eq(schema.agencies.id, agency.id));
+  revalidatePath('/app');
+  return { ok: true };
+}

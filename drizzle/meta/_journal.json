@@ -8,6 +8,34 @@
       "when": 1792031954519,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792034992935,
+      "tag": "0001_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792037286408,
+      "tag": "0002_metric_rows",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792037848650,
+      "tag": "0003_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792043155566,
+      "tag": "0004_brand",
+      "breakpoints": true
     }
   ]
 }
