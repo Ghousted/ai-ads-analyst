@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { db, schema } from '@/db';
 import { aiModel, getClaude } from './ai';
+import { getPart, partKind, type Content } from './report-blocks';
 
 const addDays = (day: string, n: number) => { const d = new Date(day + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
@@ -25,7 +26,7 @@ export async function buildFacts(clientId: string, periodDays: number) {
   const top = (dim: string, n: number) => { const s = by(cur, dim, 'sessions'), k = by(cur, dim, 'keyEvents'), ps = by(prev, dim, 'sessions');
     return Object.entries(s).sort((a, b) => b[1] - a[1]).slice(0, n).map(([name, sessions]) => ({ name, sessions, leads: k[name] || 0, prevSessions: ps[name] || 0 })); };
   const daily = Array.from({ length: periodDays * 2 }, (_, i) => { const day = addDays(prevStart, i), rs = rows.filter(r => r.day === day && r.dim === 'total');
-    return { day, sessions: rs.find(r => r.metric === 'sessions')?.value || 0, leads: rs.find(r => r.metric === 'keyEvents')?.value || 0 }; });
+    return { day, sessions: rs.find(r => r.metric === 'sessions')?.value || 0, leads: rs.find(r => r.metric === 'keyEvents')?.value || 0, engaged: rs.find(r => r.metric === 'engagedSessions')?.value || 0, pageViews: rs.find(r => r.metric === 'screenPageViews')?.value || 0 }; });
   const camps = by(cur, 'campaign', 'adCost'), clicks = by(cur, 'campaign', 'adClicks');
   return {
     periodDays, start, end, prevStart, prevEnd, properties: accts.map(a => a.name),
@@ -85,13 +86,13 @@ function claudeOrThrow() {
   return claude;
 }
 
-export async function writeReport(facts: NonNullable<Facts>, ctx: Ctx) {
+export async function writeReport(facts: NonNullable<Facts>, ctx: Ctx, focus = '') {
   const res = await claudeOrThrow().messages.parse({
     model: aiModel(),
     max_tokens: 16000,
     system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
     output_config: { effort: 'medium', format: zodOutputFormat(ReportContent) },
-    messages: [{ role: 'user', content: `${briefFor(facts, ctx)}\n\nWrite the report.` }],
+    messages: [{ role: 'user', content: `${briefFor(facts, ctx)}\n\nWrite the report.${focus ? ' ' + focus : ''}` }],
   });
   if (res.stop_reason === 'refusal') throw new Error('The AI declined to write this report.');
   if (!res.parsed_output) throw new Error('The AI returned an incomplete report. Try again.');
@@ -103,21 +104,12 @@ export async function writeReport(facts: NonNullable<Facts>, ctx: Ctx) {
   };
 }
 
-// A part of the written report: "headline", "summary", "sections.0.heading", "sections.0.body" or "nextSteps.0".
-export const PART = /^(headline|summary|sections\.\d+\.(heading|body)|nextSteps\.\d+)$/;
-export function getPart(c: ReportContent, path: string): string | undefined {
-  const [a, i, b] = path.split('.');
-  if (a === 'headline' || a === 'summary') return c[a];
-  if (a === 'sections') return c.sections[Number(i)]?.[b as 'heading' | 'body'];
-  if (a === 'nextSteps') return c.nextSteps[Number(i)];
-}
-const PART_NAMES: Record<string, string> = { headline: 'the headline', summary: 'the summary', heading: 'a section heading', body: 'a section\'s text', nextSteps: 'one next step' };
-const LIMITS: Record<string, number> = { headline: 160, summary: 1200, heading: 120, body: 2000, nextSteps: 400 };
+const LIMITS: Record<string, number> = { headline: 160, heading: 160, paragraph: 2000, 'list item': 500 };
 
 // Ask Analyst on one part: Claude rewrites only that part, keeping it true to the numbers and consistent with the rest.
-export async function rewritePart(facts: NonNullable<Facts>, ctx: Ctx, content: ReportContent, path: string, instruction: string) {
+export async function rewritePart(facts: NonNullable<Facts>, ctx: Ctx, content: Content, path: string, instruction: string) {
   const current = getPart(content, path) ?? '';
-  const kind = path.startsWith('sections') ? path.split('.')[2] : path.split('.')[0];
+  const kind = partKind(content, path);
   const res = await claudeOrThrow().messages.parse({
     model: aiModel(),
     max_tokens: 8000,
@@ -125,10 +117,10 @@ export async function rewritePart(facts: NonNullable<Facts>, ctx: Ctx, content: 
     output_config: { effort: 'low', format: zodOutputFormat(z.object({ text: z.string().describe('The new text for that part only, with no heading or label.') })) },
     messages: [{ role: 'user', content: `${briefFor(facts, ctx)}
 
-The full report as it stands (JSON):
-${JSON.stringify(content)}
+The report's text as it stands, in order:
+${content.blocks.map(b => 'text' in b ? b.text : b.t === 'list' ? b.items.map(x => '- ' + x).join('\n') : '[' + b.t + ']').join('\n\n')}
 
-Rewrite only ${PART_NAMES[kind] || 'this part'}. Its current text:
+Rewrite only this ${kind}. Its current text:
 """${current}"""
 
 The agency's request: ${instruction}
