@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 import AppScreen from '@/screens/app/Screen';
 import { db, schema } from '@/db';
 import { requireAgency } from '@/lib/auth';
@@ -26,6 +26,8 @@ export default async function Page() {
       .map(c => ({ id: c.id, name: c.name, email: c.email, contactName: c.contactName, schedule: c.schedule, tone: c.tone })),
     conns: await listIntegrations(agency.id),
     metrics: await loadMetrics(agency.id),
+    reports: (await db.select().from(schema.reports).where(eq(schema.reports.agencyId, agency.id)).orderBy(desc(schema.reports.createdAt)).limit(100))
+      .map(r => ({ id: r.id, clientId: r.clientId, title: r.title, status: r.status, createdAt: r.createdAt.toISOString(), periodStart: r.periodStart, periodEnd: r.periodEnd, facts: r.facts, content: r.content })),
   };
   const team = members.map(m => ({ id: m.id, name: m.name || m.email.split('@')[0], email: m.email, role: cap(m.role), pending: false }))
     .concat(invites.map(i => ({ id: '', name: i.email, email: i.email, role: cap(i.role), pending: true })));

@@ -310,13 +310,6 @@ export default function View({ v }) {
               {" "}
             </>) : null}
             {" "}
-            {(v.liveReportsEmpty) ? (
-              <div style={{ minHeight: "52vh", padding: "48px 24px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", textAlign: "center" }}>
-                <span style={{ fontWeight: "700", fontSize: "18px" }}>{"Reports start with real numbers"}</span>
-                <span style={{ color: "#5a6474", maxWidth: "440px" }}>{"Once Google Analytics data is pulled for a client's linked property, "}<span style={{ color: "#1f6be2" }}>{"Analyst"}</span>{" writes their report here for you to review and send."}</span>
-                <button onClick={v.liveReportsGo} style={{ marginTop: "8px", height: "44px", padding: "0 18px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{"Open integrations"}</button>
-              </div>
-            ) : null}
             {FEATURES.map(f => <f.View key={f.id} v={v} />)}
             {" "}
           </div>

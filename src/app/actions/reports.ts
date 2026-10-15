@@ -1,0 +1,76 @@
+'use server';
+import { revalidatePath } from 'next/cache';
+import { and, eq } from 'drizzle-orm';
+import { z } from 'zod';
+import { db, schema } from '@/db';
+import { requireAgency } from '@/lib/auth';
+import { aiErrorMessage, aiModel, recordAiUsage, takeAiQuota } from '@/lib/ai';
+import { buildFacts, ReportContent, writeReport } from '@/lib/report-writer';
+
+const Id = z.string().uuid();
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const label = (d: string) => { const x = new Date(d + 'T00:00:00Z'); return MON[x.getUTCMonth()] + ' ' + x.getUTCDate(); };
+
+// Claude writes a report for one client from their latest numbers. Saved as a draft for the agency to review.
+export async function generateReportAction(input: { clientId: string; days: number }) {
+  const { user, agency } = await requireAgency();
+  const p = z.object({ clientId: Id, days: z.union([z.literal(7), z.literal(14), z.literal(30)]) }).safeParse(input);
+  if (!p.success) return { error: 'Pick a client and a period.' };
+  const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.id, p.data.clientId), eq(schema.clients.agencyId, agency.id)));
+  if (!client) return { error: 'That client no longer exists.' };
+  const facts = await buildFacts(client.id, p.data.days);
+  if (!facts) return { error: client.name + ' has no Google Analytics numbers yet. Link their property in Integrations first.' };
+  if (!(await takeAiQuota(agency.id, 'report'))) return { error: 'You’ve reached today’s limit for AI-written reports. It resets within 24 hours.' };
+  try {
+    const { content, usage } = await writeReport(facts, { client: client.name, agency: agency.name, tone: client.tone });
+    await recordAiUsage(agency.id, 'report', usage);
+    const title = (p.data.days === 30 ? 'Monthly' : p.data.days === 14 ? 'Two-week' : 'Weekly') + ' report · ' + label(facts.start) + ' – ' + label(facts.end);
+    const [r] = await db.insert(schema.reports).values({ agencyId: agency.id, clientId: client.id, title, periodStart: facts.start, periodEnd: facts.end, facts, content, model: aiModel(), createdBy: user.id }).returning({ id: schema.reports.id });
+    revalidatePath('/app');
+    return { ok: true, id: r.id };
+  } catch (e) {
+    console.error('[report]', e);
+    return { error: e instanceof Error && !('status' in e) ? e.message : aiErrorMessage(e) };
+  }
+}
+
+// Saves edits the agency made to the written report.
+export async function saveReportAction(input: { id: string; title: string; content: unknown }) {
+  const { agency } = await requireAgency();
+  const p = z.object({ id: Id, title: z.string().trim().min(1).max(160), content: ReportContent }).safeParse(input);
+  if (!p.success) return { error: 'The report couldn’t be saved. Check every section has a heading.' };
+  await db.update(schema.reports).set({ title: p.data.title, content: p.data.content, updatedAt: new Date() })
+    .where(and(eq(schema.reports.id, p.data.id), eq(schema.reports.agencyId, agency.id)));
+  revalidatePath('/app');
+  return { ok: true };
+}
+
+// Ask Analyst: Claude revises the written report following the agency's instruction. Numbers stay the saved snapshot.
+export async function reviseReportAction(input: { id: string; instruction: string }) {
+  const { agency } = await requireAgency();
+  const p = z.object({ id: Id, instruction: z.string().trim().min(2).max(1000) }).safeParse(input);
+  if (!p.success) return { error: 'Tell Analyst what to change.' };
+  const [r] = await db.select({ report: schema.reports, client: schema.clients }).from(schema.reports)
+    .innerJoin(schema.clients, eq(schema.clients.id, schema.reports.clientId))
+    .where(and(eq(schema.reports.id, p.data.id), eq(schema.reports.agencyId, agency.id)));
+  if (!r) return { error: 'That report was deleted.' };
+  if (!(await takeAiQuota(agency.id, 'revise'))) return { error: 'You’ve reached today’s limit for AI edits. It resets within 24 hours.' };
+  try {
+    const { content, usage } = await writeReport(r.report.facts as never, { client: r.client.name, agency: agency.name, tone: r.client.tone }, p.data.instruction, r.report.content as ReportContent);
+    await recordAiUsage(agency.id, 'revise', usage);
+    await db.update(schema.reports).set({ content, updatedAt: new Date() }).where(eq(schema.reports.id, r.report.id));
+    revalidatePath('/app');
+    return { ok: true, content };
+  } catch (e) {
+    console.error('[revise]', e);
+    return { error: e instanceof Error && !('status' in e) ? e.message : aiErrorMessage(e) };
+  }
+}
+
+export async function deleteReportAction(id: string) {
+  const { agency } = await requireAgency();
+  if (!Id.safeParse(id).success) return { error: 'Unknown report.' };
+  await db.delete(schema.reports).where(and(eq(schema.reports.id, id), eq(schema.reports.agencyId, agency.id)));
+  revalidatePath('/app');
+  return { ok: true };
+}
