@@ -115,18 +115,15 @@ export function DashboardView({ v }) {
               {" "}
             </div>
             {" "}
-            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px 14px", fontSize: "14px", color: "#5a6474" }}>
-              <button type="button" onClick={v.anToggleCur} aria-pressed={v.anShowCur} title={v.anShowCur ? "Hide this period" : "Show this period"} style={{ display: "flex", alignItems: "center", gap: "6px", minHeight: "40px", padding: "0 8px", margin: "0 -8px", border: "0", background: "transparent", font: "inherit", fontSize: "14px", letterSpacing: "inherit", color: "#5a6474", cursor: "pointer", opacity: v.anShowCur ? 1 : 0.45, textDecoration: v.anShowCur ? "none" : "line-through" }} className="dcceddbc1">
-                <span style={{ width: "12px", height: "3px", borderRadius: "0", background: v.anColor }}></span>
+            <div role="group" aria-label="Lines shown" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", fontSize: "14px", color: "#5a6474" }}>
+              <button type="button" onClick={v.anToggleCur} aria-pressed={v.anShowCur} title={v.anShowCur ? "Hide this period" : "Show this period"} style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "40px", padding: "0 14px", border: "0", background: v.anShowCur ? "var(--an-tint)" : "transparent", font: "inherit", fontSize: "14px", fontWeight: v.anShowCur ? 700 : 500, letterSpacing: "inherit", color: v.anShowCur ? "#0b1626" : "#97a2b2", cursor: "pointer", textDecoration: v.anShowCur ? "none" : "line-through", transition: "background-color 160ms ease,color 160ms ease" }}>
+                <span style={{ width: "16px", height: "4px", background: v.anShowCur ? v.anColor : "#d3dbe6" }}></span>
                 {"This period"}
               </button>
-              <button type="button" onClick={v.anTogglePrev} aria-pressed={v.anShowPrev} title={v.anShowPrev ? "Hide previous period" : "Show previous period"} style={{ display: "flex", alignItems: "center", gap: "6px", minHeight: "40px", padding: "0 8px", border: "0", background: "transparent", font: "inherit", fontSize: "14px", letterSpacing: "inherit", color: "#5a6474", cursor: "pointer", opacity: v.anShowPrev ? 1 : 0.45, textDecoration: v.anShowPrev ? "none" : "line-through" }} className="dcceddbc1">
-                <span style={{ width: "12px", height: "0", borderTop: "2px dashed #97a2b2" }}></span>
+              <button type="button" onClick={v.anTogglePrev} aria-pressed={v.anShowPrev} title={v.anShowPrev ? "Hide previous period" : "Show previous period"} style={{ display: "flex", alignItems: "center", gap: "8px", minHeight: "40px", padding: "0 14px", border: "0", background: v.anShowPrev ? "var(--an-tint)" : "transparent", font: "inherit", fontSize: "14px", fontWeight: v.anShowPrev ? 700 : 500, letterSpacing: "inherit", color: v.anShowPrev ? "#0b1626" : "#97a2b2", cursor: "pointer", textDecoration: v.anShowPrev ? "none" : "line-through", transition: "background-color 160ms ease,color 160ms ease" }}>
+                <span style={{ width: "16px", height: "0", borderTop: `3px dashed ${v.anShowPrev ? "#5a6474" : "#d3dbe6"}` }}></span>
                 {"Previous period"}
               </button>
-              <span style={{ marginLeft: "auto", textAlign: "right" }}>
-                {v.anFresh}
-              </span>
             </div>
             {" "}
             <div ref={v.chartRef} tabIndex={"0"} aria-label={"Chart, scroll sideways to see earlier days"} style={{ overflowX: "auto", overflowY: "hidden", margin: "0 -22px", padding: "0 22px 6px", scrollbarWidth: "thin", outline: "none" }}>
