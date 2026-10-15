@@ -187,6 +187,27 @@ export function TasksView({ v }) {
         {" "}
         {" "}
         {" "}
+        {(v.sgHas) ? (
+          <section aria-labelledby={"sg-h"} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <h2 id={"sg-h"} style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>{"Suggested by "}<span style={{ color: "#1f6be2" }}>{"Analyst"}</span><span style={{ marginLeft: "8px", fontSize: "14px", fontWeight: "500", color: "#5a6474" }}>{v.sgCount}</span></h2>
+            <div style={{ display: "flex", flexDirection: "column", background: "#ffffff" }}>
+              {((v.sgList) || []).map((x, k) => (
+                <div key={x.key} style={{ display: "flex", alignItems: "center", gap: "16px", padding: "10px 8px 10px 18px", borderTop: k ? "1px solid #eef1f6" : "0", flexWrap: "wrap" }}>
+                  <span style={{ flex: "1 1 320px", minWidth: "0", display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: "600" }}><span style={{ color: "#1f6be2" }}>{x.clientLabel}</span><span style={{ color: "#97a2b2", fontWeight: "500" }}>{"· " + x.srcLabel}</span></span>
+                    <span style={{ fontWeight: "600", textWrap: "pretty" }}>{x.title}</span>
+                    <span style={{ fontSize: "14px", color: "#5a6474", lineHeight: "1.4", textWrap: "pretty" }}>{x.why}</span>
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+                    <button type={"button"} onClick={x.add} aria-label={x.addLabel} style={{ height: "40px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", whiteSpace: "nowrap" }} className="dce60d758">{"Add to To do"}</button>
+                    <button type={"button"} onClick={x.dismiss} aria-label={x.dismissLabel} style={{ width: "44px", height: "44px", border: "0", borderRadius: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcf0b705f"><svg width={"16"} height={"16"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#5a6474"} strokeWidth={"2.4"} strokeLinecap={"round"}><path d={"M6 6l12 12M18 6L6 18"}></path></svg></button>
+                  </span>
+                </div>
+              ))}
+            </div>
+            {(v.sgMore) ? <button type={"button"} onClick={v.sgToggle} style={{ alignSelf: "flex-start", height: "40px", padding: "0", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }} className="dc20c6b10">{v.sgMoreLabel}</button> : null}
+          </section>
+        ) : null}
         {(v.tkIsBoard) ? (<>
           {" "}
           <div style={{ overflowX: "auto", margin: "0 -8px", padding: "0 8px 8px" }}>
