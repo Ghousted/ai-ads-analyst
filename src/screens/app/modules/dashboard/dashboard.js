@@ -1,5 +1,6 @@
 // Dashboard analytics.
 import { LOGOS, connList } from '../../data';
+import { makeMetrics, pct, fmtNum, fmtDay } from '../../metrics';
 
 const L = LOGOS;
 const tb = (cols, rows) => ({ type: 'table', cols, rows });
@@ -66,38 +67,49 @@ export function dashboardVals(app, ctx) {
       tapTake: () => app.setState({ takeOpen: true }), takeOpenB: !!S.takeOpen,
       showTake: () => app.setState({ takeOpen: true }), hideTake: () => app.setState({ takeOpen: false }), takeO: S.takeOpen ? 1 : 0, takeT: S.takeOpen ? 'translateY(0) scale(1)' : 'translateY(-4px) scale(0.97)', takeVis: S.takeOpen ? 'visible' : 'hidden', takeBtnBg: S.takeOpen ? '#eef3fd' : '#f4f7fb',
       vAn: v === 'an', ...(() => {
-        const av = S.anTool || 'an-all';
+        let av = S.anTool || 'an-all';
         const blank = { anVB: '0 0 600 180', anGrid: '', anChartW: '100%', chartRef: app.chartRef, anTint: '#eef3fd', anInk: '#0b1626', anTools: [], anMetrics: [], anSections: [], anDays: [], anRanges: [], anLine: '', anArea: '', anPrev: '', anColor: '#1f6be2', anFill: '#eef3fd', anTake: '', anChartLabel: '', anEmpty: false, anHas: false, anEmptyTitle: '', anEmptyBtn: '', anEmptyLogo: '', anEmptyTool: '', anEmptyLink: false, anEmptyLive: false, anEmptyLiveText: '', anFresh: '' };
         if (v !== 'an') return blank;
-        const A = AN[av];
-        const anTools = Object.keys(AN).map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === av, bg: key === av ? '#ffffff' : 'transparent', fw: key === av ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
-        // Live agencies have no stored numbers until GA4 data is pulled; show that instead of the sample charts.
+        const A0 = AN[av];
+        const anTools0 = Object.keys(AN).map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === av, bg: key === av ? '#ffffff' : 'transparent', fw: key === av ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
+        // Live agencies: empty states until numbers are stored, then views built from them.
+        let LV = null;
         if (live) {
           const props = live.conns.flatMap(c => c.accounts), linked = props.filter(x => x.clientId).length;
-          const st = !live.conns.length ? 'none' : !props.length ? 'empty' : !linked ? 'unlinked' : 'waiting';
+          const M = app._metricsFor === live.metrics ? app._metrics : (app._metricsFor = live.metrics, app._metrics = makeMetrics(live.metrics));
+          const selC = S.sel != null && C[S.sel] ? C[S.sel] : null, accts = M.accountsFor(selC && selC.extra ? selC.extra.id : null);
+          const st = !live.conns.length ? 'none' : !props.length ? 'empty' : !linked ? 'unlinked' : selC && !accts.length ? 'client' : !M.has ? 'waiting' : 'ready';
           const T = {
             none: ['Connect Google Analytics to see results', 'Sign in with Google. Every GA4 property that login can see shows up in Integrations.', 'Connect Google Analytics', () => { window.location.href = '/api/integrations/google/start'; }],
             empty: ['No GA4 properties found', 'The Google login you connected can\'t see any GA4 properties. Connect a login that has access, or ask the client to add it.', 'Open integrations', null],
             unlinked: [props.length + (props.length === 1 ? ' GA4 property found' : ' GA4 properties found'), 'Link each property to the client it belongs to. Results start once a property is linked.', 'Link properties', null],
+            client: ['No GA4 property is linked to ' + (selC ? selC.name : ''), 'Link their property in Integrations and their results show up here.', 'Link a property', null],
             waiting: ['Your numbers are on the way', linked + (linked === 1 ? ' property is' : ' properties are') + ' linked to clients. Results appear here after the first data pull from Google Analytics.', 'Open integrations', null],
           }[st];
-          return { ...blank, anTools, anEmpty: true, anEmptyLive: true, anEmptyLogo: L.ga4, anEmptyTool: 'Google Analytics 4', anEmptyTitle: T[0], anEmptyLiveText: T[1], anEmptyBtn: T[2],
-            anEmptyGo: T[3] || (() => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), ga4: true } }))) }; }
+          const liveTools = ['an-all', 'an-ga4'].map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === (av === 'an-ga4' ? 'an-ga4' : 'an-all'), bg: key === (av === 'an-ga4' ? 'an-ga4' : 'an-all') ? '#ffffff' : 'transparent', fw: key === av ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
+          if (T) return { ...blank, anTools: liveTools, anEmpty: true, anEmptyLive: true, anEmptyLogo: L.ga4, anEmptyTool: 'Google Analytics 4', anEmptyTitle: T[0], anEmptyLiveText: T[1], anEmptyBtn: T[2],
+            anEmptyGo: T[3] || (() => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), ga4: true } }))) };
+          LV = { M, accts, tools: liveTools, key: av === 'an-ga4' ? 'an-ga4' : 'an-all' };
+        }
+        const A = LV ? liveView(LV, S, { '7 days': 7, '14 days': 14, '30 days': 30 }[S.range || '14 days']) : A0;
+        if (LV) av = LV.key;
         const toolKey = ({ 'an-meta': 'meta', 'an-ga4': 'ga4', 'an-gads': 'gads', 'an-tt': 'tt' })[av];
         // The agency may already be connected and only the client's account is unlinked. Then the fix is linking, not connecting.
+        const anTools = LV ? LV.tools : anTools0;
         const agencyHas = !!toolKey && connList(S).some(c => c.tool === toolKey);
-        if (S.sel != null && toolKey && !C[S.sel].logos.includes(toolKey)) return { ...blank, anTools, anEmpty: true, anEmptyLink: agencyHas, anEmptyLogo: A.logo, anEmptyTool: A.name, anEmptyTitle: agencyHas ? 'No ' + A.name + ' account is linked to ' + C[S.sel].name : C[S.sel].name + ' is not connected to ' + A.name, anEmptyBtn: agencyHas ? 'Link an account' : 'Connect ' + A.name, anEmptyGo: () => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), [toolKey]: true } })) };
+        if (!LV && S.sel != null && toolKey && !C[S.sel].logos.includes(toolKey)) return { ...blank, anTools, anEmpty: true, anEmptyLink: agencyHas, anEmptyLogo: A.logo, anEmptyTool: A.name, anEmptyTitle: agencyHas ? 'No ' + A.name + ' account is linked to ' + C[S.sel].name : C[S.sel].name + ' is not connected to ' + A.name, anEmptyBtn: agencyHas ? 'Link an account' : 'Connect ' + A.name, anEmptyGo: () => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), [toolKey]: true } })) };
         const mi = Math.min(S.anMetric || 0, A.m.length - 1);
         const good = (label, note) => note.startsWith('+') ? '#1d6b3a' : note.startsWith('−') ? '#a3330c' : '#5a6474';
         const TOTAL = 90, rngDays = { '7 days': 7, '14 days': 14, '30 days': 30 }[S.range || '14 days'];
-        const pts = Array.from({ length: TOTAL }, (_, k) => A.s[k % A.s.length] * (0.72 + 0.28 * k / (TOTAL - 1)) * (1 + 0.12 * Math.sin(k * 0.9 + mi * 1.7)));
-        const n = pts.length, mx = Math.max(...pts) * 1.15, W = (n - 1) * 10;
+        const pts = A.series ? A.series[mi] : Array.from({ length: TOTAL }, (_, k) => A.s[k % A.s.length] * (0.72 + 0.28 * k / (TOTAL - 1)) * (1 + 0.12 * Math.sin(k * 0.9 + mi * 1.7)));
+        const n = pts.length, mx = Math.max(1, ...pts) * 1.15, W = (n - 1) * 10;
         const path = arr => arr.map((p, i) => (i ? 'L' : 'M') + (i * 10) + ' ' + Math.round(180 - (p / mx) * 170)).join(' ');
-        const end = new Date(2026, 9, 5), MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const end = A.through ? new Date(A.through + 'T12:00:00') : new Date(2026, 9, 5), MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const step = rngDays <= 7 ? 1 : rngDays <= 14 ? 2 : 5;
         const days = []; for (let k = n - 1; k >= 0; k -= step) { const dt = new Date(end); dt.setDate(end.getDate() - (n - 1 - k)); days.push({ t: MON[dt.getMonth()] + ' ' + dt.getDate(), x: (k / (n - 1) * 100).toFixed(3) + '%', tx: k === n - 1 ? '-100%' : k < step ? '0' : '-50%' }); }
         app._chartKey = av + '|' + mi + '|' + rngDays;
-        const line = path(pts), prev = path(pts.map((p, i) => p * 0.88 + (i % 3) * 2));
+        // Previous period: the same metric rngDays earlier, drawn where that data exists.
+        const line = path(pts), prev = A.series ? pts.slice(0, n - rngDays).map((p, i) => 'ML'[i ? 1 : 0] + ((i + rngDays) * 10) + ' ' + Math.round(180 - (p / mx) * 170)).join(' ') : path(pts.map((p, i) => p * 0.88 + (i % 3) * 2));
         const num = s => parseFloat(String(s).replace(/[^0-9.]/g, '')) || 0;
         const anSections = A.sec.map(([title, d, full]) => {
           const o = { title, span: full ? '1 / -1' : 'auto', isBars: d.type === 'bars', isFunnel: d.type === 'funnel', isTable: d.type === 'table', cols: [], rows: [] };
@@ -107,7 +119,7 @@ export function dashboardVals(app, ctx) {
           return o;
         });
         const rng = S.range || '14 days';
-        return { ...blank, anTools, anHas: true, anTint: PAL[av].tint, anInk: PAL[av].ink, anSections, anTake: A.take, anFresh: A.fresh, anColor: A.color, anFill: A.color + '1a',
+        return { ...blank, anTools, anHas: true, anTint: PAL[av].tint, anInk: PAL[av].ink, anSections, anTake: A.take, anFresh: A.fresh, anHasTake: !!A.take, anColor: A.color, anFill: A.color + '1a',
           anMetrics: A.m.map(([label, value, note], i) => ({ label, value, note: note + ' vs previous', c: good(label, note), on: i === mi, bg: i === mi ? 'var(--an-tint)' : 'transparent', pick: () => app.setState({ anMetric: i }) })),
           anChartLabel: A.m[mi][0] + ' per day, ' + A.name,
           anLine: line, anPrev: prev, anArea: line + ' L' + W + ' 180 L0 180 Z', anVB: '0 0 ' + W + ' 180', anGrid: 'M0 45H' + W + 'M0 90H' + W + 'M0 135H' + W, anChartW: (TOTAL / rngDays * 100).toFixed(1) + '%', chartRef: app.chartRef,
@@ -116,4 +128,41 @@ export function dashboardVals(app, ctx) {
       })(),
 
   };
+}
+
+// A dashboard view (same shape as the sample AN entries) built from stored GA4 numbers for the chosen clients and range.
+function liveView(LV, S, rng) {
+  const { M, accts } = LV, all = LV.key === 'an-all';
+  const sum = (m, back = 0) => M.sum(accts, m, rng, back);
+  const s = { sessions: sum('sessions'), engaged: sum('engagedSessions'), leads: sum('keyEvents'), views: sum('screenPageViews') };
+  const p = { sessions: sum('sessions', 1), engaged: sum('engagedSessions', 1), leads: sum('keyEvents', 1), views: sum('screenPageViews', 1) };
+  const rate = (a, b) => (b ? (a / b) * 100 : 0), pts = (a, b) => { const d = Math.round((a - b) * 10) / 10; return (d > 0 ? '+' : d < 0 ? '\u2212' : '') + Math.abs(d) + ' pts'; };
+  const ser = m => M.series(accts, m, 90), ratio = (a, b) => { const x = ser(a), y = ser(b); return x.map((v, i) => (y[i] ? (v / y[i]) * 100 : 0)); };
+  const spend = M.breakdown(accts, 'campaign', 'adCost', rng).reduce((t, r) => t + r[1], 0);
+  const tiles = [
+    ['Sessions', fmtNum(s.sessions), pct(s.sessions, p.sessions), ser('sessions')],
+    ['Key events', fmtNum(s.leads), pct(s.leads, p.leads), ser('keyEvents')],
+    ['Conversion rate', rate(s.leads, s.sessions).toFixed(1) + '%', pts(rate(s.leads, s.sessions), rate(p.leads, p.sessions)), ratio('keyEvents', 'sessions')],
+    ['Engagement rate', Math.round(rate(s.engaged, s.sessions)) + '%', pts(rate(s.engaged, s.sessions), rate(p.engaged, p.sessions)), ratio('engagedSessions', 'sessions')],
+    ['Page views', fmtNum(s.views), pct(s.views, p.views), ser('screenPageViews')],
+  ];
+  if (all) { tiles[0] = ['Leads', fmtNum(s.leads), pct(s.leads, p.leads), ser('keyEvents')]; tiles[1] = ['Sessions', fmtNum(s.sessions), pct(s.sessions, p.sessions), ser('sessions')]; }
+  const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
+  const bars = (dim, metric, label = x => x) => M.breakdown(accts, dim, metric, rng).slice(0, 7).map(([k, v]) => [label(k), fmtNum(v)]);
+  const chan = M.breakdown(accts, 'channel', 'sessions', rng), top = chan[0];
+  const pages = M.breakdown(accts, 'page', 'sessions', rng).slice(0, 8).map(([page, ses]) => {
+    const e = M.breakdown(accts, 'page', 'engagedSessions', rng).find(r => r[0] === page), k = M.breakdown(accts, 'page', 'keyEvents', rng).find(r => r[0] === page);
+    return [page, fmtNum(ses), Math.round(rate(e ? e[1] : 0, ses)) + '%', fmtNum(k ? k[1] : 0), rate(k ? k[1] : 0, ses).toFixed(1) + '%'];
+  });
+  const sec = [];
+  const leadsByChannel = bars('channel', 'keyEvents');
+  if (all && leadsByChannel.length) sec.push(['Leads by channel, from Google Analytics 4', { type: 'bars', rows: leadsByChannel }]);
+  sec.push(['Sessions by channel', { type: 'bars', rows: bars('channel', 'sessions') }]);
+  sec.push(['Sessions by device', { type: 'bars', rows: bars('device', 'sessions', cap) }]);
+  if (spend > 0) sec.push(['Google Ads campaigns, from Google Analytics 4', { type: 'table', cols: ['Campaign', 'Cost', 'Clicks'], rows: M.breakdown(accts, 'campaign', 'adCost', rng).slice(0, 8).map(([c, v]) => { const cl = M.breakdown(accts, 'campaign', 'adClicks', rng).find(r => r[0] === c); return [c, '$' + Math.round(v).toLocaleString(), fmtNum(cl ? cl[1] : 0)]; }) }, true]);
+  if (pages.length) sec.push(['Top landing pages', { type: 'table', cols: ['Page', 'Sessions', 'Engagement', 'Key events', 'Conv. rate'], rows: pages }, true]);
+  const take = s.sessions ? fmtNum(s.sessions) + ' sessions in the last ' + rng + ' days, ' + pct(s.sessions, p.sessions) + ' on the ' + rng + ' days before.' + (top ? ' ' + top[0] + ' brought the most, ' + Math.round((top[1] / s.sessions) * 100) + '%.' : '') + (s.leads ? ' ' + fmtNum(s.leads) + (s.leads === 1 ? ' key event' : ' key events') + ' recorded.' : ' No key events recorded, so check which GA4 events count as leads.') : '';
+  return { name: all ? 'All sources' : 'Google Analytics 4', logo: all ? '/assets/clario-mark-v2.png' : LOGOS.ga4, color: all ? '#1f6be2' : '#E37400', through: M.through,
+    fresh: (all ? 'Leads from GA4 key events · ' : '') + 'Data up to ' + fmtDay(M.through) + ' · GA4 can take 2 days to finish processing',
+    m: tiles.map(t => [t[0], t[1], t[2]]), series: tiles.map(t => t[3]), take, sec };
 }
