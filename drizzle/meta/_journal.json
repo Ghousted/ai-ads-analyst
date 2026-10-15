@@ -50,6 +50,13 @@
       "when": 1792054325097,
       "tag": "0006_report_sharing",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792076135092,
+      "tag": "0007_client_goals",
+      "breakpoints": true
     }
   ]
 }

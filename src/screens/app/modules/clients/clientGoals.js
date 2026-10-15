@@ -1,4 +1,7 @@
+import { saveGoalAction } from '@/app/actions/goals';
+
 // Budget and goals for one client, shown and edited in their profile. Goals are { id, c (client index), t (type), v }.
+// Live agencies' goals are saved in the database; sample agencies keep theirs in the page.
 // A "budget" goal is the client's monthly ad budget. Spend is Meta spend plus Google Ads cost (from GA4); until any is
 // stored, a live client shows no spend (sample agencies use sample spend).
 
@@ -9,6 +12,12 @@ const key = (y, m, d) => y + '-' + String(m + 1).padStart(2, '0') + '-' + String
 
 // Sample agency: the goals each sample client starts with.
 export const SAMPLE_GOALS = [{ id: 1, c: 0, t: 'cpl', v: 12 }, { id: 2, c: 0, t: 'budget', v: 1800 }, { id: 3, c: 1, t: 'cpl', v: 9 }, { id: 4, c: 1, t: 'budget', v: 2400 }, { id: 5, c: 2, t: 'cpl', v: 10 }, { id: 6, c: 3, t: 'leads', v: 100 }, { id: 7, c: 3, t: 'budget', v: 2000 }, { id: 8, c: 4, t: 'leads', v: 35 }];
+
+// The agency's goals: edited here, else saved (live) or the samples.
+export function goalsOf(S, live, C) {
+  const base = !live ? SAMPLE_GOALS : (live.goals || []).map(g => ({ id: g.clientId + ':' + g.type, c: C.findIndex(x => x.extra && x.extra.id === g.clientId), t: g.type, v: g.target }));
+  return (S.goals || base).filter(g => C[g.c]);
+}
 
 const RATES = [58.5, 98.4, 48, 64, 34.8];
 function spendFor(live, C, i, today) {
@@ -27,15 +36,21 @@ function spendFor(live, C, i, today) {
 }
 
 export function clientGoalVals(app, { S, live, C }, i, toast) {
-  const base = live ? [] : SAMPLE_GOALS, goals = (S.goals || base).filter(g => C[g.c]);
-  const setGoals = fn => app.setState(s => ({ goals: fn((s.goals || base).slice()) }));
-  const c = C[i];
-  // Current values. Live agencies only have leads so far; the rest wait for cost data.
-  const SAMPLE = { cpl: [12.9, 10.6, 8.73, 7.4, 9.1], conv: [2.6, 3.1, 3.4, 3.7, 4.0] };
+  const goals = goalsOf(S, live, C), c = C[i];
+  const setGoals = fn => app.setState(s => ({ goals: fn(goalsOf(s, live, C).slice()) }));
+  // Live: save the change. If it fails, say so and go back to what is saved.
+  const persist = (type, target, replaces) => { if (!live || !c.extra) return;
+    saveGoalAction({ clientId: c.extra.id, type, target, replaces }).then(x => { if (x.error) { toast(x.error); app.setState({ goals: undefined }); } else app.props.refresh?.(); },
+      () => { toast('Couldn\u2019t save the goal. Check your connection and try again.'); app.setState({ goals: undefined }); }); };
+  // Current values over the last 7 days. Live: leads as shown on the client, cost per lead from Meta spend and Meta
+  // leads, conversion rate from GA4 key events and sessions.
+  const SAMPLE = { cpl: [12.9, 10.6, 8.73, 7.4, 9.1], conv: [2.6, 3.1, 3.4, 3.7, 4.0] }, wk = c.week;
+  const cur = live ? { cpl: wk && wk.metaLeads > 0 ? wk.spend / wk.metaLeads : null, leads: wk ? c.leads : null, conv: wk && wk.source === 'ga4' && wk.sessions > 0 ? wk.leads / wk.sessions * 100 : null }
+    : { cpl: SAMPLE.cpl[i] ?? null, leads: c.leads, conv: SAMPLE.conv[i] ?? null };
   const GT = {
-    cpl: { label: 'Cost per lead', op: 'under', pre: '$', suf: '', ph: '10.00', cur: live ? null : SAMPLE.cpl[i] ?? null, fmt: money, help: 'Analyst alerts you when it goes above this.' },
-    leads: { label: 'Leads per week', op: 'over', pre: '', suf: 'leads', ph: '50', cur: c.leads, fmt: v => Math.round(v) + ' leads', help: 'Analyst alerts you when it drops below this.' },
-    conv: { label: 'Conversion rate', op: 'over', pre: '', suf: '%', ph: '3.0', cur: live ? null : SAMPLE.conv[i] ?? null, fmt: v => v.toFixed(1) + '%', help: 'Analyst alerts you when it drops below this.' },
+    cpl: { label: 'Cost per lead', op: 'under', pre: '$', suf: '', ph: '10.00', cur: cur.cpl, fmt: money, help: 'Analyst alerts you when it goes above this.' },
+    leads: { label: 'Leads per week', op: 'over', pre: '', suf: 'leads', ph: '50', cur: cur.leads, fmt: v => Math.round(v) + ' leads', help: 'Analyst alerts you when it drops below this.' },
+    conv: { label: 'Conversion rate', op: 'over', pre: '', suf: '%', ph: '3.0', cur: cur.conv, fmt: v => v.toFixed(1) + '%', help: 'Analyst alerts you when it drops below this.' },
   };
   const tone = { good: ['#2f9e5b', '#e3f3e8', '#1d6b3a'], bad: ['#e0481a', '#fde2d6', '#a3330c'], warn: ['#e8a33a', '#fff6c2', '#7a5a00'], none: ['#97a2b2', '#eef1f6', '#45505f'] };
 
@@ -47,7 +62,7 @@ export function clientGoalVals(app, { S, live, C }, i, toast) {
   const bst = b == null || sp.none ? 'none' : spent / b > pace + 0.1 ? 'bad' : spent / b < pace - 0.15 ? 'warn' : 'good';
   const BD = S.cgBudgetDraft != null && S.cgBudgetFor === i ? S.cgBudgetDraft : null;
   const saveBudget = e => { e.preventDefault(); const v = parseFloat(BD); if (BD.trim() && !(v > 0)) { app.setState({ cgBudgetErr: 'Enter an amount above 0, or leave it empty for no budget.' }); return; }
-    setGoals(gs => [...gs.filter(g => !(g.c === i && g.t === 'budget')), ...(v > 0 ? [{ id: Date.now(), c: i, t: 'budget', v }] : [])]);
+    setGoals(gs => [...gs.filter(g => !(g.c === i && g.t === 'budget')), ...(v > 0 ? [{ id: Date.now(), c: i, t: 'budget', v }] : [])]); persist('budget', v > 0 ? v : null);
     app.setState({ cgBudgetDraft: null, cgBudgetErr: null }); toast(v > 0 ? 'Budget saved' : 'Budget removed'); };
 
   // Goals other than the budget.
@@ -60,7 +75,7 @@ export function clientGoalVals(app, { S, live, C }, i, toast) {
     return { id: g.id, label: T.label, target: (T.op === 'under' ? 'Under ' : 'At least ') + T.fmt(g.v) + (g.t === 'leads' ? ' a week' : ''), now, status, w: Math.round(w * 100) + '%', mk: T.op === 'under' ? '66.7%' : '80%', col: tone[st][0], pBg: tone[st][1], pC: tone[st][2],
       edit: () => app.setState({ cgForm: { c: i, id: g.id, type: g.t, target: String(g.v) }, cgErr: {} }), editLabel: 'Edit ' + T.label.toLowerCase() + ' goal',
       remove: () => app.confirm({ title: 'Remove the ' + T.label.toLowerCase() + ' goal?', body: 'Analyst stops tracking ' + T.label.toLowerCase() + ' for ' + c.name + ' and won\u2019t alert you about it.', confirm: 'Remove goal', tone: 'danger',
-        onConfirm: () => { setGoals(gs => gs.filter(x => x.id !== g.id)); toast('Goal removed'); } }), removeLabel: 'Remove ' + T.label.toLowerCase() + ' goal' };
+        onConfirm: () => { setGoals(gs => gs.filter(x => x.id !== g.id)); persist(g.t, null); toast('Goal removed'); } }), removeLabel: 'Remove ' + T.label.toLowerCase() + ' goal' };
   });
   const fT = F ? GT[F.type] : null;
 
@@ -87,6 +102,6 @@ export function clientGoalVals(app, { S, live, C }, i, toast) {
     cgSave: e => { e.preventDefault(); const num = parseFloat(F.target);
       if (!F.target) { app.setState({ cgErr: { target: 'Enter a target.' } }); return; } if (!(num > 0)) { app.setState({ cgErr: { target: 'Enter a number above 0.' } }); return; }
       const item = { id: F.id || Date.now(), c: i, t: F.type, v: num };
-      setGoals(gs => F.id ? gs.map(g => g.id === F.id ? item : g) : [...gs, item]); app.setState({ cgForm: null, cgErr: {} }); toast(F.id ? 'Goal updated' : 'Goal added'); },
+      setGoals(gs => F.id ? gs.map(g => g.id === F.id ? item : g) : [...gs, item]); persist(F.type, num, editing ? editing.t : null); app.setState({ cgForm: null, cgErr: {} }); toast(F.id ? 'Goal updated' : 'Goal added'); },
   };
 }
