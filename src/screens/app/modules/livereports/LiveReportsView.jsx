@@ -7,22 +7,27 @@ const select = { height: "44px", padding: "0 36px 0 14px", border: "0", borderRa
 // Text the agency edits in place: looks like the report, not like a form.
 const field = { width: "100%", padding: "4px 6px", margin: "0 -6px", border: "1px solid transparent", borderRadius: "0", background: "transparent", font: "inherit", letterSpacing: "inherit", color: "inherit", resize: "none", outline: "none", fieldSizing: "content" };
 
+const COLS = 'minmax(0,2.2fr) minmax(0,1fr) 90px 110px';
+
 export function LiveReportsView({ v }) {
   if (v.lrList) return (
     <>
       <section aria-label="Reports" style={{ background: "#ffffff", display: "flex", flexDirection: "column" }}>
         {v.lrNoReports ? (
           <div style={{ padding: "32px 22px", color: "#5a6474" }}>{"No reports yet. Click Write report and Analyst drafts one from the client's real numbers for you to review."}</div>
-        ) : v.lrRows.map((r, i) => (
-          <button key={i} onClick={r.open} style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", minHeight: "64px", padding: "12px 22px", border: "0", borderTop: i ? "1px solid #eef1f6" : "0", borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }} className="dcbbe0dc7">
-            <span style={{ flex: "1 1 260px", display: "flex", flexDirection: "column", lineHeight: "1.3" }}>
-              <span style={{ fontWeight: "600" }}>{r.title}</span>
-              <span style={{ fontSize: "14px", color: "#5a6474" }}>{r.client}</span>
-            </span>
-            <span style={{ padding: "3px 10px", background: r.pBg, color: r.pC, fontSize: "13px", fontWeight: "600" }}>{r.status}</span>
-            <span style={{ fontSize: "14px", color: "#5a6474" }}>{r.date}</span>
-          </button>
-        ))}
+        ) : (<>
+          <div role="row" style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", padding: "10px 22px", background: "#f4f7fb", fontSize: "13px", fontWeight: "600", color: "#5a6474" }}>
+            <span role="columnheader">{"Report"}</span><span role="columnheader">{"Client"}</span><span role="columnheader">{"Status"}</span><span role="columnheader" style={{ textAlign: "right" }}>{"Written"}</span>
+          </div>
+          {v.lrRows.map((r, i) => (
+            <button key={i} role="row" onClick={r.open} style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", alignItems: "center", minHeight: "60px", padding: "10px 22px", border: "0", borderTop: i ? "1px solid #eef1f6" : "0", borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }} className="dcbbe0dc7">
+              <span style={{ fontWeight: "600", minWidth: "0", overflowWrap: "anywhere" }}>{r.title}</span>
+              <span style={{ fontSize: "15px", color: "#45505f", minWidth: "0", overflowWrap: "anywhere" }}>{r.client}</span>
+              <span><span style={{ padding: "3px 10px", background: r.pBg, color: r.pC, fontSize: "13px", fontWeight: "600" }}>{r.status}</span></span>
+              <span style={{ fontSize: "14px", color: "#5a6474", textAlign: "right" }}>{r.date}</span>
+            </button>
+          ))}
+        </>)}
       </section>
     </>
   );

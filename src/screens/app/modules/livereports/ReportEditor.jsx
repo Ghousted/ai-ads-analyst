@@ -106,10 +106,15 @@ function DataView({ node, selected, updateAttributes, extension, editor }) {
     </section>
   ); }
   return (
-    <NodeViewWrapper data-drag-handle style={{ position: "relative", outline: selected ? "2px solid #1f6be2" : "none", outlineOffset: "6px", cursor: "default" }}>
-      <div contentEditable={false} style={{ userSelect: "none" }}>{body}</div>
+    <NodeViewWrapper draggable={editor.isEditable ? "true" : "false"} data-drag-handle style={{ position: "relative", outline: selected ? "2px solid #1f6be2" : "none", outlineOffset: "6px", cursor: editor.isEditable ? "grab" : "default" }} title={editor.isEditable ? "Drag to move" : undefined}>
       {selected && editor.isEditable ? (
-        <span role="slider" aria-label="Resize" aria-valuetext={Math.round((a.w || 1) * 100) + '% wide'} onPointerDown={e => startResize(e, node, editor, updateAttributes)} className="clario-noprint" style={{ position: "absolute", right: "-14px", bottom: "-14px", width: "22px", height: "22px", background: "#1f6be2", cursor: "nwse-resize", touchAction: "none", border: "3px solid #ffffff", boxShadow: "0 2px 6px rgba(11,22,38,.3)" }}></span>
+        <span aria-hidden="true" className="clario-noprint" style={{ position: "absolute", left: "-14px", top: "-14px", width: "28px", height: "28px", background: "#1f6be2", color: "#ffffff", display: "grid", placeItems: "center", cursor: "grab", boxShadow: "0 2px 6px rgba(11,22,38,.3)", zIndex: "2" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="9" cy="12" r="1.6"></circle><circle cx="15" cy="12" r="1.6"></circle><circle cx="9" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle></svg>
+        </span>
+      ) : null}
+      <div contentEditable={false} style={{ userSelect: "none", pointerEvents: "none" }}>{body}</div>
+      {selected && editor.isEditable ? (
+        <span role="slider" aria-label="Resize" draggable="false" onDragStart={e => { e.preventDefault(); e.stopPropagation(); }} onMouseDown={e => e.stopPropagation()} aria-valuetext={Math.round((a.w || 1) * 100) + '% wide'} onPointerDown={e => startResize(e, node, editor, updateAttributes)} className="clario-noprint" style={{ position: "absolute", right: "-14px", bottom: "-14px", width: "22px", height: "22px", background: "#1f6be2", cursor: "nwse-resize", touchAction: "none", border: "3px solid #ffffff", boxShadow: "0 2px 6px rgba(11,22,38,.3)" }}></span>
       ) : null}
     </NodeViewWrapper>
   );
@@ -161,7 +166,7 @@ export default function ReportEditor({ docKey, initialDoc, facts, color, onChang
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, code: false, codeBlock: false, blockquote: false }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, code: false, codeBlock: false, blockquote: false, dropcursor: { color: '#1f6be2', width: 3 } }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({ placeholder: ({ node }) => node.type.name === 'heading' ? 'Heading' : 'Write here, or right-click to insert a chart' }),
       DataBlock.configure({ facts, color }),
