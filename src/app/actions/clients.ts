@@ -1,9 +1,11 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
 import { requireAgency } from '@/lib/auth';
+import { syncGa4Account } from '@/lib/ga4';
 
 // Adds a client and links the chosen unassigned accounts to it.
 export async function createClientAction(input: { name: string; email: string; accountIds: string[] }) {
@@ -16,6 +18,8 @@ export async function createClientAction(input: { name: string; email: string; a
       .where(and(eq(schema.accounts.agencyId, agency.id), inArray(schema.accounts.id, p.data.accountIds), isNull(schema.accounts.clientId)));
     return c.id;
   });
+  const linked = p.data.accountIds;
+  after(async () => { for (const a of linked) await syncGa4Account(a); });
   revalidatePath('/app');
   return { ok: true, id };
 }

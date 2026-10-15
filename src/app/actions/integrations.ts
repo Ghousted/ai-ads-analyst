@@ -1,5 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
@@ -7,6 +8,7 @@ import { requireAgency, canManage } from '@/lib/auth';
 import { decrypt } from '@/lib/crypto';
 import { revokeToken, GoogleError } from '@/lib/google';
 import { syncGoogleAccounts } from '@/lib/integrations';
+import { syncGa4Account } from '@/lib/ga4';
 
 const Id = z.string().uuid();
 
@@ -27,6 +29,8 @@ export async function assignAccountAction(input: { accountId: string; clientId: 
     if (!c) return { error: 'That client no longer exists.' };
   }
   await db.update(schema.accounts).set({ clientId: p.data.clientId }).where(and(eq(schema.accounts.id, p.data.accountId), eq(schema.accounts.agencyId, agency.id)));
+  // A newly linked property starts pulling its numbers in the background.
+  if (p.data.clientId) { const id = p.data.accountId; after(() => syncGa4Account(id)); }
   revalidatePath('/app');
   return { ok: true };
 }

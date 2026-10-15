@@ -1,6 +1,6 @@
 // Database schema. Neon Auth keeps its own tables in the neon_auth schema of the same database;
 // users.authUserId links a person here to their Neon Auth account.
-import { boolean, index, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, date, doublePrecision, index, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const ROLES = ['owner', 'admin', 'member'] as const;
 export const roleEnum = pgEnum('member_role', ROLES);
@@ -89,5 +89,20 @@ export const accounts = pgTable('accounts', {
   name: text('name').notNull(),
   detail: text('detail').notNull().default(''),
   clientId: uuid('client_id').references(() => clients.id, { onDelete: 'set null' }),
+  // Data pulls: the last day stored, and the last error (quota, lost access) if the pull failed.
+  dataThrough: date('data_through'),
+  syncError: text('sync_error'),
+  syncedAt: timestamp('synced_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [uniqueIndex('accounts_connection_external_idx').on(t.connectionId, t.externalId), index('accounts_client_idx').on(t.clientId)]);
+
+// Daily numbers per account. dim is the breakdown ('total', 'channel', 'device', 'page', 'campaign') and dimValue its
+// value ('' for totals). Metric names follow the platform, e.g. sessions, totalUsers, engagedSessions, keyEvents, adCost.
+export const metricRows = pgTable('metric_rows', {
+  accountId: uuid('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  day: date('day').notNull(),
+  dim: text('dim').notNull(),
+  dimValue: text('dim_value').notNull().default(''),
+  metric: text('metric').notNull(),
+  value: doublePrecision('value').notNull(),
+}, t => [primaryKey({ columns: [t.accountId, t.day, t.dim, t.dimValue, t.metric] }), index('metric_rows_account_day_idx').on(t.accountId, t.day)]);
