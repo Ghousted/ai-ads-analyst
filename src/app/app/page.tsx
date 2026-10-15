@@ -41,7 +41,7 @@ export default async function Page() {
         lastReport: r.lastReport, weeks: r.weeks.map(w => w.leads), dismissed: !!r.keys && f?.dismissedKeys === r.keys, analysis: f?.analysis && f.signature === r.signature ? f.analysis : null }];
     }));
     return {
-      clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email, contactName: c.contactName, schedule: c.schedule, tone: c.tone })),
+      clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email, contactName: c.contactName, schedule: c.schedule, tone: c.tone, industry: c.industry, createdAt: c.createdAt.toISOString() })),
       conns, metrics, risk,
       reports: reports.map(r => ({ id: r.id, clientId: r.clientId, title: r.title, status: r.status, createdAt: r.createdAt.toISOString(), sentAt: r.sentAt?.toISOString() ?? null, sentTo: r.sentTo, shareToken: r.shareToken, viewCount: r.viewCount, lastViewedAt: r.lastViewedAt?.toISOString() ?? null, periodStart: r.periodStart, periodEnd: r.periodEnd, facts: r.facts, content: normalizeContent(r.content, r.facts as never) })),
     };
