@@ -92,7 +92,7 @@ class Logic extends React.Component {
         const act = signup ? signUpAction({ name: this.state.name, email, password }) : signInAction({ email, password });
         act.then(fail, e => { if (!String(e && e.digest).startsWith('NEXT_REDIRECT')) fail({ error: 'Something went wrong. Try again.' }); });
       },
-      google: () => { this.setState({ loading: true, formErr: null }); googleAction(signup).then(r => { if (r.url) window.location.href = r.url; else fail(r); }, () => fail({ error: 'Something went wrong. Try again.' })); },
+      google: () => { this.setState({ loading: true, formErr: null }); googleAction().then(r => { if (r.url) window.location.href = r.url; else fail(r); }, () => fail({ error: 'Something went wrong. Try again.' })); },
       forgot: e => { e.preventDefault(); if (!emailOk) { this.setState({ touched: true, forgotNote: null }); return; } forgotAction(email).then(() => this.setState({ touched: false, forgotNote: 'If there is an account for ' + email.trim() + ', we emailed it a reset link.' })); },
       forgotNote: this.state.forgotNote,
       switchText: reset ? 'Remembered it?' : signup ? 'Already have an account?' : 'New to AI Ads Analyst?',

@@ -25,9 +25,9 @@ export async function signUpAction(input: { name: string; email: string; passwor
   redirect('/setup');
 }
 
-// Google sign-in runs through Neon Auth. New people land in setup; the app sends people without an agency there anyway.
-export async function googleAction(signup: boolean): Promise<{ url?: string; error?: string }> {
-  const { data, error } = await neonAuth().signIn.social({ provider: 'google', callbackURL: appUrl() + (signup ? '/setup' : '/app') });
+// Google sign-in runs through Neon Auth and returns to /auth/callback, which sends new people to setup.
+export async function googleAction(): Promise<{ url?: string; error?: string }> {
+  const { data, error } = await neonAuth().signIn.social({ provider: 'google', callbackURL: appUrl() + '/auth/callback' });
   if (error || !data?.url) return { error: 'Google sign-in isn’t available right now. Use your email instead.' };
   return { url: data.url };
 }

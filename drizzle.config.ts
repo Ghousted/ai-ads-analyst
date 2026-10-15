@@ -7,5 +7,6 @@ export default defineConfig({
   schema: './src/db/schema.ts',
   out: './drizzle',
   dialect: 'postgresql',
-  dbCredentials: { url: (process.env.DATABASE_URL ?? '').replace(/sslmode=(require|prefer|verify-ca)\b/, 'sslmode=verify-full') },
+  // Migrations prefer the direct (non-pooled) connection.
+  dbCredentials: { url: (process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL || '').replace(/sslmode=(require|prefer|verify-ca)\b/, 'sslmode=verify-full') },
 });
