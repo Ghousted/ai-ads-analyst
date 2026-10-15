@@ -4,14 +4,16 @@ import { Pool } from 'pg';
 import * as schema from './schema';
 
 type DB = NodePgDatabase<typeof schema>;
-const globalForDb = globalThis as unknown as { analystDb?: DB };
+const globalForDb = globalThis as unknown as { analystDb?: DB; analystSchema?: unknown; analystPool?: Pool };
 
-// Connect on first use, so `next build` needs no database. One pool per server instance.
+// Connect on first use, so `next build` needs no database. One pool per server instance; the client is rebuilt when the
+// schema module changes (dev hot reload), so new columns are never silently dropped from queries.
 function connect(): DB {
-  if (globalForDb.analystDb) return globalForDb.analystDb;
+  if (globalForDb.analystDb && globalForDb.analystSchema === schema) return globalForDb.analystDb;
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set');
-  const pool = new Pool({ connectionString: url.replace(/sslmode=(require|prefer|verify-ca)\b/, 'sslmode=verify-full'), max: 5 });
+  const pool = (globalForDb.analystPool ??= new Pool({ connectionString: url.replace(/sslmode=(require|prefer|verify-ca)\b/, 'sslmode=verify-full'), max: 5 }));
+  globalForDb.analystSchema = schema;
   return (globalForDb.analystDb = drizzle(pool, { schema }));
 }
 

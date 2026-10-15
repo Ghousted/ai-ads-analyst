@@ -1,5 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
@@ -7,6 +8,7 @@ import { requireAgency, canManage } from '@/lib/auth';
 import { decrypt } from '@/lib/crypto';
 import { revokeToken, GoogleError } from '@/lib/google';
 import { syncGoogleAccounts } from '@/lib/integrations';
+import { syncGa4Account } from '@/lib/ga4';
 
 const Id = z.string().uuid();
 
@@ -26,7 +28,10 @@ export async function assignAccountAction(input: { accountId: string; clientId: 
     const [c] = await db.select({ id: schema.clients.id }).from(schema.clients).where(and(eq(schema.clients.id, p.data.clientId), eq(schema.clients.agencyId, agency.id)));
     if (!c) return { error: 'That client no longer exists.' };
   }
-  await db.update(schema.accounts).set({ clientId: p.data.clientId }).where(and(eq(schema.accounts.id, p.data.accountId), eq(schema.accounts.agencyId, agency.id)));
+  const changed = await db.update(schema.accounts).set({ clientId: p.data.clientId }).where(and(eq(schema.accounts.id, p.data.accountId), eq(schema.accounts.agencyId, agency.id))).returning({ id: schema.accounts.id });
+  if (!changed.length) return { error: 'That account is no longer connected.' };
+  // A newly linked property starts pulling its numbers in the background (only accounts this agency owns).
+  if (p.data.clientId) { const id = changed[0].id, ag = agency.id; after(() => syncGa4Account(id, ag)); }
   revalidatePath('/app');
   return { ok: true };
 }
