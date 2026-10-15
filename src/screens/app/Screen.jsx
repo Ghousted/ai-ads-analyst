@@ -117,7 +117,7 @@ class Logic extends React.Component {
       const single = id === 'reporting' || id === 'monitoring' || id === 'clients' || id === 'kpis' || id === 'workflow' || id === 'risk';
       return { label, open, multi: !single, aria: single && hasActive ? 'page' : undefined, icon: icons[id], rows: open && !single ? '1fr' : '0fr', chev: open ? 'rotate(180deg)' : 'rotate(0deg)',
         bg: single && hasActive ? '#eef3fd' : 'transparent', iconBg: 'transparent', iconC: hasActive ? '#1f6be2' : '#5a6474',
-        hasBadge: id === 'workflow' && rkCount > 0, badge: String(rkCount),
+        hasBadge: false, badge: '',
         toggle: () => { if (S.navC) { this.setState({ navC: false }); try { localStorage.setItem('clario-nav-collapsed', '0'); } catch (er) {} } if (id === 'clients') { this.setState({ view: 'clients', clList: true, cForm: null, pfDraft: null }); return; } if (id === 'reporting' && S.view !== 'templates') { this.setState({ view: 'templates' }); return; } if (!hasActive) this.setState({ view: items[0][2] ? items[0][2][0][0] : items[0][0] }); },
         items: items.map(([v, l, kids]) => {
           if (kids) {
@@ -200,7 +200,8 @@ class Logic extends React.Component {
         const greet = { me: false, text: live ? (who ? 'Ask me anything about ' + who.name + ': their numbers, their flags, or what to do next.' : 'Hi ' + (S.me?.name || '').split(/\s+/)[0] + '. Ask me about your clients\u2019 numbers, who needs attention, or what to do this week.') : who ? 'What should I do for ' + who.name + '?' : 'Hi ' + (S.me?.name || '').split(/\s+/)[0] + '. Tell me what you need and I will take care of it.' };
         return {
           chatOpen: open, chatO: open ? 1 : 0, chatT: open ? 'scale(1)' : 'scale(0.96) translateY(8px)', chatPe: open ? 'auto' : 'none', chatVis: open ? 'visible' : 'hidden',
-          chatBtn: open ? 'Close' : 'Ask Analyst', toggleChat: () => this.setState(s => ({ chatOpen: !s.chatOpen })),
+          chatBtn: open ? 'Close' : 'Ask Analyst', chatBadge: !open && rkCount > 0, chatBadgeText: String(rkCount), chatBadgeLabel: rkCount + (rkCount === 1 ? ' client needs' : ' clients need') + ' attention',
+          chatFlagsTitle: rkCount + (rkCount === 1 ? ' client needs attention' : ' clients need attention'), toggleChat: () => this.setState(s => ({ chatOpen: !s.chatOpen })),
           chatScope: who ? 'Working on ' + who.name : 'Working across all clients', chatRef: this.chatRef,
           chatMsgs: [greet, ...msgs].map((m, k) => ({ text: m.text, align: m.me ? 'flex-end' : 'flex-start', bg: m.me ? '#1f6be2' : m.err ? '#fde2d6' : '#f4f7fb', c: m.me ? '#ffffff' : m.err ? '#a3330c' : '#0b1626',
             acts: (m.actions || []).map((x, j) => ({ title: x.title, why: x.why, btn: x.done ? (x.kind === 'task' ? 'Added' : 'Opened') : x.kind === 'task' ? 'Add task' : 'Write report', done: !!x.done, go: () => doAction(k - 1, j), label: (x.kind === 'task' ? 'Add task: ' : 'Write report: ') + x.title })) })),

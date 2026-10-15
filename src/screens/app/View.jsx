@@ -349,6 +349,25 @@ export default function View({ v }) {
             {" "}
             <div ref={v.chatRef} style={{ flex: "1", overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
               {" "}
+              {((v.rkList) || []).length ? (
+                <section aria-label={v.chatFlagsTitle} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <span style={{ fontSize: "14px", fontWeight: "700" }}>{v.chatFlagsTitle}</span>
+                  {v.rkList.map(rk => (
+                    <div key={rk.name} style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "12px 12px 6px", background: "#ffffff", boxShadow: "inset 0 0 0 1px #e6ebf2" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <span aria-hidden={"true"} style={{ width: "8px", height: "8px", borderRadius: "50%", background: rk.dot }}></span>
+                        <strong style={{ fontWeight: "700" }}>{rk.name}</strong>
+                        <span style={{ padding: "1px 8px", background: rk.pillBg, color: rk.pillC, fontSize: "12px", fontWeight: "600" }}>{rk.status}</span>
+                      </span>
+                      <span style={{ fontSize: "14px", color: "#45505f", lineHeight: "1.4", textWrap: "pretty" }}>{rk.reasons[0]}{rk.reasons.length > 1 ? " +" + (rk.reasons.length - 1) + " more" : ""}</span>
+                      <span style={{ display: "flex", gap: "4px" }}>
+                        <button type={"button"} onClick={rk.see} style={{ height: "40px", padding: "0 10px 0 0", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#1f6be2", cursor: "pointer" }} className="dc20c6b10">{"See what to do"}</button>
+                        <button type={"button"} onClick={rk.dismiss} aria-label={rk.dismissLabel} style={{ height: "40px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#5a6474", cursor: "pointer" }} className="dc20c6b10">{"Dismiss"}</button>
+                      </span>
+                    </div>
+                  ))}
+                </section>
+              ) : null}
               {((v.chatMsgs) || []).map((cm, $index) => (
                 <React.Fragment key={$index}>
                   {" "}
@@ -418,6 +437,7 @@ export default function View({ v }) {
               <img src={"/assets/clario-mark-v2.png"} alt={""} width={"24"} height={"24"} style={{ width: "24px", height: "24px" }} />
             </span>
             {v.chatBtn}
+            {(v.chatBadge) ? <span aria-label={v.chatBadgeLabel} style={{ minWidth: "22px", height: "22px", padding: "0 6px", borderRadius: "11px", background: "#e0481a", color: "#ffffff", fontSize: "13px", fontWeight: "700", display: "grid", placeItems: "center", fontVariantNumeric: "tabular-nums" }}>{v.chatBadgeText}</span> : null}
           </button>
           {" "}
         </div>

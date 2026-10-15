@@ -19,6 +19,8 @@ export function tasksVals(app, ctx) {
             return { c, an, reasons, name: c.name, initials: c.i, status: PILL[c.s][2], pillBg: PILL[c.s][0], pillC: PILL[c.s][1], dot: PILL[c.s][3], why, action: title + '.', dismissLabel: 'Dismiss alert for ' + c.name,
               create: () => { addTask(c, title, 'Flagged by Analyst: ' + why); app.setState(s => ({ rkGone: { ...(s.rkGone || {}), [c.name]: true } })); },
               ask: () => app.setState(s => ({ chatOpen: true, msgs: [...(s.msgs || []), { me: true, text: 'Why was ' + c.name + ' flagged?' }, { me: false, text: c.name + ' was flagged because:\n' + reasons.map(x => '· ' + x).join('\n') + (an ? '\n\n' + an.summary : '') + '\n\nI suggest you ' + act[0].toLowerCase() + act.slice(1) + '. Want me to create the task?' }] })),
+              // From Ask Analyst: open the flag's details and start Claude's analysis if there isn't one yet.
+              see: () => { app.setState({ rkOpen: c.name }); if (!an && !(AI[c.name] || {}).busy) analyse(c); },
               dismiss: () => hide(c), rowBg: S.rkOpen === c.name ? '#eef3fd' : '#ffffff', open: e => { if (e.target.closest('button')) return; app.setState({ rkOpen: c.name }); if (!an && !(AI[c.name] || {}).busy) analyse(c); } }; });
         const cur = rows.find(r => r.name === S.rkOpen), ci = cur ? C.findIndex(c => c.name === cur.name) : -1, cc = ci >= 0 ? C[ci] : null, mxb = cc ? Math.max(...cc.bars) : 1;
         const WK = ['Sep 7', 'Sep 14', 'Sep 21', 'Sep 28', 'Oct 5', 'Oct 12'];
@@ -81,7 +83,7 @@ export function tasksVals(app, ctx) {
           tdCmVal: S.tkCmVal || '', tdSetCm: e => app.setState({ tkCmVal: e.target.value }),
           tdAddCm: e => { e.preventDefault(); const t2 = (S.tkCmVal || '').trim(); if (!t2) return; const next = [...cms, ['AR', 'Just now', t2]]; app.setState(s => { const tasks = (s.tasks || defTasks).map(x => ({ ...x })); tasks[ti].cm = next.length; return { tasks, tkCmVal: '', tkCms: { ...(s.tkCms || {}), [ti]: next } }; }); } };
         return { ...td, tasksEmpty: list.length === 0, tasks: list, tkIsBoard: board, tkIsList: (S.tkView || 'board') === 'list',
-          tkViews: [['board', 'Board'], ['list', 'List'], ['flagged', 'Flags' + (rkCount ? ' (' + rkCount + ')' : '')]].map(([k, label]) => { const on = (S.tkView || 'board') === k; return { label, on: on ? 'true' : 'false', bd: on ? '#0b1626' : 'transparent', c: on ? '#0b1626' : '#5a6474', fw: on ? 700 : 500, pick: () => app.setState({ tkView: k }) }; }),
+          tkViews: [['board', 'Board'], ['list', 'List']].map(([k, label]) => { const on = (S.tkView === 'list' ? 'list' : 'board') === k; return { label, on: on ? 'true' : 'false', bd: on ? '#0b1626' : 'transparent', c: on ? '#0b1626' : '#5a6474', fw: on ? 700 : 500, pick: () => app.setState({ tkView: k }) }; }),
           tkAddVal: S.tkAddVal || '', tkAddErr: !!S.tkAddErr, tkSetAdd: e => app.setState({ tkAddVal: e.target.value, tkAddErr: false }), tkCancelAdd: () => app.setState({ tkAdd: null, tkAddVal: '', tkAddErr: false }), tkAddKey: e => { if (e.key === 'Escape') app.setState({ tkAdd: null, tkAddVal: '', tkAddErr: false }); },
           tkBoard: TCOLS.map(([k, label]) => { const items = list.filter(t => t.status === k); const over = S.tkOver === k;
             return { label, count: String(items.length), cBg: k === 'done' ? '#d4f0dd' : '#e6ebf2', cC: k === 'done' ? '#1d6b3a' : '#45505f', bg: over ? '#eaf1fc' : 'transparent', ring: over ? 'inset 0 0 0 2px #1f6be2' : 'none',
