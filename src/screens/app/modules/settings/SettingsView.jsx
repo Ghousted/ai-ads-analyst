@@ -151,6 +151,12 @@ export function SettingsView({ v }) {
                           </button>
                         </>) : null}
                         {" "}
+                        {(r?.hasBtn2) ? (<>
+                          <button onClick={r?.btn2} style={{ flex: "none", height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
+                            {r?.btn2Label}
+                          </button>
+                        </>) : null}
+                        {" "}
                         {(r?.isPrimary) ? (<>
                           <button onClick={r?.btn} style={{ flex: "none", height: "44px", padding: "0 16px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">
                             {r?.btnLabel}
@@ -253,7 +259,7 @@ export function SettingsOverlay({ v }) {
           </label>
         ) : null}
         {v.dlgHasRoles ? (
-          <fieldset style={{ margin: "0", padding: "0", border: "0", display: "flex", flexDirection: "column", gap: "8px" }}><legend style={{ padding: "0 0 8px", fontWeight: "600" }}>Role</legend>
+          <fieldset style={{ margin: "0", padding: "0", border: "0", display: "flex", flexDirection: "column", gap: "8px" }}><legend style={{ padding: "0 0 8px", fontWeight: "600" }}>{v.dlgRoleLegend}</legend>
             {v.dlgRoles.map(r => (<button key={r.label} type="button" role="radio" aria-checked={r.on} onClick={r.pick} style={choice(r)}><span style={{ display: "flex", flexDirection: "column", lineHeight: "1.3" }}><span style={{ fontWeight: "600" }}>{r.label}</span><span style={{ fontSize: "14px", color: "#5a6474" }}>{r.desc}</span></span></button>))}
           </fieldset>
         ) : null}
@@ -263,7 +269,7 @@ export function SettingsOverlay({ v }) {
           </div>
         ) : null}
         {v.dlgSigning ? (
-          <div role="status" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px", background: "#f4f7fb" }}><span style={{ width: "20px", height: "20px", borderRadius: "50%", border: "3px solid #e6ebf2", borderTopColor: "#1f6be2", animation: "clario-spin 800ms linear infinite" }}></span>Waiting for you to sign in and allow read-only access…</div>
+          <div role="status" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px", background: "#f4f7fb" }}><span style={{ width: "20px", height: "20px", borderRadius: "50%", border: "3px solid #e6ebf2", borderTopColor: "#1f6be2", animation: "clario-spin 800ms linear infinite" }}></span>{v.dlgSignText}</div>
         ) : null}
         {v.dlgHasPlans ? (
           <div role="radiogroup" aria-label="Plan" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
