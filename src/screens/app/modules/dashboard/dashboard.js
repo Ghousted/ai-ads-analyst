@@ -1,38 +1,41 @@
 // Dashboard analytics.
-import { LOGOS } from '../../data';
+import { LOGOS, connList } from '../../data';
 
 const L = LOGOS;
 const tb = (cols, rows) => ({ type: 'table', cols, rows });
 const br = (rows) => ({ type: 'bars', rows });
 const fn = (rows) => ({ type: 'funnel', rows });
 const AN = {
-  'an-all': { name: 'All sources', logo: '/assets/clario-mark-v2.png', color: '#1f6be2', s: [60, 64, 58, 70, 72, 68, 75, 80, 78, 74, 82, 86, 84, 90],
+  // Leads come from one source of truth (the client's GA4 key events). Ad platforms each claim the leads they
+  // influenced, so their counts overlap and are shown as reported, never added up.
+  'an-all': { name: 'All sources', logo: '/assets/clario-mark-v2.png', color: '#1f6be2', s: [60, 64, 58, 70, 72, 68, 75, 80, 78, 74, 82, 86, 84, 90], fresh: 'Leads from GA4 key events · data up to Oct 5',
     m: [['Leads', '533', '+6%'], ['Spend', '$4,320', '+2%'], ['Cost per lead', '$8.10', '−4%'], ['Conversions', '612', '+9%']],
-    take: 'Leads are up 6% while spend rose only 2%. Meta retargeting and Google search brought in most of the growth.',
-    sec: [['Leads by platform', br([['Meta', '312'], ['Google Ads', '148'], ['TikTok Ads', '41'], ['Website (organic)', '32']])],
+    take: 'Your sites recorded 533 leads, up 6%, while spend rose only 2%. Most came from Meta and Google search visitors. The platforms claim 501 leads between them, but each counts leads it only helped with, so cost per lead uses your sites\' count.',
+    sec: [['Leads by source, from Google Analytics 4', br([['Meta', '236'], ['Google Ads', '132'], ['Organic search', '88'], ['Direct', '47'], ['TikTok Ads', '30']])],
       ['Spend by platform', br([['Meta', '$2,246'], ['Google Ads', '$1,410'], ['TikTok Ads', '$664']])],
-      ['Top campaigns across platforms', tb(['Campaign', 'Platform', 'Spend', 'Leads', 'Cost per lead'], [['Retargeting · site visitors', 'Meta', '$820', '134', '$6.12'], ['Brand search', 'Google Ads', '$410', '61', '$6.72'], ['Lookalike · past leads', 'Meta', '$690', '88', '$7.84'], ['Local services', 'Google Ads', '$560', '52', '$10.77'], ['Spark ads · creators', 'TikTok Ads', '$664', '41', '$16.20']]), true]] },
-  'an-meta': { name: 'Meta', logo: L.meta, color: '#0866FF', s: [40, 44, 42, 48, 46, 52, 55, 50, 58, 60, 57, 62, 64, 66],
+      ['Leads each platform reports', tb(['Platform', 'Spend', 'Leads they report', 'Cost per lead they report'], [['Meta', '$2,246', '312', '$7.20'], ['Google Ads', '$1,410', '148', '$9.53'], ['TikTok Ads', '$664', '41', '$16.20']]), true],
+      ['Top campaigns, as each platform reports them', tb(['Campaign', 'Platform', 'Spend', 'Leads reported', 'Cost per lead'], [['Retargeting · site visitors', 'Meta', '$820', '134', '$6.12'], ['Brand search', 'Google Ads', '$410', '61', '$6.72'], ['Lookalike · past leads', 'Meta', '$690', '88', '$7.84'], ['Local services', 'Google Ads', '$560', '52', '$10.77'], ['Spark ads · creators', 'TikTok Ads', '$664', '41', '$16.20']]), true]] },
+  'an-meta': { name: 'Meta', logo: L.meta, color: '#0866FF', fresh: 'Data up to Oct 5 · Meta may still revise the last 3 days', s: [40, 44, 42, 48, 46, 52, 55, 50, 58, 60, 57, 62, 64, 66],
     m: [['Spend', '$2,246', '+3%'], ['Reach', '84.2k', '+12%'], ['Clicks', '3,940', '+8%'], ['CTR', '1.9%', '+0.2 pts'], ['Leads', '312', '+5%'], ['Cost per lead', '$7.20', '−6%']],
     take: 'Retargeting returns leads at $6.12, about 35% cheaper than cold audiences. Instagram Reels now drive more leads than the Facebook feed.',
     sec: [['Campaigns', tb(['Campaign', 'Status', 'Spend', 'Reach', 'Leads', 'Cost per lead'], [['Retargeting · site visitors', 'Active', '$820', '18.4k', '134', '$6.12'], ['Lookalike · past leads', 'Active', '$690', '31.2k', '88', '$7.84'], ['Interest · local 25–45', 'Active', '$480', '26.9k', '62', '$7.74'], ['Promo · October offer', 'Paused', '$256', '7.7k', '28', '$9.14']]), true],
       ['Leads by placement', br([['Instagram Reels', '38%'], ['Facebook feed', '29%'], ['Instagram feed', '21%'], ['Stories', '12%']])],
       ['Leads by age', br([['18–24', '9%'], ['25–34', '34%'], ['35–44', '31%'], ['45–54', '17%'], ['55+', '9%']])],
       ['Top ads', tb(['Ad', 'CTR', 'Leads', 'Cost per lead'], [['Before and after video', '2.8%', '71', '$5.40'], ['Customer testimonial', '2.1%', '58', '$6.30'], ['Free consult offer', '1.6%', '44', '$7.90'], ['Team photo carousel', '0.9%', '19', '$11.20']]), true]] },
-  'an-ga4': { name: 'Google Analytics 4', logo: L.ga4, color: '#E37400', s: [70, 72, 68, 74, 80, 62, 58, 75, 78, 76, 82, 66, 60, 84],
+  'an-ga4': { name: 'Google Analytics 4', logo: L.ga4, color: '#E37400', fresh: 'Data up to Oct 5 · GA4 can take 2 days to finish processing', s: [70, 72, 68, 74, 80, 62, 58, 75, 78, 76, 82, 66, 60, 84],
     m: [['Sessions', '18.4k', '+4%'], ['Users', '12.1k', '+3%'], ['Engagement rate', '61%', '+2 pts'], ['Conversions', '640', '+9%'], ['Conversion rate', '3.5%', '+0.3 pts']],
     take: 'Most visitors who start the booking form leave at step 2, mostly on mobile. Shortening that step could add 20+ leads a week.',
     sec: [['Sessions by channel', br([['Paid social', '6,210'], ['Organic search', '4,880'], ['Direct', '3,120'], ['Paid search', '2,940'], ['Referral', '860'], ['Email', '390']])],
       ['Sessions by device', br([['Mobile', '71%'], ['Desktop', '25%'], ['Tablet', '4%']])],
-      ['Booking funnel', fn([['Viewed a page', 18400], ['Started the form', 2310], ['Reached step 2', 1420], ['Submitted', 640]]), true],
+      ['Booking funnel, from the site\'s GA4 events', fn([['Viewed a page', 18400], ['Started the form', 2310], ['Reached step 2', 1420], ['Submitted', 640]]), true],
       ['Top landing pages', tb(['Page', 'Sessions', 'Engagement', 'Conversions', 'Conv. rate'], [['/book-now', '4,210', '68%', '312', '7.4%'], ['/', '6,880', '57%', '148', '2.2%'], ['/services/physio', '2,140', '64%', '82', '3.8%'], ['/pricing', '1,960', '71%', '58', '3.0%'], ['/blog/back-pain-tips', '1,720', '49%', '12', '0.7%']]), true]] },
-  'an-gads': { name: 'Google Ads', logo: L.gads, color: '#1A73E8', s: [50, 55, 60, 58, 62, 40, 38, 57, 63, 65, 61, 44, 42, 68],
+  'an-gads': { name: 'Google Ads', logo: L.gads, color: '#1A73E8', fresh: 'Data up to Oct 5 · Google Ads runs a few hours behind', s: [50, 55, 60, 58, 62, 40, 38, 57, 63, 65, 61, 44, 42, 68],
     m: [['Spend', '$1,410', '+1%'], ['Impressions', '210k', '+2%'], ['Clicks', '5,120', '+6%'], ['CTR', '2.4%', '+0.1 pts'], ['Conversions', '148', '+11%'], ['Cost per conversion', '$9.53', '−9%']],
     take: 'Brand search converts at the lowest cost. Weekday mornings bring twice the conversions of weekends, so shifting budget there would help.',
     sec: [['Campaigns', tb(['Campaign', 'Type', 'Spend', 'Clicks', 'Conv.', 'Cost per conv.'], [['Brand search', 'Search', '$410', '1,880', '61', '$6.72'], ['Local services', 'Search', '$560', '1,940', '52', '$10.77'], ['Remarketing display', 'Display', '$260', '910', '24', '$10.83'], ['Performance Max', 'PMax', '$180', '390', '11', '$16.36']]), true],
       ['Top search terms', tb(['Search term', 'Clicks', 'Conv.'], [['physio near me', '412', '22'], ['northside physio', '388', '31'], ['sports massage', '204', '9'], ['back pain clinic', '176', '7']])],
       ['Conversions by device', br([['Mobile', '58%'], ['Desktop', '38%'], ['Tablet', '4%']])]] },
-  'an-tt': { name: 'TikTok Ads', logo: L.tt, color: '#FE2C55', s: [30, 34, 40, 38, 45, 52, 60, 58, 64, 70, 68, 74, 80, 86],
+  'an-tt': { name: 'TikTok Ads', logo: L.tt, color: '#FE2C55', fresh: 'Data up to Oct 5 · TikTok runs a few hours behind', s: [30, 34, 40, 38, 45, 52, 60, 58, 64, 70, 68, 74, 80, 86],
     m: [['Spend', '$664', '+14%'], ['Video views', '182k', '+18%'], ['Avg. watch time', '6.1s', '+0.4s'], ['Clicks', '2,410', '+3%'], ['Leads', '41', '−4%'], ['Cost per lead', '$16.20', '+18%']],
     take: 'Views are climbing but leads are not. Viewers drop off before the offer appears, so moving it into the first 3 seconds should help.',
     sec: [['Top videos', tb(['Video', 'Views', '2s view rate', 'Avg. watch', 'Clicks', 'Leads'], [['Drop day unboxing', '64.2k', '48%', '7.4s', '920', '17'], ['Creator try-on', '51.8k', '44%', '6.8s', '710', '12'], ['Street style montage', '39.5k', '37%', '5.1s', '480', '8'], ['Behind the scenes', '26.5k', '31%', '4.2s', '300', '4']]), true],
@@ -54,7 +57,7 @@ const PICON = {
   'Mobile': 'M7 2h10v20H7zM11 18h2', 'Desktop': 'M3 4h18v12H3zM8 20h8M12 16v4', 'Tablet': 'M5 2h14v20H5zM11 18h2',
   '18–24': 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', '25–34': 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', '35–44': 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', '45–54': 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', '55+': 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', '45+': 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0'
 };
-const PLAT = { 'Meta': '#0866FF', 'Google Ads': '#4285F4', 'TikTok Ads': '#000000', 'Website (organic)': '#97a2b2' };
+const PLAT = { 'Meta': '#0866FF', 'Google Ads': '#4285F4', 'TikTok Ads': '#000000', 'Organic search': '#97a2b2', 'Direct': '#d3dbe6' };
 
 export function dashboardVals(app, ctx) {
   // eslint-disable-next-line no-unused-vars
@@ -64,12 +67,14 @@ export function dashboardVals(app, ctx) {
       showTake: () => app.setState({ takeOpen: true }), hideTake: () => app.setState({ takeOpen: false }), takeO: S.takeOpen ? 1 : 0, takeT: S.takeOpen ? 'translateY(0) scale(1)' : 'translateY(-4px) scale(0.97)', takeVis: S.takeOpen ? 'visible' : 'hidden', takeBtnBg: S.takeOpen ? '#eef3fd' : '#f4f7fb',
       vAn: v === 'an', ...(() => {
         const av = S.anTool || 'an-all';
-        const blank = { anVB: '0 0 600 180', anGrid: '', anChartW: '100%', chartRef: app.chartRef, anTint: '#eef3fd', anInk: '#0b1626', anTools: [], anMetrics: [], anSections: [], anDays: [], anRanges: [], anLine: '', anArea: '', anPrev: '', anColor: '#1f6be2', anFill: '#eef3fd', anTake: '', anChartLabel: '', anEmpty: false, anHas: false, anEmptyTitle: '', anEmptyBtn: '', anEmptyLogo: '', anEmptyTool: '' };
+        const blank = { anVB: '0 0 600 180', anGrid: '', anChartW: '100%', chartRef: app.chartRef, anTint: '#eef3fd', anInk: '#0b1626', anTools: [], anMetrics: [], anSections: [], anDays: [], anRanges: [], anLine: '', anArea: '', anPrev: '', anColor: '#1f6be2', anFill: '#eef3fd', anTake: '', anChartLabel: '', anEmpty: false, anHas: false, anEmptyTitle: '', anEmptyBtn: '', anEmptyLogo: '', anEmptyTool: '', anEmptyLink: false, anFresh: '' };
         if (v !== 'an') return blank;
         const A = AN[av];
         const anTools = Object.keys(AN).map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === av, bg: key === av ? '#ffffff' : 'transparent', fw: key === av ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
         const toolKey = ({ 'an-meta': 'meta', 'an-ga4': 'ga4', 'an-gads': 'gads', 'an-tt': 'tt' })[av];
-        if (S.sel != null && toolKey && !C[S.sel].logos.includes(toolKey)) return { ...blank, anTools, anEmpty: true, anEmptyLogo: A.logo, anEmptyTool: A.name, anEmptyTitle: C[S.sel].name + ' is not connected to ' + A.name, anEmptyBtn: 'Connect ' + A.name, anEmptyGo: () => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), [toolKey]: true } })) };
+        // The agency may already be connected and only the client's account is unlinked. Then the fix is linking, not connecting.
+        const agencyHas = !!toolKey && connList(S).some(c => c.tool === toolKey);
+        if (S.sel != null && toolKey && !C[S.sel].logos.includes(toolKey)) return { ...blank, anTools, anEmpty: true, anEmptyLink: agencyHas, anEmptyLogo: A.logo, anEmptyTool: A.name, anEmptyTitle: agencyHas ? 'No ' + A.name + ' account is linked to ' + C[S.sel].name : C[S.sel].name + ' is not connected to ' + A.name, anEmptyBtn: agencyHas ? 'Link an account' : 'Connect ' + A.name, anEmptyGo: () => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), [toolKey]: true } })) };
         const mi = Math.min(S.anMetric || 0, A.m.length - 1);
         const good = (label, note) => note.startsWith('+') ? '#1d6b3a' : note.startsWith('−') ? '#a3330c' : '#5a6474';
         const TOTAL = 90, rngDays = { '7 days': 7, '14 days': 14, '30 days': 30 }[S.range || '14 days'];
@@ -90,7 +95,7 @@ export function dashboardVals(app, ctx) {
           return o;
         });
         const rng = S.range || '14 days';
-        return { ...blank, anTools, anHas: true, anTint: PAL[av].tint, anInk: PAL[av].ink, anSections, anTake: A.take, anColor: A.color, anFill: A.color + '1a',
+        return { ...blank, anTools, anHas: true, anTint: PAL[av].tint, anInk: PAL[av].ink, anSections, anTake: A.take, anFresh: A.fresh, anColor: A.color, anFill: A.color + '1a',
           anMetrics: A.m.map(([label, value, note], i) => ({ label, value, note: note + ' vs previous', c: good(label, note), on: i === mi, bg: i === mi ? 'var(--an-tint)' : 'transparent', pick: () => app.setState({ anMetric: i }) })),
           anChartLabel: A.m[mi][0] + ' per day, ' + A.name,
           anLine: line, anPrev: prev, anArea: line + ' L' + W + ' 180 L0 180 Z', anVB: '0 0 ' + W + ' 180', anGrid: 'M0 45H' + W + 'M0 90H' + W + 'M0 135H' + W, anChartW: (TOTAL / rngDays * 100).toFixed(1) + '%', chartRef: app.chartRef,
