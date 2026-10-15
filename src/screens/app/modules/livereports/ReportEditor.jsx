@@ -149,7 +149,7 @@ const DOC_CSS = `.clario-doc{outline:none;font-size:17px;line-height:1.65;color:
 .clario-doc .ProseMirror-selectednode{outline:none}
 @media print{.clario-doc .is-empty::before{content:none}}`;
 
-export default function ReportEditor({ docKey, initialDoc, facts, color, onChange, onRewrite, toast, header, footer }) {
+export default function ReportEditor({ docKey, initialDoc, facts, color, onChange, onRewrite, toast, header, footer, lead, actions }) {
   const wrap = useRef(null);
   const [menu, setMenu] = useState(null);
   const [tab, setTab] = useState('home');
@@ -236,12 +236,17 @@ export default function ReportEditor({ docKey, initialDoc, facts, color, onChang
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: DOC_CSS }} />
-      <div className="clario-noprint" style={{ position: "sticky", top: "0", zIndex: "20", margin: "-8px -8px 0", padding: "8px", background: "#f4f7fb" }}>
-        <div style={{ background: "#ffffff", boxShadow: "0 1px 2px rgba(11,22,38,.05),0 10px 24px -18px rgba(11,22,38,.25)" }}>
-          <div role="tablist" aria-label="Editor tabs" style={{ display: "flex", gap: "2px", padding: "4px 10px 0", borderBottom: "1px solid #eef1f6", overflowX: "auto" }}>
+      <div className="clario-noprint" style={{ position: "sticky", top: "0", zIndex: "20" }}>
+        <div style={{ background: "#ffffff", boxShadow: "0 1px 0 #e6ebf2,0 10px 24px -18px rgba(11,22,38,.25)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px 8px", flexWrap: "wrap", padding: "6px clamp(12px,2vw,24px) 0", borderBottom: "1px solid #eef1f6" }}>
+            {lead}
+            <div role="tablist" aria-label="Editor tabs" style={{ display: "flex", gap: "2px", overflowX: "auto" }}>
             {[['home', 'Home'], ['insert', 'Insert'], ['layout', 'Layout']].map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} style={{ height: "44px", padding: "0 14px", border: "0", borderBottom: `2px solid ${tab === k ? '#1f6be2' : 'transparent'}`, background: "transparent", font: "inherit", fontSize: "15px", fontWeight: "600", letterSpacing: "inherit", color: tab === k ? '#1f6be2' : '#45505f', cursor: "pointer", whiteSpace: "nowrap" }}>{label}</button>)}
+            </div>
+            <span style={{ flex: "1" }}></span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", padding: "4px 0" }}>{actions}</div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", minHeight: "68px", padding: "6px 10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", minHeight: "68px", padding: "6px clamp(12px,2vw,24px)" }}>
             {tab === 'home' ? [
               tb('Undo', <Icon d={ICON.undo} />, () => chain().undo().run(), false, !st.canUndo), tb('Redo', <Icon d={ICON.redo} />, () => chain().redo().run(), false, !st.canRedo), sep(1),
               <select key="style" aria-label="Text style" value={st.style} onChange={e => setStyle(e.target.value)} disabled={!!st.data} style={{ ...small, minWidth: "150px", opacity: st.data ? 0.5 : 1 }}><option value="h1">{"Headline"}</option><option value="h2">{"Heading"}</option><option value="h3">{"Subheading"}</option><option value="p">{"Paragraph"}</option></select>, sep(2),
@@ -266,7 +271,7 @@ export default function ReportEditor({ docKey, initialDoc, facts, color, onChang
           </div>
         </div>
       </div>
-      <div style={{ padding: "8px 0 64px" }}>
+      <div style={{ padding: "24px clamp(16px,3vw,40px) 64px" }}>
       <article className="clario-print" style={{ width: "100%", maxWidth: "816px", margin: "0 auto", background: "#ffffff", boxShadow: "0 1px 2px rgba(11,22,38,.06)" }}>
       <div style={{ height: "8px", background: color }}></div>
       <div style={{ padding: "40px clamp(24px,7vw,72px) 72px", display: "flex", flexDirection: "column", gap: "18px" }}>

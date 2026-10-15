@@ -35,20 +35,21 @@ export function LiveReportsView({ v }) {
   );
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-        <button onClick={v.lrBack} style={{ display: "flex", alignItems: "center", gap: "6px", height: "40px", padding: "0 12px 0 8px", marginLeft: "-8px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>{"Reports"}
-        </button>
-        <span style={{ padding: "3px 10px", background: "#eef1f6", color: "#45505f", fontSize: "13px", fontWeight: "600" }}>{v.lrStatus}</span>
-        <span style={{ fontSize: "14px", color: "#5a6474" }}>{v.lrDate}</span>
-        <span style={{ flex: "1" }}></span>
-        {v.lrToast ? <span role="status" style={{ fontSize: "14px", fontWeight: "600", color: "#1d6b3a" }}>{v.lrToastText}</span> : null}
-        <button onClick={v.lrDelete} style={{ ...btn, color: "#a3330c" }}>{v.lrDeleteLabel}</button>
-        <button onClick={v.lrPdf} style={btn}>{"Download PDF"}</button>
-        {v.lrDirty ? <button onClick={v.lrDiscard} style={btn}>{"Discard edits"}</button> : null}
-        <button onClick={v.lrSave} disabled={!v.lrDirty || v.lrSaving} style={{ ...primary, opacity: v.lrDirty ? 1 : 0.5, cursor: v.lrDirty ? "pointer" : "default" }} className="dc9482609">{v.lrSaving ? "Saving…" : v.lrDirty ? "Save changes" : "Saved"}</button>
-      </div>
       <ReportEditor key={v.lrEditor.docKey} {...v.lrEditor}
+        lead={(<>
+          <button onClick={v.lrBack} style={{ display: "flex", alignItems: "center", gap: "6px", height: "40px", padding: "0 10px 0 4px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "15px", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }} className="dcceddbc1">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>{"Reports"}
+          </button>
+          <span style={{ padding: "3px 10px", background: "#eef1f6", color: "#45505f", fontSize: "13px", fontWeight: "600", whiteSpace: "nowrap" }}>{v.lrStatus}</span>
+          <span aria-hidden="true" style={{ width: "1px", height: "24px", margin: "0 6px", background: "#e6ebf2" }}></span>
+        </>)}
+        actions={(<>
+          {v.lrToast ? <span role="status" style={{ fontSize: "14px", fontWeight: "600", color: "#1d6b3a", whiteSpace: "nowrap" }}>{v.lrToastText}</span> : null}
+          <button onClick={v.lrDelete} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", color: "#a3330c" }} className="dce60d758">{v.lrDeleteLabel}</button>
+          <button onClick={v.lrPdf} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px" }} className="dce60d758">{"Download PDF"}</button>
+          {v.lrDirty ? <button onClick={v.lrDiscard} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px" }} className="dce60d758">{"Discard edits"}</button> : null}
+          <button onClick={v.lrSave} disabled={!v.lrDirty || v.lrSaving} style={{ ...primary, height: "40px", padding: "0 16px", fontSize: "14px", opacity: v.lrDirty ? 1 : 0.5, cursor: v.lrDirty ? "pointer" : "default" }} className="dc9482609">{v.lrSaving ? "Saving\u2026" : v.lrDirty ? "Save changes" : "Saved"}</button>
+        </>)}
         header={(<>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", fontSize: "14px", color: "#5a6474" }}>
             <strong style={{ color: "#0b1626", fontSize: "16px" }}>{v.lrAgency}</strong><span>{v.lrPeriod}</span>

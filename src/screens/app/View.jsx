@@ -161,9 +161,9 @@ export default function View({ v }) {
           {" "}
         </aside>
         {" "}
-        <main style={{ flex: "1", minWidth: "0", padding: "32px clamp(20px,4vw,48px) 64px" }}>
+        <main style={{ flex: "1", minWidth: "0", padding: v.mainPad }}>
           {" "}
-          <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
+          <div style={{ maxWidth: v.mainMax, margin: "0 auto", display: "flex", flexDirection: "column", gap: v.mainGap }}>
             {" "}
             {(v.sampleMode) ? (
               <p role={"note"} style={{ margin: "0", padding: "12px 16px", background: "#fff6c2", color: "#5c4400", fontSize: "15px", textWrap: "pretty" }}>
