@@ -28,9 +28,10 @@ export async function assignAccountAction(input: { accountId: string; clientId: 
     const [c] = await db.select({ id: schema.clients.id }).from(schema.clients).where(and(eq(schema.clients.id, p.data.clientId), eq(schema.clients.agencyId, agency.id)));
     if (!c) return { error: 'That client no longer exists.' };
   }
-  await db.update(schema.accounts).set({ clientId: p.data.clientId }).where(and(eq(schema.accounts.id, p.data.accountId), eq(schema.accounts.agencyId, agency.id)));
-  // A newly linked property starts pulling its numbers in the background.
-  if (p.data.clientId) { const id = p.data.accountId; after(() => syncGa4Account(id)); }
+  const changed = await db.update(schema.accounts).set({ clientId: p.data.clientId }).where(and(eq(schema.accounts.id, p.data.accountId), eq(schema.accounts.agencyId, agency.id))).returning({ id: schema.accounts.id });
+  if (!changed.length) return { error: 'That account is no longer connected.' };
+  // A newly linked property starts pulling its numbers in the background (only accounts this agency owns).
+  if (p.data.clientId) { const id = changed[0].id, ag = agency.id; after(() => syncGa4Account(id, ag)); }
   revalidatePath('/app');
   return { ok: true };
 }

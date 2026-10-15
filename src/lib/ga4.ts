@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, eq, gte, isNotNull, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { accessTokenFor, GoogleError } from './google';
 
@@ -49,8 +49,9 @@ async function runReport(token: string, propertyId: string, r: Report, start: st
 
 // Pulls a GA4 property's numbers into metric_rows. First pull: the last 90 days. After that: the last 4 days, because
 // GA4 keeps processing recent days for up to 48 hours. Today is left out until it's over.
-export async function syncGa4Account(accountId: string) {
-  const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountId));
+// agencyId, when given, must own the account: callers acting for a signed-in agency always pass it.
+export async function syncGa4Account(accountId: string, agencyId?: string) {
+  const [acct] = await db.select().from(schema.accounts).where(and(eq(schema.accounts.id, accountId), agencyId ? eq(schema.accounts.agencyId, agencyId) : undefined));
   if (!acct || acct.tool !== 'ga4') return;
   const [conn] = await db.select().from(schema.connections).where(eq(schema.connections.id, acct.connectionId));
   if (!conn) return;
@@ -58,14 +59,17 @@ export async function syncGa4Account(accountId: string) {
   const start = acct.dataThrough ? (() => { const d = new Date(acct.dataThrough + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - 3); return iso(d); })() : daysAgo(90);
   try {
     const token = await accessTokenFor(conn);
-    const rows: Row[] = [];
+    const rows: Row[] = [], fetched: string[] = [];
     for (const r of REPORTS) {
-      try { rows.push(...(await runReport(token, acct.externalId, r, start, end))); }
+      try { rows.push(...(await runReport(token, acct.externalId, r, start, end))); fetched.push(r.dim); }
       catch (e) { if (!r.optional) throw e; }
     }
+    // Replace only the breakdowns that came back: an optional report that failed keeps its stored days.
+    // Rows are upserted, so a second pull of the same account running at the same time can't fail on duplicates.
     await db.transaction(async tx => {
-      await tx.delete(schema.metricRows).where(and(eq(schema.metricRows.accountId, acct.id), gte(schema.metricRows.day, start), lte(schema.metricRows.day, end)));
-      for (let i = 0; i < rows.length; i += 2000) await tx.insert(schema.metricRows).values(rows.slice(i, i + 2000).map(r => ({ accountId: acct.id, ...r })));
+      await tx.delete(schema.metricRows).where(and(eq(schema.metricRows.accountId, acct.id), gte(schema.metricRows.day, start), lte(schema.metricRows.day, end), inArray(schema.metricRows.dim, fetched)));
+      for (let i = 0; i < rows.length; i += 2000) await tx.insert(schema.metricRows).values(rows.slice(i, i + 2000).map(r => ({ accountId: acct.id, ...r })))
+        .onConflictDoUpdate({ target: [schema.metricRows.accountId, schema.metricRows.day, schema.metricRows.dim, schema.metricRows.dimValue, schema.metricRows.metric], set: { value: sql.raw('excluded.value') } });
       await tx.update(schema.accounts).set({ dataThrough: end, syncError: null, syncedAt: new Date() }).where(eq(schema.accounts.id, acct.id));
     });
     return { rows: rows.length, start, end };
@@ -81,11 +85,17 @@ export async function syncGa4Account(accountId: string) {
   }
 }
 
-// Every GA4 property that is linked to a client, for the daily sync.
-export async function syncAllGa4(agencyId?: string) {
+// Every GA4 property that is linked to a client, for the daily sync. Least recently synced first, a few at a time,
+// and no new batch once the time budget is nearly spent, so the properties left over go first on the next run.
+export async function syncAllGa4(agencyId?: string, budgetMs = 240_000) {
+  const started = Date.now();
   const linked = await db.select({ id: schema.accounts.id }).from(schema.accounts)
-    .where(and(eq(schema.accounts.tool, 'ga4'), isNotNull(schema.accounts.clientId), agencyId ? eq(schema.accounts.agencyId, agencyId) : undefined));
-  const results = [];
-  for (const a of linked) results.push(await syncGa4Account(a.id));
-  return results;
+    .where(and(eq(schema.accounts.tool, 'ga4'), isNotNull(schema.accounts.clientId), agencyId ? eq(schema.accounts.agencyId, agencyId) : undefined))
+    .orderBy(sql`${schema.accounts.syncedAt} asc nulls first`, asc(schema.accounts.createdAt));
+  const results: Awaited<ReturnType<typeof syncGa4Account>>[] = [];
+  for (let i = 0; i < linked.length; i += 4) {
+    if (Date.now() - started > budgetMs) break;
+    results.push(...(await Promise.all(linked.slice(i, i + 4).map(a => syncGa4Account(a.id)))));
+  }
+  return { results, skipped: linked.length - results.length };
 }
