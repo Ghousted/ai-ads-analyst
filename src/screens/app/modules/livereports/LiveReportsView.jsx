@@ -78,19 +78,9 @@ export function LiveReportsView({ v }) {
         {v.lrDirty ? <button onClick={v.lrDiscard} style={btn}>{"Discard edits"}</button> : null}
         <button onClick={v.lrSave} disabled={!v.lrDirty || v.lrSaving} style={{ ...primary, opacity: v.lrDirty ? 1 : 0.5, cursor: v.lrDirty ? "pointer" : "default" }} className="dc9482609">{v.lrSaving ? "Saving…" : v.lrDirty ? "Save changes" : "Saved"}</button>
       </div>
-      <div className="clario-noprint" style={{ position: "sticky", top: "0", zIndex: "15", background: "#ffffff", padding: "12px 22px", display: "flex", alignItems: "center", gap: "8px 18px", flexWrap: "wrap", boxShadow: "0 1px 0 #e6ebf2" }}>
-        <span style={{ fontWeight: "700" }}>{"Insert"}</span>
-        {v.lrInsert.map(g => (
-          <span key={g.label} style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-            {g.hasLogo ? <img src={g.logo} alt="" width="18" height="18" style={{ width: "18px", height: "18px" }} /> : null}
-            <span style={{ fontSize: "14px", color: "#5a6474", marginRight: "2px" }}>{g.label}</span>
-            {g.items.map(it => <button key={it.label} type="button" onClick={it.add} style={{ height: "40px", padding: "0 12px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">{it.label}</button>)}
-          </span>
-        ))}
-        <span style={{ fontSize: "13px", color: "#5a6474" }}>{v.lrInsertHint}</span>
-      </div>
+      <Ribbon r={v.lrRibbon} />
       <div style={{ padding: "8px 0 64px" }}>
-        <article className="clario-print" style={{ width: "100%", maxWidth: "816px", margin: "0 auto", background: "#ffffff", boxShadow: "0 1px 2px rgba(11,22,38,.06)" }}>
+        <article className="clario-print" onContextMenu={v.lrPageMenu} onKeyDown={v.lrKeys} style={{ width: "100%", maxWidth: "816px", margin: "0 auto", background: "#ffffff", boxShadow: "0 1px 2px rgba(11,22,38,.06)" }}>
           <div style={{ height: "8px", background: v.lrColor }}></div>
           <div onMouseDown={v.lrDeselect} style={{ padding: "48px clamp(24px,7vw,72px) 72px", display: "flex", flexDirection: "column", gap: "22px", fontSize: "17px", lineHeight: "1.65", color: "#0b1626" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", fontSize: "14px", color: "#5a6474" }}>
@@ -100,7 +90,7 @@ export function LiveReportsView({ v }) {
               <input aria-label="Report title" value={v.lrTitle} onChange={v.lrSetTitle} style={{ ...field, fontSize: "14px", fontWeight: "600", color: "#5a6474" }} />
               <span style={{ fontSize: "15px", color: "#5a6474" }}>{"Prepared for " + v.lrClientName}</span>
             </div>
-            {v.lrNoBlocks ? <p className="clario-noprint" style={{ margin: "0", padding: "28px", background: "#f4f7fb", color: "#5a6474" }}>{"This report is empty. Use Insert above to add text, charts and tables."}</p> : null}
+            {v.lrNoBlocks ? <p className="clario-noprint" style={{ margin: "0", padding: "28px", background: "#f4f7fb", color: "#5a6474" }}>{"This report is empty. Use the Insert tab, or right-click here, to add text, charts and tables."}</p> : null}
             <div onMouseDown={v.lrDeselect} style={{ display: "flex", flexWrap: "wrap", columnGap: GAP + "px", rowGap: "22px", alignItems: "flex-start" }}>
               {v.lrBlocks.map(b => <Block key={b.id} b={b} />)}
             </div>
@@ -108,11 +98,68 @@ export function LiveReportsView({ v }) {
           </div>
         </article>
       </div>
+      {v.lrCtx ? <ContextMenu m={v.lrCtx} close={v.lrCloseCtx} /> : null}
     </>
   );
 }
 
 const GAP = 16;
+
+function RibbonIcon({ d }) {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d}></path></svg>;
+}
+const sep = <span aria-hidden="true" style={{ width: "1px", height: "28px", margin: "0 6px", background: "#e6ebf2" }}></span>;
+
+function Ribbon({ r }) {
+  const tool = (t, k) => (
+    <button key={k} type="button" onClick={t.run} disabled={t.off} aria-label={t.aria} title={t.aria} style={{ minWidth: "40px", height: "40px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", display: "grid", placeItems: "center", color: t.danger ? "#a3330c" : "#0b1626", cursor: t.off ? "default" : "pointer", opacity: t.off ? 0.35 : 1 }} className="dcceddbc1"><RibbonIcon d={t.icon} /></button>
+  );
+  const pill = (label, on, run, k) => <button key={k} type="button" onClick={run} aria-pressed={on} style={{ height: "40px", padding: "0 12px", border: "0", borderRadius: "0", background: on ? "#eef3fd" : "transparent", font: "inherit", fontSize: "14px", fontWeight: on ? 700 : 500, letterSpacing: "inherit", color: on ? "#1f6be2" : "#0b1626", cursor: "pointer" }}>{label}</button>;
+  return (
+    <div className="clario-noprint" style={{ position: "sticky", top: "0", zIndex: "20", margin: "-8px -8px 0", padding: "8px", background: "#f4f7fb" }}>
+      <div style={{ background: "#ffffff", boxShadow: "0 1px 2px rgba(11,22,38,.05),0 10px 24px -18px rgba(11,22,38,.25)" }}>
+        <div role="tablist" aria-label="Editor tabs" style={{ display: "flex", gap: "2px", padding: "4px 10px 0", borderBottom: "1px solid #eef1f6", overflowX: "auto" }}>
+          {r.tabs.map(t => <button key={t.label} role="tab" aria-selected={t.on} onClick={t.pick} style={{ height: "44px", padding: "0 14px", border: "0", borderBottom: `2px solid ${t.line}`, background: "transparent", font: "inherit", fontSize: "15px", fontWeight: "600", letterSpacing: "inherit", color: t.c, cursor: "pointer", whiteSpace: "nowrap" }}>{t.label}</button>)}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", minHeight: "68px", padding: "6px 10px" }}>
+          {r.home ? r.homeTools.map((t, k) => t.sep ? <React.Fragment key={k}>{sep}</React.Fragment> : t.style ? (
+            <select key={k} aria-label="Block style" value={t.value} onChange={t.set} disabled={t.off} style={{ ...small, minWidth: "150px", opacity: t.off ? 0.5 : 1 }}>
+              {t.off ? <option value="">{"Select text"}</option> : null}
+              {r.styles.map(([val, label]) => <option key={val} value={val}>{label}</option>)}
+            </select>
+          ) : tool(t, k)) : null}
+          {r.insert ? r.groups.map((g, gi) => (
+            <React.Fragment key={g.label}>
+              {gi ? sep : null}
+              {g.items.map(w => <button key={w.label} type="button" onClick={w.add} title={(g.label === 'Text' ? '' : g.label + ': ') + w.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "3px", minWidth: "64px", height: "56px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "12px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dcceddbc1"><span style={{ color: "#1f6be2", display: "grid" }}><RibbonIcon d={w.icon} /></span>{w.label}</button>)}
+            </React.Fragment>
+          )) : null}
+          {r.layout ? (r.hasLayout ? (<>
+            <span style={{ fontSize: "14px", fontWeight: "600", marginRight: "4px" }}>{"Width"}</span>
+            {r.widths.map((w, k) => pill(w.label, w.on, w.run, k))}
+            {r.hasHeight ? (<>{sep}<span style={{ fontSize: "14px", fontWeight: "600", marginRight: "4px" }}>{"Height"}</span>{pill("Shorter", false, r.shorter, 'a')}<span style={{ fontSize: "14px", color: "#5a6474", padding: "0 4px", fontVariantNumeric: "tabular-nums" }}>{r.heightLabel}</span>{pill("Taller", false, r.taller, 'b')}</>) : null}
+            {r.opts.length ? sep : null}
+            {r.opts.map(o => <select key={o.label} aria-label={o.label} value={o.value} onChange={o.set} style={small}>{o.opts.map(([val, label]) => <option key={val} value={val}>{label}</option>)}</select>)}
+          </>) : <span style={{ fontSize: "14px", color: "#5a6474", padding: "0 6px" }}>{r.layoutHint}</span>) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Right-click menu, in the design's widget menu style.
+function ContextMenu({ m, close }) {
+  return (
+    <>
+      <div onMouseDown={close} onContextMenu={e => { e.preventDefault(); close(); }} className="clario-noprint" style={{ position: "fixed", inset: "0", zIndex: "69" }}></div>
+      <div role="menu" aria-label="Report options" className="clario-noprint" style={{ position: "fixed", left: m.x, top: m.y, zIndex: "70", minWidth: "240px", maxHeight: "calc(100vh - 24px)", overflowY: "auto", padding: "6px", background: "#ffffff", boxShadow: "0 0 0 1px #e6ebf2,0 18px 40px -16px rgba(11,22,38,.35)" }}>
+        {m.items.map((it, k) => it.sep ? <div key={k} style={{ height: "1px", margin: "4px 6px", background: "#eef1f6" }}></div>
+          : it.head ? <div key={k} style={{ padding: "6px 10px 2px", fontSize: "12px", fontWeight: "600", color: "#5a6474" }}>{it.label}</div>
+          : <button key={k} role="menuitem" onClick={it.run} disabled={it.off} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", minHeight: "38px", padding: "0 10px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "500", letterSpacing: "inherit", color: it.danger ? "#a3330c" : "#0b1626", cursor: it.off ? "default" : "pointer", opacity: it.off ? 0.4 : 1, textAlign: "left" }} className="dcf0b705f"><span>{it.label}</span><span style={{ fontSize: "12px", color: "#97a2b2" }}>{it.hint}</span></button>)}
+      </div>
+    </>
+  );
+}
 const small = { height: "40px", padding: "0 30px 0 10px", border: "0", borderRadius: "0", background: "#eef1f6 url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%235a6474%22 stroke-width=%222.6%22 stroke-linecap=%22round%22><path d=%22M6 9l6 6 6-6%22/></svg>') right 10px center no-repeat", appearance: "none", font: "inherit", fontSize: "14px", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" };
 const iconBtn = { width: "40px", height: "40px", padding: "0", border: "0", borderRadius: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer", color: "#45505f" };
 const caption = { fontSize: "15px", fontWeight: "700", lineHeight: "1.3" };
@@ -134,15 +181,7 @@ function startResize(e, b) {
 function Block({ b }) {
   const width = b.visual ? `calc(${b.w * 100}% - ${GAP * (1 - b.w)}px)` : "100%";
   return (
-    <div data-block onMouseDown={b.select} style={{ position: "relative", width, minWidth: "0", outline: b.sel ? "2px solid #1f6be2" : "none", outlineOffset: "6px" }}>
-      {b.sel ? (
-        <div className="clario-noprint" onMouseDown={e => e.stopPropagation()} style={{ position: "absolute", zIndex: "12", bottom: "calc(100% + 10px)", right: "-6px", display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap", justifyContent: "flex-end", padding: "4px", background: "#ffffff", boxShadow: "0 8px 24px -10px rgba(11,22,38,.4)", maxWidth: "min(640px,90vw)" }}>
-          {b.opts.map(o => <select key={o.label} aria-label={o.label} value={o.value} onChange={o.set} style={small}>{o.opts.map(([val, label]) => <option key={val} value={val}>{label}</option>)}</select>)}
-          <button type="button" onClick={b.up} disabled={!b.canUp} aria-label="Move up" style={{ ...iconBtn, opacity: b.canUp ? 1 : 0.35 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M6 11l6-6 6 6"></path></svg></button>
-          <button type="button" onClick={b.down} disabled={!b.canDown} aria-label="Move down" style={{ ...iconBtn, opacity: b.canDown ? 1 : 0.35 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></button>
-          <button type="button" onClick={b.remove} aria-label="Remove block" style={{ ...iconBtn, color: "#a3330c" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path></svg></button>
-        </div>
-      ) : null}
+    <div data-block onMouseDown={b.select} onContextMenu={b.menu} style={{ position: "relative", width, minWidth: "0", outline: b.sel ? "2px solid #1f6be2" : "none", outlineOffset: "6px" }}>
       {b.isTitle ? <Part p={b.p}><textarea aria-label="Headline" rows={1} value={b.text} onChange={b.set} placeholder="Headline" style={{ ...field, fontSize: "34px", fontWeight: "700", letterSpacing: "-1px", lineHeight: "1.2" }} /></Part> : null}
       {b.isHeading ? <Part p={b.p}><input aria-label="Heading" value={b.text} onChange={b.set} placeholder="Heading" style={{ ...field, fontSize: "22px", fontWeight: "700", letterSpacing: "-0.5px" }} /></Part> : null}
       {b.isText ? <Part p={b.p}><textarea aria-label="Paragraph" value={b.text} onChange={b.set} placeholder="Write something" style={field} /></Part> : null}
