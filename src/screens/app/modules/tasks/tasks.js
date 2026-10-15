@@ -2,10 +2,16 @@
 import { clSplit } from '../../data';
 import { analyzeFlagAction, dismissFlagAction } from '@/app/actions/flags';
 import { clientGoalVals } from '../clients/clientGoals';
+import { personOf, thisFriday } from './taskStore';
+import { fmtDay } from '../../metrics';
 
 export function tasksVals(app, ctx) {
   // eslint-disable-next-line no-unused-vars
-  const { live, S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll } = ctx;
+  const { live, S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, meKey, tk, tkSrc, moveTask, tasksAll } = ctx;
+  const who = w => personOf(PEOPLE, w);
+  // Due soon or overdue: live tasks by date (tomorrow or earlier), the samples as written.
+  const soonDay = (() => { const d = new Date(Date.now() + 86400000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+  const isSoon = t => t.status !== 'done' && (live ? !!t.dueDay && t.dueDay <= soonDay : ['Oct 11', 'Oct 12'].includes(t.due));
   return {
       ...(() => { const gone = S.rkGone || {}; const list = C.map((c, i) => ({ c, i })).filter(({ c }) => c.s !== 'h' && !c.dismissed && !gone[c.name]);
         const PILL = { r: ['#fde2d6', '#a3330c', 'At risk', '#e0481a'], n: ['#fff6c2', '#7a5a00', 'Needs attention', '#e8a33a'] };
@@ -16,7 +22,7 @@ export function tasksVals(app, ctx) {
         const AI = S.flagAi || {}, setAi = (n, o) => app.setState(s => ({ flagAi: { ...(s.flagAi || {}), [n]: { ...((s.flagAi || {})[n] || {}), ...o } } }));
         const analyse = (c, fresh) => { if (!live || !c.extra) return; setAi(c.name, { busy: true, err: '' });
           analyzeFlagAction({ clientId: c.extra.id, fresh }).then(r => setAi(c.name, r.error ? { busy: false, err: r.error } : { busy: false, analysis: r.analysis }), () => setAi(c.name, { busy: false, err: 'Couldn’t reach the server. Try again.' })); };
-        const addTask = (c, title, desc) => app.setState(s => ({ tasks: [{ title, desc, client: c.name, status: 'todo', sub: [0, 1], due: 'This week', who: ['AR'], cm: 0 }, ...(s.tasks || defTasks)] }));
+        const addTask = (c, title, desc) => { const fri = thisFriday(); tk.create({ title, desc, client: c.name || '', due: live ? fmtDay(fri) : 'This week', dueDay: fri, who: [meKey] }); };
           const rows = list.map(({ c, i }) => { const an = (AI[c.name] || {}).analysis || c.analysis || null, act = (an ? an.steps[0].action : c.action || 'check in with the client this week.').replace(/\.$/, ''), title = act[0].toUpperCase() + act.slice(1), bad = c.signals.filter(s => !/normal|steady|on budget|\bup\b|growing|^views every|^reports viewed/i.test(s[0])), SAY = { 'Leads down 3 weeks': 'Leads have dropped three weeks in a row (−9%, −14%, then −6%).', 'Portal not visited': 'They haven\'t opened their client portal since Sep 12.', 'Last report not viewed': 'They haven\'t viewed the last report, sent Sep 26.', 'Cost per lead rising': 'Each lead costs 18% more than two weeks ago.', 'Budget pacing ahead': '82% of the monthly budget is spent, with 11 days still to go.' }, reasons = c.reasons || bad.map(s => SAY[s[0]] || s[0] + ': ' + s[1] + '.'), why = reasons.join(' ');
             return { c, an, reasons, name: c.name, initials: c.i, status: PILL[c.s][2], pillBg: PILL[c.s][0], pillC: PILL[c.s][1], dot: PILL[c.s][3], why, action: title + '.', dismissLabel: 'Dismiss alert for ' + c.name,
               create: () => { addTask(c, title, 'Flagged by Analyst: ' + why); app.setState(s => ({ rkGone: { ...(s.rkGone || {}), [c.name]: true } })); },
@@ -81,55 +87,55 @@ export function tasksVals(app, ctx) {
           twDesc: W.desc, twSetDesc: e => set({ desc: e.target.value }),
           twClients: [''].concat(C.map(c => c.name)).map(n => ({ label: n || 'No client', on: W.client === n, bg: W.client === n ? '#eef3fd' : '#ffffff', bd: W.client === n ? '#1f6be2' : '#d3dbe6', pick: () => set({ client: n }) })),
           twDue: W.due, twSetDue: e => set({ due: e.target.value }),
-          twPeople: Object.entries(PEOPLE).map(([k, [n, av]]) => { const on = W.who.includes(k); return { i: k, label: n, av, on, bg: on ? '#eef3fd' : '#ffffff', bd: on ? '#1f6be2' : '#d3dbe6', pick: () => { set({ who: on ? W.who.filter(x => x !== k) : [...W.who, k] }); app.setState({ twErr: null }); } }; }), twWhoErr: !!E.who,
+          twPeople: Object.keys(PEOPLE).map(k => { const p = who(k), on = W.who.includes(k); return { i: p.i, label: p.name, av: p.bg, on, bg: on ? '#eef3fd' : '#ffffff', bd: on ? '#1f6be2' : '#d3dbe6', pick: () => { set({ who: on ? W.who.filter(x => x !== k) : [...W.who, k] }); app.setState({ twErr: null }); } }; }), twWhoErr: !!E.who,
           twItems: W.items.map((label, j) => ({ label, removeLabel: 'Remove step ' + label, remove: () => set({ items: W.items.filter((_, k) => k !== j) }) })),
           twItemVal: W.itemVal, twSetItem: e => set({ itemVal: e.target.value }), twAddItem: addItem, twItemKey: e => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } },
-          twSummary: [W.client || 'No client', dueTxt ? 'Due ' + dueTxt : 'No due date', W.who.map(k => PEOPLE[k][0]).join(', ')].join(' · '),
+          twSummary: [W.client || 'No client', dueTxt ? 'Due ' + dueTxt : 'No due date', W.who.map(k => who(k).name).join(', ')].join(' · '),
           twNext: e => { e.preventDefault();
             if (st === 1) { if (!W.title.trim()) { app.setState({ twErr: { title: true } }); return; } set({ step: 2 }); return; }
             if (st === 2) { if (!W.who.length) { app.setState({ twErr: { who: true } }); return; } set({ step: 3 }); return; }
             const items = [...W.items, ...((W.itemVal || '').trim() ? [W.itemVal.trim()] : [])];
-            app.setState(s => ({ tw: null, twErr: null, tkView: 'board', tasks: [{ title: W.title.trim(), desc: W.desc.trim(), client: W.client, status: 'todo', sub: [0, items.length], items: items.length ? items : undefined, due: dueTxt, who: W.who, cm: 0 }, ...(s.tasks || defTasks)] })); } };
+            app.setState({ tw: null, twErr: null, tkView: 'board' }); tk.create({ title: W.title.trim(), desc: W.desc.trim(), client: W.client, items, due: dueTxt, dueDay: W.due || null, who: W.who }); } };
       })(),
       ...(() => { const list = inDash && S.sel != null ? tasksAll.filter(t => t.client === clients[S.sel].name) : tasksAll; const board = (S.tkView || 'board') === 'board';
         const ti = S.tkOpen, tt = ti != null ? tkSrc[ti] : null;
         const CHK = { 'Refresh TikTok creative': ['Pick the two weakest videos', 'Write three new hooks', 'Film new openers', 'Upload and set budgets', 'Check results after 3 days'], 'Book check-in call with Dana': ['Pull the last 3 weeks of results', 'Send a calendar invite'], 'Fix mobile booking form step 2': ['Record a mobile session', 'Replace the date picker', 'Test on iPhone and Android', 'Ship and watch drop-off'], 'Raise Google Ads budget cap': ['Check when the cap is hit', 'Write the request to the client', 'Update the cap'], 'Set up GA4 conversion events': ['Booking confirmed event', 'Call click event', 'Mark both as key events', 'Check they show in reports'], 'Write November ad copy': ['Headlines for gift sets', 'Body copy', 'Send to client for approval'], 'Send October report': ['Fill in results', 'Add the new cost per lead goal', 'Review with Jordan', 'Send to client'] };
         const CMS = [['JS', '2 days ago', 'Started on this, will share a draft tomorrow.'], ['AR', 'Yesterday', 'Looks good. Keep the tone friendly.']];
         const names = tt ? (tt.items || CHK[tt.title] || Array.from({ length: (tt.sub || [0, 0])[1] }, (_, j) => 'Step ' + (j + 1))) : [];
-        const chk = tt ? ((S.tkChk || {})[ti] || names.map((_, j) => j < (tt.sub || [0])[0])) : [];
-        const cms = tt ? ((S.tkCms || {})[ti] || CMS.slice(0, tt.cm || 0)) : [];
-        const setChk = arr => app.setState(s => { const tasks = (s.tasks || defTasks).map(x => ({ ...x })); tasks[ti].sub = [arr.filter(Boolean).length, arr.length]; return { tasks, tkChk: { ...(s.tkChk || {}), [ti]: arr } }; });
+        const chk = tt ? (tt.chk || names.map((_, j) => j < (tt.sub || [0])[0])) : [];
+        const cms = tt ? (tt.comments || CMS.slice(0, tt.cm || 0)) : [];
+        const setChk = arr => tk.check(ti, names, arr);
         const td = { tdO: tt ? 1 : 0, tdPe: tt ? 'auto' : 'none', tdX: tt ? '0' : '100%', tdVis: tt ? 'visible' : 'hidden', tdClose: () => app.setState({ tkOpen: null }),
           tdClient: tt ? (tt.client || 'No client') : '', tdTitle: tt ? tt.title : '', tdDesc: clSplit(tt ? (tt.desc || 'No description.') : ''),
           tdStatus: tt ? tt.status : 'todo', tdStatuses: TCOLS.map(([k, label]) => ({ k, label })), tdSetStatus: e => moveTask(ti, e.target.value),
-          tdDue: tt ? (tt.due || 'No due date') : '', tdDueC: tt && tt.status !== 'done' && ['Oct 11', 'Oct 12'].includes(tt.due) ? '#a3330c' : '#0b1626',
-          tdWho: tt ? (Array.isArray(tt.who) ? tt.who : [tt.who]).map(w => ({ i: w, name: (PEOPLE[w] || [w])[0], bg: (PEOPLE[w] || [w, '#e6ebf2'])[1] })) : [],
+          tdDue: tt ? (tt.due || 'No due date') : '', tdDueC: tt && isSoon(tt) ? '#a3330c' : '#0b1626',
+          tdWho: tt ? (Array.isArray(tt.who) ? tt.who : [tt.who]).map(who) : [],
           tdChk: names.map((label, j) => ({ label, on: !!chk[j], bg: chk[j] ? '#1f6be2' : '#ffffff', bd: chk[j] ? '#1f6be2' : '#97a2b2', o: chk[j] ? 1 : 0, c: chk[j] ? '#5a6474' : '#0b1626', deco: chk[j] ? 'line-through' : 'none', toggle: () => setChk(names.map((_, k) => k === j ? !chk[k] : !!chk[k])) })),
           tdChkNone: names.length === 0, tdChkTxt: names.length ? chk.filter(Boolean).length + '/' + names.length : '', tdChkPct: (names.length ? Math.round(chk.filter(Boolean).length / names.length * 100) : 0) + '%',
-          tdCms: cms.map(([w, when, text]) => ({ i: w, name: (PEOPLE[w] || [w])[0], bg: (PEOPLE[w] || [w, '#e6ebf2'])[1], when, text })), tdCmNone: cms.length === 0,
+          tdCms: cms.map(([w, when, text]) => ({ ...who(w), when, text })), tdCmNone: cms.length === 0,
           tdCmVal: S.tkCmVal || '', tdSetCm: e => app.setState({ tkCmVal: e.target.value }),
-          tdAddCm: e => { e.preventDefault(); const t2 = (S.tkCmVal || '').trim(); if (!t2) return; const next = [...cms, ['AR', 'Just now', t2]]; app.setState(s => { const tasks = (s.tasks || defTasks).map(x => ({ ...x })); tasks[ti].cm = next.length; return { tasks, tkCmVal: '', tkCms: { ...(s.tkCms || {}), [ti]: next } }; }); } };
+          tdAddCm: e => { e.preventDefault(); const t2 = (S.tkCmVal || '').trim(); if (!t2) return; app.setState({ tkCmVal: '' }); tk.comment(ti, meKey, t2, cms); } };
         return { ...td, tasksEmpty: list.length === 0, tasks: list, tkIsBoard: board, tkIsList: (S.tkView || 'board') === 'list',
           tkViews: [['board', 'Board'], ['list', 'List']].map(([k, label]) => { const on = (S.tkView === 'list' ? 'list' : 'board') === k; return { label, on: on ? 'true' : 'false', bd: on ? '#0b1626' : 'transparent', c: on ? '#0b1626' : '#5a6474', fw: on ? 700 : 500, pick: () => app.setState({ tkView: k }) }; }),
           tkAddVal: S.tkAddVal || '', tkAddErr: !!S.tkAddErr, tkSetAdd: e => app.setState({ tkAddVal: e.target.value, tkAddErr: false }), tkCancelAdd: () => app.setState({ tkAdd: null, tkAddVal: '', tkAddErr: false }), tkAddKey: e => { if (e.key === 'Escape') app.setState({ tkAdd: null, tkAddVal: '', tkAddErr: false }); },
           tkBoard: TCOLS.map(([k, label]) => { const items = list.filter(t => t.status === k); const over = S.tkOver === k;
             return { label, count: String(items.length), cBg: k === 'done' ? '#d4f0dd' : '#e6ebf2', cC: k === 'done' ? '#1d6b3a' : '#45505f', bg: over ? '#eaf1fc' : 'transparent', ring: over ? 'inset 0 0 0 2px #1f6be2' : 'none',
               adding: S.tkAdd === k, notAdding: S.tkAdd !== k, startAdd: () => app.setState({ tkAdd: k, tkAddVal: '', tkAddErr: false }),
-              submitAdd: e => { e.preventDefault(); const tt = (S.tkAddVal || '').trim(); if (!tt) { app.setState({ tkAddErr: true }); return; } app.setState(s => ({ tkAdd: null, tkAddVal: '', tasks: [...(s.tasks || defTasks), { title: tt, desc: '', client: inDash && S.sel != null ? clients[S.sel].name : '', status: k, done: k === 'done', sub: [0, 0], due: '', who: ['AR'], cm: 0 }] })); },
+              submitAdd: e => { e.preventDefault(); const tt = (S.tkAddVal || '').trim(); if (!tt) { app.setState({ tkAddErr: true }); return; } app.setState({ tkAdd: null, tkAddVal: '' }); tk.create({ title: tt, client: inDash && S.sel != null ? clients[S.sel].name : '', status: k, done: k === 'done', who: [meKey] }, 'bottom'); },
               dragOver: e => { if (app._tkDrag == null) return; e.preventDefault(); if (S.tkOver !== k) app.setState({ tkOver: k }); },
               dragLeave: e => { if (!e.currentTarget.contains(e.relatedTarget) && S.tkOver === k) app.setState({ tkOver: null }); },
               drop: e => { e.preventDefault(); const i = app._tkDrag; app._tkDrag = null; app.setState({ tkOver: null, tkDragI: null }); if (i != null) moveTask(i, k); },
-              items: items.map(t => { const [d, n] = t.sub; const done = t.status === 'done'; const soon = !done && ['Oct 11', 'Oct 12'].includes(t.due);
+              items: items.map(t => { const [d, n] = t.sub; const done = t.status === 'done'; const soon = isSoon(t);
                 return { title: t.title, desc: t.desc, hasDesc: !!t.desc, client: t.client, hasClient: !!t.client, deco: 'none',
                   hasSub: n > 0, subLabel: done ? 'Completed' : 'Checklist', subTxt: d + '/' + n, pct: (n ? Math.round(d / n * 100) : 0) + '%', barC: done ? '#1d6b3a' : '#1f6be2',
                   hasDue: !!t.due, due: soon ? 'Due ' + t.due : t.due, dueC: soon ? '#a3330c' : '#45505f', dueW: soon ? 600 : 400,
                   hasCm: t.cm > 0, cm: String(t.cm), cmLabel: t.cm + ' comments',
-                  avatars: t.who.map(w => ({ i: w, name: (PEOPLE[w] || [w])[0], bg: (PEOPLE[w] || [w, '#e6ebf2'])[1] })),
+                  avatars: t.who.map(who),
                   op: S.tkDragI === t.i ? 0.4 : 1,
                   dragStart: e => { app._tkDrag = t.i; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', t.title); setTimeout(() => app.setState({ tkDragI: t.i, tkMenu: null }), 0); },
                   dragEnd: () => { app._tkDrag = null; app.setState({ tkDragI: null, tkOver: null }); },
                   open: e => { if (e.target.closest('button, [role=menu]')) return; app.setState({ tkOpen: t.i, tkMenu: null, tkCmVal: '' }); }, menuOn: S.tkMenu === t.i, toggleMenu: () => app.setState({ tkMenu: S.tkMenu === t.i ? null : t.i }),
                   moves: TCOLS.filter(c => c[0] !== k).map(([mk, ml]) => ({ label: ml, go: () => moveTask(t.i, mk) })),
-                  remove: () => { app.setState({ tkMenu: null }); app.confirm({ title: 'Delete this task?', body: '\u201c' + t.title + '\u201d' + (t.client ? ' for ' + t.client : '') + ' is removed from the board, with its checklist and comments.', confirm: 'Delete task', tone: 'danger', onConfirm: () => setTasks(arr => arr.splice(t.i, 1)) }); } }; }) }; }) }; })(), newTask: S.newTask, setNewTask: e => app.setState({ newTask: e.target.value }),
+                  remove: () => { app.setState({ tkMenu: null }); app.confirm({ title: 'Delete this task?', body: '\u201c' + t.title + '\u201d' + (t.client ? ' for ' + t.client : '') + ' is removed from the board, with its checklist and comments.', confirm: 'Delete task', tone: 'danger', onConfirm: () => tk.remove(t.i) }); } }; }) }; }) }; })(), newTask: S.newTask, setNewTask: e => app.setState({ newTask: e.target.value }),
   };
 }

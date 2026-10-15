@@ -4,10 +4,11 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import View, { css } from './View';
 import { FEATURES } from './modules';
-import { clSplit, TCOLS, PEOPLE, DEF_TASKS, LOGOS, clientTools } from './data';
+import { clSplit, TCOLS, PEOPLE, LOGOS, clientTools } from './data';
 import { makeMetrics, pct, fmtDay } from './metrics';
 import Confirm from './Confirm';
 import { goalsOf } from './modules/clients/clientGoals';
+import { peopleOf, taskOps, tasksOf, thisFriday } from './modules/tasks/taskStore';
 import { askAnalystAction } from '@/app/actions/analyst';
 
 
@@ -15,7 +16,7 @@ class Logic extends React.Component {
   static defaultProps = {};
 
   // The signed-in person, their agency and team arrive as props from the server page.
-  state = { me: this.props.me, agName: this.props.agency?.name, brandLogo: this.props.agency?.brandLogo || null, brandColor: this.props.agency?.brandColor || '#1f6be2', members: this.props.team, tasks: this.props.live ? [] : null, view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
+  state = { me: this.props.me, agName: this.props.agency?.name, brandLogo: this.props.agency?.brandLogo || null, brandColor: this.props.agency?.brandColor || '#1f6be2', members: this.props.team, view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
   // Confirmation dialog: confirm({ title, body, confirm, onConfirm, tone: 'danger', alt, onAlt, cancel }).
   // onConfirm may return a promise; the dialog stays open (busy) until it settles, and closes unless it resolves false.
   confirm(o) { this.setState({ cf: o, cfBusy: false }); }
@@ -55,8 +56,9 @@ class Logic extends React.Component {
   chartRef = React.createRef();
   rbChatRef = React.createRef();
   componentDidUpdate(prev) {
-    // New goals from the server replace the ones edited here.
+    // New goals and tasks from the server replace the ones edited here.
     if (prev.live?.goals !== this.props.live?.goals && this.state.goals) this.setState({ goals: undefined });
+    if (prev.live?.tasks !== this.props.live?.tasks && this.state.tasks) this.setState({ tasks: null });
     this.autosize(); this.syncDoc?.(); this.positionSel?.(); const vr = this.viewRef.current; if (vr && this._viewHTML && vr.innerHTML !== this._viewHTML) vr.innerHTML = this._viewHTML; const el = this.chatRef.current, mk = (this.state.msgs || []).length + (this.state.typing ? 't' : ''); if (el && mk !== this._chatMk) { this._chatMk = mk; el.scrollTop = (this.state.msgs || []).length ? el.scrollHeight : 0; } const rc = this.rbChatRef.current; if (rc) rc.scrollTop = rc.scrollHeight; const c = this.chartRef.current; if (c && this._chartKey !== this._chartSeen) { this._chartSeen = this._chartKey; c.scrollLeft = c.scrollWidth; } }
   componentWillUnmount() { window.removeEventListener('beforeunload', this._bu); document.removeEventListener('mousedown', this._ctxClose); window.removeEventListener('resize', this._rp); document.removeEventListener('selectionchange', this._sc); window.removeEventListener('resize', this._rs); clearTimeout(this.gt); clearTimeout(this.ct); clearTimeout(this.gtT); clearTimeout(this.ctT); clearTimeout(this.rtT); clearTimeout(this.rbT); clearTimeout(this.rbA); clearTimeout(this.genT); }
   renderVals() {
@@ -170,15 +172,15 @@ class Logic extends React.Component {
     const v = S.view;
     const inDash = true;
     const cur = clients[S.cid] || clients[0];
-    const defTasks = live ? [] : DEF_TASKS;
+    // Tasks: saved (live) or the samples, with the people who can be put on them. Changes go through tk (taskStore.js).
+    const defTasks = tasksOf(live, C), P = live ? peopleOf(live, S.members) : PEOPLE, meKey = live ? S.me?.id : 'AR', tk = taskOps(this, { live, C, defTasks });
     const tkSrc = (S.tasks || defTasks).map(t => ({ ...t, status: t.status || (t.done ? 'done' : 'todo'), client: t.client || ((t.meta || '').split(' · ')[0] === 'No client' ? '' : (t.meta || '').split(' · ')[0]), sub: t.sub || [0, 0], who: Array.isArray(t.who) ? t.who : [t.who || 'AR'], due: t.due || '', desc: t.desc || '', cm: t.cm || 0 }));
-    const setTasks = fn => this.setState(s => { const arr = (s.tasks || defTasks).map(t => ({ ...t })); fn(arr); return { tasks: arr, tkMenu: null }; });
-    const moveTask = (i, k) => setTasks(arr => { arr[i].status = k; arr[i].done = k === 'done'; if (k === 'done' && arr[i].sub) arr[i].sub = [arr[i].sub[1], arr[i].sub[1]]; });
+    const moveTask = (i, k) => tk.move(i, k);
     const tasksAll = tkSrc.map((t, i) => ({ ...t, i, done: t.status === 'done', meta: (t.client || 'No client') + (t.due ? ' · Due ' + t.due : ''), statusLabel: TCOLS.find(c => c[0] === t.status)[1], deco: t.status === 'done' ? 'line-through' : 'none', c: t.status === 'done' ? '#97a2b2' : '#0b1626',
       toggle: () => moveTask(i, t.status === 'done' ? 'todo' : 'done') }));
     const p = pages[v] || pages.an;
     const atRisk = clients.filter(c => c.risky);
-    const ctx = { live, SL, refresh: () => this.props.refresh?.(), S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll };
+    const ctx = { live, SL, refresh: () => this.props.refresh?.(), S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE: P, meKey, tk, tkSrc, moveTask, tasksAll };
     return {
       pageO: S.pageO, modules: modules.map(m => ({ ...m, badgePill: m.hasBadge && !S.navC, badgeDot: m.hasBadge && !!S.navC, title: m.hasBadge ? m.label + ' (' + m.badge + ' need attention)' : m.label, rowsN: S.navC ? '0fr' : m.rows, multi: m.multi && !S.navC })),
       navOpen: !S.navC, swH: S.navC ? '50px' : '60px', swPadL: S.navC ? '2.5px' : '8px', swAv: S.navC ? '42px' : '42px', swR: S.navC ? '14px' : '16px', navW: S.navC ? '74px' : '264px', navTxt: S.navC ? 'none' : 'inline', navTxtFlex: S.navC ? 'none' : 'flex', navTxtGrid: S.navC ? 'none' : 'grid', navDot: S.navC ? 'block' : 'none', navJust: 'flex-start', navTopDir: S.navC ? 'column' : 'row', navAlign: S.navC ? 'flex-start' : 'center', navPad: '10px', navSwPad: S.navC ? '0' : '12px', navSetW: S.navC ? '36px' : '44px',
@@ -209,7 +211,7 @@ class Logic extends React.Component {
         // A suggested action: add the task, or open the write-report dialog with the client and template picked.
         const doAction = (mi, ai) => { const m = msgs[mi], x = m && m.actions && m.actions[ai]; if (!x || x.done) return;
           const mark = () => this.setState(s => ({ msgs: (s.msgs || []).map((mm, k) => k !== mi ? mm : { ...mm, actions: mm.actions.map((aa, j) => j !== ai ? aa : { ...aa, done: true }) }) }));
-          if (x.kind === 'task') { this.setState(s => ({ tasks: [{ title: x.title, desc: x.why, client: x.client, status: 'todo', sub: [0, 0], due: 'This week', who: ['AR'], cm: 0 }, ...(s.tasks || defTasks)] })); mark(); return; }
+          if (x.kind === 'task') { const fri = thisFriday(); tk.create({ title: x.title, desc: x.why, client: x.client, due: fmtDay(fri), dueDay: fri, who: [meKey] }); mark(); return; }
           const c = live && live.clients.find(cc => cc.name === x.client); if (!c) return;
           (this.leaveGuard ? f => this.leaveGuard(f) : f => f())(() => { this.setState({ view: 'templates', lrModal: true, lrTpl: x.template, lrClient: c.id, lrDays: x.days, lrName: '', lrErr: null, lrPrev: null }); mark(); }); };
         const greet = { me: false, text: live ? (who ? 'Ask me anything about ' + who.name + ': their numbers, their flags, or what to do next.' : 'Hi ' + (S.me?.name || '').split(/\s+/)[0] + '. Ask me about your clients\u2019 numbers, who needs attention, or what to do this week.') : who ? 'What should I do for ' + who.name + '?' : 'Hi ' + (S.me?.name || '').split(/\s+/)[0] + '. Tell me what you need and I will take care of it.' };
@@ -236,7 +238,7 @@ class Logic extends React.Component {
         .concat(clients.map((c, i) => ({ name: c.name, initials: c.initials, sub: c.status, avBg: '#d6e4f8', avC: '#0b1626', on: S.sel === i, bg: S.sel === i ? '#eef3fd' : 'transparent', pick: () => this.setState({ sel: i, cid: i, tab: 0, swOpen: false }) }))),
       hdrShadow: S.hdrStuck ? '0 1px 0 #e6ebf2, 0 8px 20px -16px rgba(11,22,38,.35)' : 'none', showHeader: v !== 'client' && v !== 'builder' && v !== 'repview' && v !== 'settings' && v !== 'lrep', crumb: p[0], pageTitle: (v === 'clients' && S.cForm) ? 'New client' : p[1], pageSub: p[2],
       showSw: v === 'an' || v.startsWith('an-'), hasAction: !!p[3] && !(v === 'clients' && S.cForm) && !(live && (v === 'templates' || v === 'reports')), // Live agencies write reports from the template gallery on the Reports page.
-      actionLabel: p[3], action: v === 'tasks' ? () => this.setState({ tw: { step: 1, title: '', desc: '', client: S.sel != null ? C[S.sel].name : '', due: '', who: ['AR'], items: [], itemVal: '' }, twErr: null }) : v === 'clients' ? () => this.setState({ view: 'clients', sel: null, swOpen: false, cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : v === 'templates' ? () => this.setState({ newRep: { step: 1, name: '', tpl: 'blank', err: false, direct: true } }) : v === 'clients' ? () => this.setState({ cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : () => {},
+      actionLabel: p[3], action: v === 'tasks' ? () => this.setState({ tw: { step: 1, title: '', desc: '', client: S.sel != null ? C[S.sel].name : '', due: '', who: [meKey], items: [], itemVal: '' }, twErr: null }) : v === 'clients' ? () => this.setState({ view: 'clients', sel: null, swOpen: false, cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : v === 'templates' ? () => this.setState({ newRep: { step: 1, name: '', tpl: 'blank', err: false, direct: true } }) : v === 'clients' ? () => this.setState({ cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : () => {},
       vClient: v === 'client', vTasks: v === 'tasks', vBuilder: v === 'builder' && !live,
       meName: S.me?.name || '', meInitials: (S.me?.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), meRole: S.me?.role || '', agencyName: S.agName, sampleMode: !!this.props.agency?.sampleMode, // A report being edited uses the full width: its ribbon runs edge to edge, the page stays centred.
       mainPad: v === 'lrep' ? '0 0 64px' : '32px clamp(20px,4vw,48px) 64px', mainMax: v === 'lrep' ? 'none' : '1100px', mainGap: v === 'lrep' ? '0' : '24px', canConnect: S.me?.role !== 'Member', connectMeta: () => this.setState({ view: 'settings', stgTab: 'conn', dlg: { kind: 'metaToken' }, dlgErr: null }),
@@ -264,6 +266,7 @@ Logic.prototype.render = function render() {
       <style dangerouslySetInnerHTML={{ __html: css + PRINT_CSS }} />
       <View v={v} />
       <Confirm v={v} />
+      {this.state.tkToast ? <p role="alert" style={{ position: "fixed", left: "50%", bottom: "24px", transform: "translateX(-50%)", zIndex: "95", margin: "0", maxWidth: "min(480px,calc(100vw - 32px))", padding: "12px 16px", background: "#0b1626", color: "#ffffff", fontFamily: "'DM Sans',ui-sans-serif,system-ui,sans-serif", fontSize: "14px", lineHeight: "1.4", letterSpacing: "-0.2px", boxShadow: "0 12px 32px -12px rgba(11,22,38,.5)" }}>{this.state.tkToast}</p> : null}
     </>
   );
 };

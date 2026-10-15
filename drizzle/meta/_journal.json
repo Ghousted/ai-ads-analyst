@@ -57,6 +57,13 @@
       "when": 1792076135092,
       "tag": "0007_client_goals",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792076308804,
+      "tag": "0008_tasks",
+      "breakpoints": true
     }
   ]
 }
