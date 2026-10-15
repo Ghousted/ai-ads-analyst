@@ -21,7 +21,7 @@ export function LiveReportsView({ v }) {
           </div>
           {v.lrRows.map((r, i) => (
             <button key={i} role="row" onClick={r.open} style={{ display: "grid", gridTemplateColumns: COLS, gap: "16px", alignItems: "center", minHeight: "60px", padding: "10px 22px", border: "0", borderTop: i ? "1px solid #eef1f6" : "0", borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }} className="dcbbe0dc7">
-              <span style={{ fontWeight: "600", minWidth: "0", overflowWrap: "anywhere" }}>{r.title}</span>
+              <span style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: "0" }}><span style={{ fontWeight: "600", overflowWrap: "anywhere" }}>{r.title}</span><span style={{ fontSize: "14px", color: "#5a6474" }}>{r.period}</span></span>
               <span style={{ fontSize: "15px", color: "#45505f", minWidth: "0", overflowWrap: "anywhere" }}>{r.client}</span>
               <span><span style={{ padding: "3px 10px", background: r.pBg, color: r.pC, fontSize: "13px", fontWeight: "600" }}>{r.status}</span></span>
               <span style={{ fontSize: "14px", color: "#5a6474", textAlign: "right" }}>{r.date}</span>

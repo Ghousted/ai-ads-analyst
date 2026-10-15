@@ -3,6 +3,9 @@ import { generateReportAction, saveReportAction, rewritePartAction, deleteReport
 import { fmtDay } from '../../metrics';
 import { TEMPLATES, templateBlocks } from '@/lib/report-blocks';
 
+// New reports are titled "Weekly report · Oct 8 – Oct 14". The list shows the period on its own line, so the dates come off the title there.
+const listTitle = t => t.replace(/ · [A-Z][a-z]{2} \d{1,2} – [A-Z][a-z]{2} \d{1,2}$/, '');
+
 
 export function liveReportsVals(app, ctx) {
   const { live, refresh, S, v, C } = ctx;
@@ -62,7 +65,7 @@ export function liveReportsVals(app, ctx) {
 
   if (v === 'templates' || v === 'reports') {
     return { ...base, ...modal, lrList: true,
-      lrRows: reports.map(r => { const c = clients.find(x => x.id === r.clientId); return { title: r.title, client: c ? c.name : 'Removed client', status: r.status === 'sent' ? 'Sent' : 'Draft', pBg: r.status === 'sent' ? '#e3f3e8' : '#eef1f6', pC: r.status === 'sent' ? '#1d6b3a' : '#45505f',
+      lrRows: reports.map(r => { const c = clients.find(x => x.id === r.clientId); return { title: listTitle(r.title), period: fmtDay(r.periodStart) + ' – ' + fmtDay(r.periodEnd), client: c ? c.name : 'Removed client', status: r.status === 'sent' ? 'Sent' : 'Draft', pBg: r.status === 'sent' ? '#e3f3e8' : '#eef1f6', pC: r.status === 'sent' ? '#1d6b3a' : '#45505f',
         date: fmtDay(r.createdAt.slice(0, 10)), open: () => app.setState({ view: 'lrep', lrId: r.id, lrDraft: null, lrAsk: '', lrAskErr: null }) }; }),
       lrNoReports: reports.length === 0 };
   }
