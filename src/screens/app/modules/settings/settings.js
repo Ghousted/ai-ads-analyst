@@ -1,4 +1,6 @@
 // Settings, including integrations.
+import { renameMeAction, renameAgencyAction, inviteAction, setRoleAction } from '@/app/actions/agency';
+import { signOutAction, forgotAction } from '@/app/actions/auth';
 import { connList, nextConn, toolAccts, acctFor, acctKey, clSplit, LOGOS, TOOL_NAMES, MULTI } from '../../data';
 
 const TOOLS = [['meta', 'Meta', 'Facebook and Instagram ads'], ['ga4', 'Google Analytics 4', 'Website visits and conversions'], ['gads', 'Google Ads', 'Search, display and Performance Max'], ['tt', 'TikTok Ads', 'Video ads on TikTok'], ['sc', 'Google Search Console', 'Organic search clicks and rankings'], ['li', 'LinkedIn Ads', 'Sponsored content and lead forms'], ['ms', 'Microsoft Ads', 'Bing search ads'], ['gbp', 'Google Business Profile', 'Calls, directions and website clicks']];
@@ -6,7 +8,6 @@ const TOOLS = [['meta', 'Meta', 'Facebook and Instagram ads'], ['ga4', 'Google A
 const UNIT = { ga4: 'property', gads: 'ad account', sc: 'site', gbp: 'location' };
 const CHANNELS = ['#client-alerts', '#marketing-team', '#general'];
 const PLANS = [['Free', '$0', 'Up to 2 clients'], ['Solo', '$19', 'Up to 5 clients'], ['Studio', '$49', 'Up to 20 clients'], ['Agency', '$99', 'Unlimited clients and teammates']];
-const DEF_MEMBERS = [['Alex Rivera', 'alex@riveradigital.com', 'Owner'], ['Jordan Santos', 'jordan@riveradigital.com', 'Admin'], ['Mia Kim', 'mia@riveradigital.com', 'Member']];
 const INVOICES = [['Oct 1, 2026', '$79.00'], ['Sep 1, 2026', '$79.00'], ['Aug 1, 2026', '$79.00']];
 const emailOk = x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((x || '').trim());
 
@@ -24,11 +25,13 @@ export function settingsVals(app, ctx) {
         const sl = (k, t, d, opts) => ({ t, d, isSelect: true, opts, val: sel[k] || opts[0], set: e => { const x = e.target.value; app.setState(s => ({ stgSel: { ...(s.stgSel || {}), [k]: x } })); } });
         const bt = (t, d, btnLabel, act, primary) => ({ t, d, isBtn: !primary, isPrimary: !!primary, btnLabel, btn: typeof act === 'function' ? act : () => toast(act) });
         const dlg = o => () => app.setState({ dlg: o, dlgErr: null });
-        const me = S.me || { name: 'Alex Rivera', email: 'alex@riveradigital.com' }, agency = S.agName ?? 'Rivera Digital', members = S.members || DEF_MEMBERS, plan = S.plan || 'Agency';
+        const me = S.me, agency = S.agName, members = S.members || [], plan = S.plan || 'Agency', manager = me.role !== 'Member';
         const conns = connList(S);
         const ck = (k, label, def) => { const v2 = k in on ? on[k] : def; return { label, on: v2, bg: v2 ? '#1f6be2' : '#ffffff', bd: v2 ? '#1f6be2' : '#97a2b2', o: v2 ? 1 : 0, toggle: () => app.setState(s => ({ stg: { ...(s.stg || {}), [k]: !v2 } })) }; };
         const G = {
-          profile: [{ title: 'My profile', rows: [bt(me.name, 'Owner at ' + agency, 'Edit name', dlg({ kind: 'name', val: me.name })), bt('Email', me.email, 'Change email', dlg({ kind: 'email', val: '' })), bt('Password', 'Last changed 3 months ago', 'Change password', 'We emailed a reset link to ' + me.email)] }],
+          profile: [{ title: 'My profile', rows: [bt(me.name, me.role + ' at ' + agency, 'Edit name', dlg({ kind: 'name', val: me.name })), { t: 'Email', d: me.email },
+            bt('Password', 'We email you a link to choose a new one.', 'Reset password', () => forgotAction(me.email).then(() => toast('We emailed a reset link to ' + me.email))),
+            bt('Sign out', 'Sign out of AI Ads Analyst on this device.', 'Sign out', () => signOutAction())] }],
           general: [{ title: 'My notifications', checkTitle: 'Tell me when…', checks: [ck('a0', 'A client gets 20% fewer leads than usual', true), ck('a1', 'Cost per lead goes over a goal', true), ck('a2', 'Spend is 15% ahead or behind budget', true), ck('a3', 'An account disconnects and data stops', true), ck('a4', 'Analyst flags a client as at risk', true)],
               rows: [tg('n0', 'In Ask Analyst', 'Analyst messages you in the chat with what happened and what to do.', true), tg('n1', 'By email', 'Alerts go to ' + me.email + ' as they happen.', true), tg('n2', 'Weekly summary email', 'A Monday morning email with every client\'s results.', true), tg('n3', 'Slack direct messages', S.slack ? 'Also DM me in Slack. The team channel is set in Integrations.' : 'Connect Slack in Integrations first. Alerts then post to a team channel, and Analyst can DM you too.', false)] },
             { title: 'My preferences', rows: [sl('lang', 'Language', 'Used across the app and in AI replies.', ['English', 'Español', 'Français']), sl('tz', 'Time zone', 'Report schedules and alerts follow this time.', ['Eastern time (New York)', 'Central time (Chicago)', 'Pacific time (Los Angeles)']), sl('cur', 'Currency', 'Shown on spend, budgets and cost per lead.', ['USD ($)', 'EUR (€)', 'GBP (£)'])] }],
@@ -46,9 +49,16 @@ export function settingsVals(app, ctx) {
           }).concat([{ title: 'Slack', rows: S.slack ? [sl('slackCh', 'Alert channel', 'Risk and performance alerts post here for the whole team.', CHANNELS), bt('Connected to the ' + agency + ' Slack', 'Installed by ' + S.slack.by + '. Teammates can also get alerts as direct messages from Notifications.', 'Disconnect', () => { app.setState({ slack: null }); toast('Slack disconnected'); })]
               : [bt('Post alerts to a Slack channel', 'Install AI Ads Analyst in your Slack workspace once, then pick the channel your team watches.', 'Connect Slack', dlg({ kind: 'slack', who: CHANNELS[0] }), true)] },
             { title: 'Add a tool', rows: [bt('Connect a new tool', 'Only the owner and admins can connect or change tools. Every teammate sees the data in reports.', 'Connect a tool', dlg({ kind: 'connect', tool: null, st: 'pick' }), true)] }]),
-          agency: [{ title: 'Agency', rows: [bt(agency, C.length + ' clients · ' + members.length + ' teammates', 'Edit agency', dlg({ kind: 'agency', val: agency })), bt('Report branding', 'Your logo and colour are set when you create your first report. Change them anytime from Design in the report editor.', 'Open reports', () => app.setState({ view: 'templates' }))] },
+          agency: [{ title: 'Agency', rows: [manager ? bt(agency, C.length + ' clients · ' + members.length + ' teammates', 'Edit agency', dlg({ kind: 'agency', val: agency })) : { t: agency, d: C.length + ' clients · ' + members.length + ' teammates' }, bt('Report branding', 'Your logo and colour are set when you create your first report. Change them anytime from Design in the report editor.', 'Open reports', () => app.setState({ view: 'templates' }))] },
             { title: 'Client portal', rows: [tg('portal', 'Client portal', 'A secure login where clients see every report you have sent them.', true), sl('rsched', 'Default report schedule', 'New clients start with this schedule.', ['Mondays, 8:00am', 'Fridays, 4:00pm', 'First of the month']), sl('rtone', 'Default report tone', 'How Analyst writes reports for new clients.', ['Friendly', 'Professional', 'Short and direct'])] }],
-          members: [{ title: 'Team members', rows: members.map(([n, e, r], j) => j === 0 ? { t: n === 'Alex Rivera' ? me.name : n, d: (n === 'Alex Rivera' ? me.email : e) + ' · Owner' } : { t: n, d: e, isSelect: true, opts: r === 'Admin' ? ['Admin', 'Member', 'Remove from team'] : ['Member', 'Admin', 'Remove from team'], val: r, set: ev => { const x = ev.target.value; if (x === 'Remove from team') { app.setState({ members: members.filter((_, k) => k !== j) }); toast(n + ' was removed from ' + agency); } else { app.setState({ members: members.map((mm, k) => k === j ? [mm[0], mm[1], x] : mm) }); toast(n + ' is now ' + (x === 'Admin' ? 'an admin' : 'a member')); } } }).concat([bt('Invite a teammate', 'They get an email to join ' + agency + '.', 'Invite', dlg({ kind: 'invite', val: '', role: 'Member' }), true)]) }],
+          members: [{ title: 'Team members', rows: members.map(m => {
+              const label = m.pending ? 'Invited · joins when they sign up with this email' : m.email;
+              if (m.role === 'Owner' || m.id === me.id || !manager) return { t: m.name + (m.id === me.id ? ' (you)' : ''), d: label + ' · ' + m.role };
+              return { t: m.name, d: label, isSelect: true, opts: [m.role, m.role === 'Admin' ? 'Member' : 'Admin', 'Remove from team'], val: m.role, set: ev => { const x = ev.target.value;
+                setRoleAction({ userId: m.id || undefined, email: m.pending ? m.email : undefined, role: x }).then(r => { if (r.error) return toast(r.error);
+                  app.setState({ members: x === 'Remove from team' ? members.filter(o => o !== m) : members.map(o => o === m ? { ...o, role: x } : o) });
+                  toast(x === 'Remove from team' ? m.name + ' was removed from ' + agency : m.name + ' is now ' + (x === 'Admin' ? 'an admin' : 'a member')); }); } };
+            }).concat(manager ? [bt('Invite a teammate', 'They join ' + agency + ' when they sign up with the email you enter.', 'Invite', dlg({ kind: 'invite', val: '', role: 'Member' }), true)] : []) }],
           security: [{ title: 'Security', rows: [tg('2fa', 'Two-step sign-in', 'Ask for a code from your phone each time you sign in.', false), tg('sso', 'Google sign-in for the team', 'Teammates sign in with their riveradigital.com Google account.', true), bt('Signed-in devices', S.signedOut ? '1 device · this Mac' : '2 devices · this Mac and an iPhone', 'Sign out others', () => { app.setState({ signedOut: true }); toast('Your iPhone was signed out'); })] }],
           billing: [{ title: 'Plan and billing', rows: [bt(plan + ' plan', (PLANS.find(x => x[0] === plan) || PLANS[3])[1] + ' a month · renews Nov 1 · ' + (PLANS.find(x => x[0] === plan) || PLANS[3])[2].toLowerCase(), 'Change plan', dlg({ kind: 'plan', val: plan })), bt('Payment method', 'Visa ending 4242', 'Update card', dlg({ kind: 'card' })), bt('Invoices', 'Emailed to ' + me.email + ' each month', 'View invoices', dlg({ kind: 'invoices' }))] }]
         };
@@ -71,7 +81,7 @@ function dialogVals(app, S, { toast, me, agency, members, conns, C }) {
   const cn = conns.find(c => c.id === D.id) || { tool: '', who: '', accts: [] }, tn = TOOL_NAMES[cn.tool] || '';
   // Only the owner and admins can own a connection. Meta can also use a Business Manager system user.
   const owners = (cn.tool === 'meta' ? [['sys', 'System user', 'Owned by your Business Manager, not a person. It keeps working when people leave and does not expire.']] : [])
-    .concat(members.filter((m, j) => j === 0 || m[2] === 'Admin').map((m, j) => { const n = j === 0 ? me.name : m[0]; return [n, j === 0 ? 'You (' + n + ')' : n, j === 0 ? 'Sign in again with your own login.' : 'We email them a link to sign in.']; }));
+    .concat([me].concat(members.filter(m => !m.pending && m.id !== me.id && m.role !== 'Member')).map(m => m === me ? [me.name, 'You (' + me.name + ')', 'Sign in again with your own login.'] : [m.name, m.name, 'We email them a link to sign in.']));
   const done = k === 'connect' && D.st === 'done', added = conns.find(c => c.id === D.conn);
   const T = {
     name: ['Edit your name', 'This is how teammates and clients see you.', 'Save name'],
@@ -91,10 +101,10 @@ function dialogVals(app, S, { toast, me, agency, members, conns, C }) {
   const submit = e => {
     if (e) e.preventDefault();
     const val = (D.val || '').trim();
-    if (k === 'name') { if (!val) return app.setState({ dlgErr: 'Enter your name.' }); app.setState({ me: { ...me, name: val } }); close(); return toast('Name updated'); }
+    if (k === 'name') { if (!val) return app.setState({ dlgErr: 'Enter your name.' }); return renameMeAction(val).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); app.setState({ me: { ...me, name: val } }); close(); toast('Name updated'); }); }
     if (k === 'email') { if (!emailOk(val)) return app.setState({ dlgErr: 'Enter a valid email, like name@agency.com.' }); close(); return toast('Confirmation link sent to ' + val); }
-    if (k === 'agency') { if (!val) return app.setState({ dlgErr: 'Enter your agency name.' }); app.setState({ agName: val }); close(); return toast('Agency name updated'); }
-    if (k === 'invite') { if (!emailOk(val)) return app.setState({ dlgErr: 'Enter a valid email, like name@agency.com.' }); if (members.some(m => m[1] === val)) return app.setState({ dlgErr: 'That person is already on your team.' }); app.setState({ members: [...members, [val.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), val, D.role || 'Member']] }); close(); return toast('Invite sent to ' + val); }
+    if (k === 'agency') { if (!val) return app.setState({ dlgErr: 'Enter your agency name.' }); return renameAgencyAction(val).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); app.setState({ agName: val }); close(); toast('Agency name updated'); }); }
+    if (k === 'invite') { if (!emailOk(val)) return app.setState({ dlgErr: 'Enter a valid email, like name@agency.com.' }); const em = val.toLowerCase(); if (members.some(m => m.email === em)) return app.setState({ dlgErr: 'That person is already on your team.' }); return inviteAction({ email: em, role: D.role || 'Member' }).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); app.setState({ members: [...members, { id: '', name: em, email: em, role: D.role || 'Member', pending: true }] }); close(); toast(em + ' can now join by signing up with that email'); }); }
     if (k === 'disconnect') { app.setState(s => ({ connOff: { ...(s.connOff || {}), [D.id]: true }, connOn: { ...(s.connOn || {}), [D.id]: false }, connPend: { ...(s.connPend || {}), [D.id]: null } })); close(); return toast(tn + ' disconnected from ' + cn.who); }
     if (k === 'connect') {
       if (!D.tool) return app.setState({ dlgErr: 'Pick a tool to connect.' });

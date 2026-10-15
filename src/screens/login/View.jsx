@@ -38,8 +38,8 @@ export default function View({ v }) {
                     {v.doneText}
                   </p>
                   {" "}
-                  <a href={"/"} style={{ display: "inline-flex", alignItems: "center", height: "48px", padding: "0 20px", background: "#1f6be2", color: "#ffffff", borderRadius: "14px", fontWeight: "600", textDecoration: "none" }} className="dc41f4d87">
-                    {"Back to the homepage"}
+                  <a href={"/login"} style={{ display: "inline-flex", alignItems: "center", height: "48px", padding: "0 20px", background: "#1f6be2", color: "#ffffff", borderRadius: "14px", fontWeight: "600", textDecoration: "none" }} className="dc41f4d87">
+                    {"Log in"}
                   </a>
                   {" "}
                 </div>
@@ -62,6 +62,7 @@ export default function View({ v }) {
                   {" "}
                 </div>
                 {" "}
+                {(v.showGoogle) ? (<>
                 <button type={"button"} onClick={v.google} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", height: "48px", width: "100%", border: "1px solid #d3dbe6", borderRadius: "14px", background: "#ffffff", font: "inherit", letterSpacing: "inherit", fontWeight: "600", color: "#0b1626", cursor: "pointer", transition: "background-color 160ms ease,transform 160ms cubic-bezier(0.23,1,0.32,1)" }} className="dcf0b705f dc6106149">
                   {" "}
                   <svg width={"18"} height={"18"} viewBox={"0 0 48 48"}>
@@ -81,6 +82,7 @@ export default function View({ v }) {
                   {" "}
                 </div>
                 {" "}
+                </>) : null}
                 <form onSubmit={v.submit} noValidate={true} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   {" "}
                   {(v.isSignup) ? (<>
@@ -97,6 +99,7 @@ export default function View({ v }) {
                     {" "}
                   </>) : null}
                   {" "}
+                  {(v.showEmail) ? (<>
                   <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     {" "}
                     <span style={{ fontSize: "14px", fontWeight: "600", letterSpacing: "-0.52px" }}>
@@ -112,6 +115,7 @@ export default function View({ v }) {
                     </>) : null}
                     {" "}
                   </label>
+                  </>) : null}
                   {" "}
                   <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     {" "}
@@ -177,6 +181,7 @@ export default function View({ v }) {
                     {" "}
                   </>) : null}
                   {" "}
+                  {(v.hasFormErr) ? (<span role="alert" style={{ fontSize: "14px", letterSpacing: "-0.52px", color: "#b8380f" }}>{v.formErr}</span>) : null}
                   <button type={"submit"} disabled={v.loading} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", height: "48px", width: "100%", border: "0", borderRadius: "14px", background: "#1f6be2", color: "#ffffff", font: "inherit", letterSpacing: "inherit", fontWeight: "600", cursor: "pointer", opacity: v.btnOpacity, transition: "background-color 160ms ease,transform 160ms cubic-bezier(0.23,1,0.32,1)" }} className="dc9482609 dc6106149">
                     {" "}{v.spinner}{v.submitLabel}{" "}
                   </button>
