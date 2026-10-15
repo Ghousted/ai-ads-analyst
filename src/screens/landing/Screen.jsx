@@ -12,7 +12,7 @@ const ANCHOR = { how: 2, pricing: 7 };
 // Mobile menu groups, mirroring the header dropdowns.
 const MNAV = [
   ['Features', [['/#how', 'Reporting'], ['/#how', 'Risk alerts'], ['/#how', 'Drafted check-ins'], ['/integrations', 'Integrations'], ['/#how', 'Scheduled delivery'], ['/#pricing', 'White label'], ['/#how', 'Client dashboard'], ['/#how', 'Feature overview']]],
-  ['Integrations', [['/integrations', 'Meta'], ['/integrations', 'Google Ads'], ['/integrations', 'Facebook Ads'], ['/integrations', 'Instagram Ads'], ['/integrations', 'LinkedIn Ads'], ['/integrations', 'Microsoft Ads'], ['/integrations', 'Google Analytics 4'], ['/integrations', 'Google Search Console'], ['/integrations', 'TikTok Ads'], ['/integrations', 'Google Business Profile'], ['/integrations', 'See all integrations']]],
+  ['Integrations', [['/integrations', 'Meta'], ['/integrations', 'Google Ads'], ['/integrations', 'LinkedIn Ads'], ['/integrations', 'Microsoft Ads'], ['/integrations', 'Google Analytics 4'], ['/integrations', 'Google Search Console'], ['/integrations', 'TikTok Ads'], ['/integrations', 'Google Business Profile'], ['/integrations', 'See all integrations']]],
   ['Solutions', [['/report-examples', 'Paid ads reports'], ['/report-examples', 'Social ads reports'], ['/report-examples', 'Website analytics reports'], ['/report-examples', 'See report examples'], ['/freelancers', 'Freelancers'], ['/agencies', 'Small agencies'], ['/in-house', 'In-house marketers']]],
   ['Resources', [['/help', 'Help center'], ['/blog', 'Blog'], ['/report-examples', 'Report examples'], ['/changelog', "What's new"]]],
 ];

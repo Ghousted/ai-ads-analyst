@@ -21,7 +21,7 @@ class Logic extends React.Component {
     const P = [
       ['meta', 'Meta', '/assets/logo-meta.png'], ['ga4', 'Google Analytics 4', '/assets/logo-ga4.png'], ['google-ads', 'Google Ads', '/assets/logo-google-ads.png'],
       ['tiktok', 'TikTok Ads', '/assets/logo-tiktok.png'], ['linkedin', 'LinkedIn Ads', '/assets/logo-linkedin.png'], ['gsc', 'Search Console', '/assets/logo-search-console.png'],
-      ['instagram', 'Instagram Ads', '/assets/logo-instagram.png'], ['microsoft', 'Microsoft Ads', '/assets/logo-microsoft.png'], ['gbp', 'Google Business Profile', '/assets/logo-google-business.png']
+      ['microsoft', 'Microsoft Ads', '/assets/logo-microsoft.png'], ['gbp', 'Google Business Profile', '/assets/logo-google-business.png']
     ];
     const keys = ['A', 'B', 'C', 'D'];
     const choice = (field, opts) => opts.map(([label, sub], i) => {
@@ -36,8 +36,8 @@ class Logic extends React.Component {
     const Q = [
       { kind: 'text', title: "What's your business called?", help: 'Your clients will see this name on their reports.', placeholder: 'e.g. Rivera Digital', field: 'workspace' },
       { kind: 'choice', title: 'How many people work with you?', help: 'This helps us set up your workspace.', field: 'team', opts: [['Just me', 'Freelancer'], ['2 to 5 people', 'Small team'], ['6 or more', 'Agency']] },
-      { kind: 'multi', title: 'Which tools does your agency use?', help: 'Pick the ad and analytics tools you manage client accounts in.' },
-      { kind: 'connect', title: 'Connect your agency accounts', help: 'Sign in once with your agency login. Clario finds every client account you manage, only reads the data and never changes your ads.' },
+      { kind: 'multi', title: 'Which tools does your agency use?', help: 'Pick the ad and analytics tools you manage client accounts in. Meta covers both Facebook and Instagram ads.' },
+      { kind: 'connect', title: 'Connect your agency accounts', help: 'Sign in once with your agency login. Clario finds every client account you manage. It only reads your data and never changes your ads.' },
       { kind: 'choice', title: 'How often should reports go out?', help: 'Clario writes them on schedule so they are ready to review.', field: 'freq', opts: [['Every Monday', 'Most popular'], ['Every two weeks', ''], ['Once a month', '']] },
       { kind: 'choice', title: 'How should reports sound?', help: 'You can change this for each client later.', field: 'tone', opts: [['Friendly', 'Warm and easy to read'], ['Professional', 'Clear and polished'], ['Short and direct', 'Just the key points']] }
     ];
@@ -55,7 +55,7 @@ class Logic extends React.Component {
       q.noneSelected = S.platforms.length === 0;
       q.options = P.filter(p => S.platforms.includes(p[0])).map(([id, label, logo]) => {
         const st = S.conn[id] || 'idle';
-        const nAcc = { meta: 5, ga4: 4, 'google-ads': 3, tiktok: 1, linkedin: 2, gsc: 4, instagram: 3, microsoft: 1, gbp: 4 }[id] || 2; return { label, logo, found: nAcc + (nAcc === 1 ? ' client account found' : ' client accounts found'), idle: st === 'idle', loading: st === 'loading', done: st === 'done', bd: st === 'done' ? '#bfe3cb' : '#e6ebf2', bg: st === 'done' ? '#f3faf5' : '#ffffff',
+        const nAcc = { meta: 5, ga4: 4, 'google-ads': 3, tiktok: 1, linkedin: 2, gsc: 4, microsoft: 1, gbp: 4 }[id] || 2; return { label, logo, found: nAcc + (nAcc === 1 ? ' client account found' : ' client accounts found'), idle: st === 'idle', loading: st === 'loading', done: st === 'done', bd: st === 'done' ? '#bfe3cb' : '#e6ebf2', bg: st === 'done' ? '#f3faf5' : '#ffffff',
           connect: () => { this.setState(s => ({ conn: { ...s.conn, [id]: 'loading' } })); this.ct = this.ct || {}; this.ct[id] = setTimeout(() => this.setState(s => ({ conn: { ...s.conn, [id]: 'done' } })), 1200); } };
       });
     }
@@ -114,7 +114,7 @@ class Logic extends React.Component {
       },
       doneHasClient: !!cnRaw,
       doneLogos: P.filter(p => S.conn[p[0]] === 'done').map(p => p[2]).concat(Object.values(S.conn).includes('done') ? [] : []),
-      pullText: connectedNames.length ? `Importing the last 90 days from ${connectedNames.join(', ')}.` : 'Using sample data until their accounts are connected.',
+      pullText: connectedNames.length ? `Importing the last 90 days from ${connectedNames.join(', ')} in the background. Reports fill in as each account finishes.` : 'Using sample data until their accounts are connected.',
       reportText: `Ready for you to review ${({ 'Every Monday': 'on Monday', 'Every two weeks': 'in two weeks', 'Once a month': 'at the start of next month' })[S.freq || 'Every Monday']} at 8:00am, written in a ${(S.tone || 'Friendly').toLowerCase()} tone.`,
       riskText: `We'll email you if ${cnRaw} shows signs of leaving, with the reasons and a suggested message.`,
       addLabel: cnRaw ? 'Add another client' : 'Add a client',
