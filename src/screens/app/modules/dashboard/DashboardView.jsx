@@ -20,13 +20,22 @@ export function DashboardView({ v }) {
               {v.anEmptyTitle}
             </span>
             {" "}
-            <span style={{ color: "#5a6474", maxWidth: "420px" }}>
+            {(v.anEmptyLink) ? (<>
+              <span style={{ color: "#5a6474", maxWidth: "420px" }}>
+                {"Your agency is already connected. Link this client's account and "}
+                <span style={{ color: "#1f6be2" }}>
+                  {"Clario"}
+                </span>
+                {" fills this page with their results."}
+              </span>
+            </>) : null}
+            {(v.anEmptyLink) ? null : <span style={{ color: "#5a6474", maxWidth: "420px" }}>
               {"Connect it and "}
               <span style={{ color: "#1f6be2" }}>
                 {"Clario"}
               </span>
               {" will pull in the results automatically, so you never have to log in to the tool itself."}
-            </span>
+            </span>}
             {" "}
             <button onClick={v.anEmptyGo} style={{ marginTop: "8px", height: "44px", padding: "0 18px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">
               {v.anEmptyBtn}
@@ -101,7 +110,7 @@ export function DashboardView({ v }) {
               {" "}
             </div>
             {" "}
-            <div style={{ display: "flex", alignItems: "center", gap: "14px", fontSize: "14px", color: "#5a6474" }}>
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px 14px", fontSize: "14px", color: "#5a6474" }}>
               <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ width: "12px", height: "3px", borderRadius: "0", background: v.anColor }}></span>
                 {"This period"}
@@ -109,6 +118,9 @@ export function DashboardView({ v }) {
               <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ width: "12px", height: "0", borderTop: "2px dashed #97a2b2" }}></span>
                 {"Previous period"}
+              </span>
+              <span style={{ marginLeft: "auto", textAlign: "right" }}>
+                {v.anFresh}
               </span>
             </div>
             {" "}
