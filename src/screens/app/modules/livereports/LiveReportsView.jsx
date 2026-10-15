@@ -137,10 +137,6 @@ export function LiveReportsView({ v }) {
                 ))}
               </ol>
             </section>
-            <div className="clario-noprint" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <button type="button" onClick={v.lrAddSection} style={btn}>{"Add section"}</button>
-              <button type="button" onClick={v.lrAddStep} style={btn}>{"Add next step"}</button>
-            </div>
             <span style={{ fontSize: "13px", color: "#5a6474" }}>{v.lrSource}</span>
           </div>
         </article>
