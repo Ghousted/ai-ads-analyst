@@ -168,7 +168,8 @@ export default function View({ v }) {
             {(v.sampleMode) ? (
               <p role={"note"} style={{ margin: "0", padding: "12px 16px", background: "#fff6c2", color: "#5c4400", fontSize: "15px", textWrap: "pretty" }}>
                 <strong style={{ fontWeight: "700" }}>{"Sample data. "}</strong>
-                {"These clients and numbers are examples so you can look around. Your own clients replace them once you connect Meta or Google Analytics."}
+                {"These clients and numbers are examples so you can look around. Your own clients replace them once you connect Google Analytics."}
+                {(v.canConnect) ? (<>{" "}<a href={"/api/integrations/google/start"} style={{ fontWeight: "700", color: "#5c4400" }}>{"Connect Google Analytics"}</a></>) : null}
               </p>
             ) : null}
             {(v.showHeader) ? (<>
@@ -309,6 +310,13 @@ export default function View({ v }) {
               {" "}
             </>) : null}
             {" "}
+            {(v.liveReportsEmpty) ? (
+              <div style={{ minHeight: "52vh", padding: "48px 24px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", textAlign: "center" }}>
+                <span style={{ fontWeight: "700", fontSize: "18px" }}>{"Reports start with real numbers"}</span>
+                <span style={{ color: "#5a6474", maxWidth: "440px" }}>{"Once Google Analytics data is pulled for a client's linked property, "}<span style={{ color: "#1f6be2" }}>{"Analyst"}</span>{" writes their report here for you to review and send."}</span>
+                <button onClick={v.liveReportsGo} style={{ marginTop: "8px", height: "44px", padding: "0 18px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{"Open integrations"}</button>
+              </div>
+            ) : null}
             {FEATURES.map(f => <f.View key={f.id} v={v} />)}
             {" "}
           </div>

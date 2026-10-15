@@ -1,6 +1,7 @@
 'use client';
 // Behaviour for AppScreen, ported from design/App.dc.html.
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import View, { css } from './View';
 import { FEATURES } from './modules';
 import { clSplit, TCOLS, PEOPLE, DEF_TASKS, LOGOS, clientTools } from './data';
@@ -10,8 +11,13 @@ class Logic extends React.Component {
   static defaultProps = {};
 
   // The signed-in person, their agency and team arrive as props from the server page.
-  state = { me: this.props.me, agName: this.props.agency?.name, members: this.props.team, view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
+  state = { me: this.props.me, agName: this.props.agency?.name, members: this.props.team, tasks: this.props.live ? [] : null, view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
   componentDidMount() {
+    // Back from Google sign-in for GA4: open Integrations and say what happened, then tidy the address bar.
+    try { const q = new URLSearchParams(window.location.search); if (q.get('integration') === 'google') {
+      const n = Number(q.get('found') || 0), msg = { connected: 'Google Analytics connected as ' + q.get('login') + '. ' + n + (n === 1 ? ' property' : ' properties') + ' found. Link each one to a client below.', cancelled: 'Google sign-in was cancelled. Nothing changed.', noscope: 'Google didn\'t share Analytics access. Connect again and tick the Google Analytics box.', expired: 'That sign-in took too long. Try connecting again.', forbidden: 'Only the owner and admins can connect tools.', unconfigured: 'Google sign-in isn\'t set up on this server yet.', apidisabled: 'The Google Analytics Admin API is turned off in the Google Cloud project. Turn it on and connect again.', failed: 'Google didn\'t finish connecting. Try again.' }[q.get('result')] || 'Google didn\'t finish connecting. Try again.';
+      this.setState({ view: 'settings', stgTab: 'conn', stgOpen: { ga4: true }, stgToast: msg }); this.stT = setTimeout(() => this.setState({ stgToast: null }), 9000);
+      window.history.replaceState(null, '', '/app'); } } catch (e) {}
     try { const r = new URLSearchParams(window.location.search).get('report'); if (r != null && /^\d+$/.test(r)) this.setState({ view: 'repview', repIdx: Number(r) }); } catch (e) {}
     this._hs = () => { const y = (document.scrollingElement || document.documentElement).scrollTop > 8; if (y !== !!this.state.hdrStuck) this.setState({ hdrStuck: y }); }; window.addEventListener('scroll', this._hs, { passive: true });
     this._ctxClose = e => { if (this.state.ctx && !e.target.closest('[role=menu]')) this.setState({ ctx: null }); }; document.addEventListener('mousedown', this._ctxClose); this._rp = () => this.positionSel?.(); window.addEventListener('resize', this._rp);
@@ -37,7 +43,9 @@ class Logic extends React.Component {
     const S = this.state.cForm && !this.state.navC ? { ...this.state, navC: true } : this.state, go = (view, extra = {}) => () => this.setState({ view, ...extra });
     const ST = { h: ['Healthy', '#e3f3e8', '#1d6b3a'], n: ['Needs attention', '#fff6c2', '#7a5a00'], r: ['At risk', '#fde2d6', '#a3330c'] };
     const L = LOGOS;
-    const C = [
+    // Live agencies see their own clients (from the server); sample agencies see the built-in examples.
+    const live = this.props.live || null;
+    const C = live ? [] : [
       { name: 'Northside Physio', i: 'NP', s: 'r', leads: 44, delta: '−6%', bars: [61, 55, 47, 44, 46, 44], last: 'Sent Sep 26, not viewed', tone: 'Reassuring',
         signals: [['Leads down 3 weeks', '−9%, −14%, −6%'], ['Portal not visited', 'Last visit Sep 12'], ['Last report not viewed', 'Sent Sep 26']], action: 'book a 15-minute call before the Oct 15 invoice.', draft: 'Hi Dana, leads have dipped the last few weeks. I have an idea for fixing it. Do you have 15 minutes on Thursday?' },
       { name: 'Kalye Streetwear', i: 'KS', s: 'n', leads: 188, delta: '−7%', bars: [210, 238, 201, 196, 190, 188], last: 'Sent Oct 6, viewed', tone: 'Straightforward',
@@ -49,9 +57,10 @@ class Logic extends React.Component {
       { name: 'Coastline Realty', i: 'CR', s: 'h', leads: 40, delta: '+8%', bars: [34, 31, 37, 36, 38, 40], last: 'Sent Oct 5, viewed', tone: 'Straightforward',
         signals: [['Leads up', '+8%'], ['On budget', '58% spent'], ['Reports viewed', 'Within a day']] }
     ];
-    (S.extraClients || []).forEach(x => C.push({ name: x.name, i: x.name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), s: 'h', leads: 0, delta: '+0%', bars: [1, 1, 1, 1, 1, 1], last: 'No reports yet', tone: 'Reassuring', signals: [['New client', 'No data yet'], ['Accounts', clientTools(S, x.name).length + ' linked'], ['Reports', 'None sent yet']], extra: x }));
+    (live ? live.clients.map(c => ({ ...c, plats: [] })) : (S.extraClients || [])).forEach(x => C.push({ name: x.name, i: x.name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), s: 'h', leads: 0, delta: '+0%', bars: [1, 1, 1, 1, 1, 1], last: 'No reports yet', tone: 'Reassuring', signals: [['New client', 'No data yet'], ['Accounts', clientTools(S, x.name).length + ' linked'], ['Reports', 'None sent yet']], extra: x }));
     // A client's tools come only from the accounts assigned to it in Settings › Integrations.
-    C.forEach(c => { c.logos = clientTools(S, c.name); });
+    const SL = live ? { ...S, live } : S;
+    C.forEach(c => { c.logos = clientTools(SL, c.name); });
     const card = (c, idx) => {
       const [status, bg, col] = ST[c.s], mx = Math.max(...c.bars);
       return { ...c, initials: c.i, status, bg, c: col, dc: c.delta.startsWith('+') ? '#1d6b3a' : '#5a6474',
@@ -121,7 +130,7 @@ class Logic extends React.Component {
     const v = S.view;
     const inDash = true;
     const cur = clients[S.cid] || clients[0];
-    const defTasks = DEF_TASKS;
+    const defTasks = live ? [] : DEF_TASKS;
     const tkSrc = (S.tasks || defTasks).map(t => ({ ...t, status: t.status || (t.done ? 'done' : 'todo'), client: t.client || ((t.meta || '').split(' · ')[0] === 'No client' ? '' : (t.meta || '').split(' · ')[0]), sub: t.sub || [0, 0], who: Array.isArray(t.who) ? t.who : [t.who || 'AR'], due: t.due || '', desc: t.desc || '', cm: t.cm || 0 }));
     const setTasks = fn => this.setState(s => { const arr = (s.tasks || defTasks).map(t => ({ ...t })); fn(arr); return { tasks: arr, tkMenu: null }; });
     const moveTask = (i, k) => setTasks(arr => { arr[i].status = k; arr[i].done = k === 'done'; if (k === 'done' && arr[i].sub) arr[i].sub = [arr[i].sub[1], arr[i].sub[1]]; });
@@ -129,7 +138,7 @@ class Logic extends React.Component {
       toggle: () => moveTask(i, t.status === 'done' ? 'todo' : 'done') }));
     const p = pages[v] || pages.kpi;
     const atRisk = clients.filter(c => c.risky);
-    const ctx = { S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll };
+    const ctx = { live, SL, refresh: () => this.props.refresh?.(), S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE, tkSrc, setTasks, moveTask, tasksAll };
     return {
       pageO: S.pageO, modules: modules.map(m => ({ ...m, badgePill: m.hasBadge && !S.navC, badgeDot: m.hasBadge && !!S.navC, title: m.hasBadge ? m.label + ' (' + m.badge + ' need attention)' : m.label, rowsN: S.navC ? '0fr' : m.rows, multi: m.multi && !S.navC })),
       navOpen: !S.navC, swH: S.navC ? '50px' : '60px', swPadL: S.navC ? '2.5px' : '8px', swAv: S.navC ? '42px' : '42px', swR: S.navC ? '14px' : '16px', navW: S.navC ? '74px' : '264px', navTxt: S.navC ? 'none' : 'inline', navTxtFlex: S.navC ? 'none' : 'flex', navTxtGrid: S.navC ? 'none' : 'grid', navDot: S.navC ? 'block' : 'none', navJust: 'flex-start', navTopDir: S.navC ? 'column' : 'row', navAlign: S.navC ? 'flex-start' : 'center', navPad: '10px', navSwPad: S.navC ? '0' : '12px', navSetW: S.navC ? '36px' : '44px',
@@ -141,6 +150,8 @@ class Logic extends React.Component {
         const reply = q => {
           const t = q.toLowerCase(), name = who ? who.name : 'your clients';
           if (/task|todo|remind/.test(t)) { const title = q.replace(/^(add|create)( a)? task( to)?:?\s*/i, '') || 'Follow up'; this.setState(s => ({ tasks: [{ title: title.charAt(0).toUpperCase() + title.slice(1), meta: (who ? who.name : 'No client') + ' · Due this week', who: 'AR', done: false }, ...(s.tasks || defTasks)] })); return 'Added to Tasks: "' + title + '"' + (who ? ' for ' + who.name : '') + ', due this week.'; }
+          // Live agencies: answers about numbers come once data is pulled and Claude writes them. Until then, say so.
+          if (live) return 'I can\'t read your clients\' numbers yet. They appear once Google Analytics data is pulled for a linked property. For now I can add tasks: try "Add task: call ' + (who ? who.name : 'a client') + '".';
           if (/report/.test(t)) return 'I drafted a ' + (who ? who.tone.toLowerCase() : 'reassuring') + ' report for ' + name + ':\n1. Headline result\n2. Key numbers\n3. What happened and why\n4. Next steps\nIt is waiting in Reporting for you to review before it sends.';
           if (/alert|notify|tell me/.test(t)) return 'Done. I will email you when ' + name + (who ? ' gets' : ' get') + ' 20% fewer leads than usual or goes over the cost per lead target.';
           if (/why|drop|down|worse|risk|attention/.test(t)) { const c = who || clients.find(x => x.s === 'r'); return c.name + ' is ' + c.status.toLowerCase() + ' because: ' + c.signals.map(s => s.t.toLowerCase()).join(', ') + '.' + (c.action ? ' I suggest you ' + c.action : ''); }
@@ -167,9 +178,12 @@ class Logic extends React.Component {
       swList: [{ name: 'All clients', initials: 'All', sub: `${clients.length} clients`, avBg: '#0b1626', avC: '#ffffff', on: S.sel == null, bg: S.sel == null ? '#eef3fd' : 'transparent', pick: () => this.setState(s => ({ sel: null, swOpen: false, view: (s.view === 'clients' && !s.cForm) ? 'an' : s.view })) }]
         .concat(clients.map((c, i) => ({ name: c.name, initials: c.initials, sub: c.status, avBg: '#d6e4f8', avC: '#0b1626', on: S.sel === i, bg: S.sel === i ? '#eef3fd' : 'transparent', pick: () => this.setState({ sel: i, cid: i, tab: 0, swOpen: false }) }))),
       hdrShadow: S.hdrStuck ? '0 1px 0 #e6ebf2, 0 8px 20px -16px rgba(11,22,38,.35)' : 'none', showHeader: v !== 'client' && v !== 'builder' && v !== 'repview' && v !== 'settings', crumb: p[0], pageTitle: v === 'kpi' ? 'KPIs & goals' : (v === 'clients' && S.cForm) ? 'New client' : p[1], pageSub: v === 'kpi' ? `${atRisk.length} clients need attention. ${clients.length - atRisk.length} are doing well.` : p[2],
-      showSw: v === 'an' || v.startsWith('an-') || v === 'kpi', hasAction: !!p[3] && !(v === 'clients' && S.cForm), actionLabel: p[3], action: v === 'tasks' ? () => this.setState({ tw: { step: 1, title: '', desc: '', client: S.sel != null ? C[S.sel].name : '', due: '', who: ['AR'], items: [], itemVal: '' }, twErr: null }) : v === 'clients' ? () => this.setState({ view: 'clients', sel: null, swOpen: false, cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : v === 'templates' ? () => this.setState({ newRep: { step: 1, name: '', tpl: 'blank', err: false, direct: true } }) : v === 'clients' ? () => this.setState({ cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : () => {},
-      vKpi: v === 'kpi', vClient: v === 'client', vTasks: v === 'tasks', vBuilder: v === 'builder',
-      meName: S.me?.name || '', meInitials: (S.me?.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), meRole: S.me?.role || '', agencyName: S.agName, sampleMode: !!this.props.agency?.sampleMode,
+      showSw: v === 'an' || v.startsWith('an-') || v === 'kpi', hasAction: !!p[3] && !(v === 'clients' && S.cForm) && !(live && ['templates', 'reports'].includes(v)), actionLabel: p[3], action: v === 'tasks' ? () => this.setState({ tw: { step: 1, title: '', desc: '', client: S.sel != null ? C[S.sel].name : '', due: '', who: ['AR'], items: [], itemVal: '' }, twErr: null }) : v === 'clients' ? () => this.setState({ view: 'clients', sel: null, swOpen: false, cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : v === 'templates' ? () => this.setState({ newRep: { step: 1, name: '', tpl: 'blank', err: false, direct: true } }) : v === 'clients' ? () => this.setState({ cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : () => {},
+      vKpi: v === 'kpi', vClient: v === 'client', vTasks: v === 'tasks', vBuilder: v === 'builder' && !live,
+      // Live agencies: reports need real numbers and the AI writer, which are not built yet. Say so instead of filling reports with examples.
+      liveReportsEmpty: !!live && ['templates', 'reports', 'builder', 'repview'].includes(v),
+      liveReportsGo: () => this.setState({ view: 'settings', stgTab: 'conn' }),
+      meName: S.me?.name || '', meInitials: (S.me?.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), meRole: S.me?.role || '', agencyName: S.agName, sampleMode: !!this.props.agency?.sampleMode, canConnect: S.me?.role !== 'Member',
       goSettings: go('settings'), goReports: go('reports'), goHistory: go('reports'), histCount: '', goTemplates: go('templates'), viewRef: this.viewRef, setAria: v === 'settings' ? 'page' : undefined, setBg: v === 'settings' ? '#eef3fd' : 'transparent', setC: v === 'settings' ? '#1f6be2' : '#45505f',
       ...FEATURES.reduce((o, f) => Object.assign(o, f.vals(this, ctx)), {}),
     };
@@ -179,7 +193,8 @@ class Logic extends React.Component {
 const PRINT_CSS = '@media print{body *{visibility:hidden !important}.clario-print,.clario-print *{visibility:visible !important}.clario-print{position:absolute !important;left:0;top:0;box-shadow:none !important}}';
 
 export default function AppScreen(props) {
-  return <Logic {...props} />;
+  const router = useRouter();
+  return <Logic {...props} refresh={() => router.refresh()} />;
 }
 
 Logic.prototype.render = function render() {

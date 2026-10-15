@@ -53,3 +53,41 @@ export const clients = pgTable('clients', {
   schedule: text('schedule').notNull().default('Mondays, 8:00am'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [index('clients_agency_idx').on(t.agencyId)]);
+
+// One login to a platform. Google allows several per agency (each Google user sees different properties).
+// Tokens are encrypted with TOKEN_ENCRYPTION_KEY before they are stored.
+export const PROVIDERS = ['google', 'meta'] as const;
+export const providerEnum = pgEnum('provider', PROVIDERS);
+export const CONN_STATUS = ['ok', 'error'] as const;
+export const connStatusEnum = pgEnum('connection_status', CONN_STATUS);
+
+export const connections = pgTable('connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agencyId: uuid('agency_id').notNull().references(() => agencies.id, { onDelete: 'cascade' }),
+  provider: providerEnum('provider').notNull(),
+  login: text('login').notNull(),
+  connectedBy: uuid('connected_by').references(() => users.id, { onDelete: 'set null' }),
+  refreshToken: text('refresh_token'),
+  accessToken: text('access_token'),
+  accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
+  status: connStatusEnum('status').notNull().default('ok'),
+  error: text('error'),
+  lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [uniqueIndex('connections_agency_login_idx').on(t.agencyId, t.provider, t.login)]);
+
+// Something a connection can read: a GA4 property, a Meta ad account. Assigned to at most one client.
+export const TOOLS = ['ga4', 'meta'] as const;
+export const toolEnum = pgEnum('tool', TOOLS);
+
+export const accounts = pgTable('accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agencyId: uuid('agency_id').notNull().references(() => agencies.id, { onDelete: 'cascade' }),
+  connectionId: uuid('connection_id').notNull().references(() => connections.id, { onDelete: 'cascade' }),
+  tool: toolEnum('tool').notNull(),
+  externalId: text('external_id').notNull(),
+  name: text('name').notNull(),
+  detail: text('detail').notNull().default(''),
+  clientId: uuid('client_id').references(() => clients.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [uniqueIndex('accounts_connection_external_idx').on(t.connectionId, t.externalId), index('accounts_client_idx').on(t.clientId)]);

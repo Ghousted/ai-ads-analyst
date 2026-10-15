@@ -291,7 +291,7 @@ export function ClientsView({ v }) {
                         {" "}
                         {(v.cPlatsNone) ? (<>
                           <span style={{ color: "#45505f" }}>
-                            {"Every connected account is already linked to a client."}
+                            {v.cPlatsNoneText}
                           </span>
                         </>) : null}
                         <span style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px 12px", fontSize: "14px", color: "#5a6474" }}>
@@ -367,6 +367,13 @@ export function ClientsView({ v }) {
               {" "}
             </div>
             {" "}
+            {(v.cNoClients) ? (
+              <div style={{ padding: "40px 22px", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "8px" }}>
+                <span style={{ fontWeight: "700", fontSize: "18px" }}>{"No clients yet"}</span>
+                <span style={{ color: "#5a6474", maxWidth: "460px" }}>{"Add a client and link their Google Analytics property. Their results and reports then show up here."}</span>
+                <button onClick={v.cAddOpen} style={{ marginTop: "8px", height: "44px", padding: "0 18px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{"Add client"}</button>
+              </div>
+            ) : null}
             {((v.cRows) || []).map((r, $index) => (
               <React.Fragment key={$index}>
                 {" "}
@@ -633,6 +640,7 @@ export function ClientsView({ v }) {
                 {" "}
               </div>
               {" "}
+              {(v.pfAskShow) ? (
               <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", padding: "16px 0 12px", borderTop: "1px solid #eef1f6" }}>
                 <span style={{ flex: "1 1 220px", minWidth: "0", display: "flex", flexDirection: "column", lineHeight: "1.3" }}>
                   <span style={{ fontWeight: "600" }}>
@@ -646,6 +654,7 @@ export function ClientsView({ v }) {
                   {v.pfAskCopied ? "Copied" : v.pfAskBtn}
                 </button>
               </div>
+              ) : null}
             </section>
             {" "}
           </>) : null}
