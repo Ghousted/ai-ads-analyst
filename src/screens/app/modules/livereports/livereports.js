@@ -3,7 +3,7 @@ import { generateReportAction, saveReportAction, rewritePartAction, deleteReport
 import { fmtDay } from '../../metrics';
 import { TEMPLATES, templateBlocks } from '@/lib/report-blocks';
 
-// New reports are titled "Weekly report · Oct 8 – Oct 14". The list shows the period on its own line, so the dates come off the title there.
+// New reports are titled "Weekly report · Oct 8 – Oct 14". The list shows the period in its own column, so the dates come off the title there.
 const listTitle = t => t.replace(/ · [A-Z][a-z]{2} \d{1,2} – [A-Z][a-z]{2} \d{1,2}$/, '');
 
 
