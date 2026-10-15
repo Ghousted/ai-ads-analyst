@@ -12,11 +12,7 @@ const COLS = 'minmax(0,1.6fr) minmax(0,1.2fr) minmax(0,1fr) 90px 110px';
 export function LiveReportsView({ v }) {
   if (v.lrList) return (
     <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
-      <section aria-labelledby="lr-tpl-h" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <h2 id="lr-tpl-h" style={{ margin: "0", fontSize: "20px", fontWeight: "700", letterSpacing: "-0.4px" }}>{"Write a report"}</h2>
-          <span style={{ color: "#5a6474", textWrap: "pretty" }}>{"Pick a template and Analyst writes it from the client’s numbers, or start blank. You can change everything after."}</span>
-        </div>
+      <section aria-label="Report templates" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
           <div role="tablist" aria-label="Template categories" style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
             {(v.lrCats || []).map(c => (
