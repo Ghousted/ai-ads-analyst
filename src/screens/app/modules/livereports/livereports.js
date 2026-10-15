@@ -19,7 +19,8 @@ export function liveReportsVals(app, ctx) {
   const base = { ...off, lrModal: false, lrWriting: false, lrToast: !!S.lrToast, lrToastText: S.lrToast || '' };
 
   // While a report is being written, and until the refreshed list contains it, a full-screen loading state shows.
-  const pending = !!S.lrPendingId && !reports.some(x => x.id === S.lrPendingId);
+  // Only a report created in the last minute counts as pending, so deleting it later can't bring the loader back.
+  const pending = !!S.lrPendingId && !reports.some(x => x.id === S.lrPendingId) && Date.now() - (S.lrPendingAt || 0) < 60000;
   const writing = !!S.lrBusy || pending;
   const MSGS = ['Reading the numbers\u2026', 'Comparing with the period before\u2026', 'Writing the summary\u2026', 'Checking every number\u2026'];
   const startMsgs = () => { clearInterval(app.lrMsgT); app.setState({ lrMsg: 0 });
@@ -36,7 +37,7 @@ export function liveReportsVals(app, ctx) {
     const close = () => { if (!busy) app.setState({ lrModal: false, lrErr: null }); };
     const toolsOf = id => { const t = new Set((live.metrics.accounts || []).filter(a => (id == null ? a.clientId : a.clientId === id)).map(a => a.tool)); return [...t].map(x => x === 'ga4' ? '/assets/logo-ga4.png' : '/assets/logo-meta.png'); };
     const create = tpl => { if (busy || !pick) return; app.setState({ lrBusy: true, lrErr: null, lrWritingFor: pick, lrWritingBlank: tpl === 'blank' }); if (tpl !== 'blank') startMsgs();
-      generateReportAction({ clientId: pick, days, template: tpl, title: (S.lrName || '').trim() }).then(r => { if (r.error) return app.setState({ lrBusy: false, lrErr: r.error }); app.setState({ lrBusy: false, lrModal: false, lrPendingId: r.id, view: 'lrep', lrId: r.id, lrDraft: null }); refresh(); },
+      generateReportAction({ clientId: pick, days, template: tpl, title: (S.lrName || '').trim() }).then(r => { if (r.error) return app.setState({ lrBusy: false, lrErr: r.error }); app.setState({ lrBusy: false, lrModal: false, lrPendingId: r.id, lrPendingAt: Date.now(), view: 'lrep', lrId: r.id, lrDraft: null }); refresh(); },
         () => app.setState({ lrBusy: false, lrErr: 'Writing the report failed. Try again.' })); };
     // Template cards: a small preview drawn from the blocks each template lays out.
     const PH = { headline: 'x', summary: 'x', sections: [{ heading: 'x', body: 'x' }], nextSteps: ['x'] };
@@ -80,7 +81,7 @@ export function liveReportsVals(app, ctx) {
 
   if (v !== 'lrep') return base;
   const r = reports.find(x => x.id === S.lrId);
-  if (!r && S.lrPendingId === S.lrId) return { ...base, ...writingVals, lrWriting: true, lrModal: true, lrBackdrop: () => {}, lrClose: () => {} };
+  if (!r && pending && S.lrPendingId === S.lrId) return { ...base, ...writingVals, lrWriting: true, lrModal: true, lrBackdrop: () => {}, lrClose: () => {} };
   if (!r) return { ...base, lrPage: true, lrMissing: true, lrBack: () => app.setState({ view: 'templates' }) };
   const f = r.facts, client = clients.find(x => x.id === r.clientId) || { name: 'Removed client' };
   // The editor holds the document; every change lands here as an unsaved draft. Discard reloads the saved version.
@@ -101,7 +102,7 @@ export function liveReportsVals(app, ctx) {
     lrDiscard: () => app.setState(s => ({ lrDraft: null, lrEditorKey: (s.lrEditorKey || 0) + 1 })),
     lrPdf: () => { if (document.activeElement) document.activeElement.blur(); setTimeout(() => window.print(), 50); },
     lrDelete: () => { if (S.lrDelAsk !== r.id) { app.setState({ lrDelAsk: r.id }); clearTimeout(app.lrDT); app.lrDT = setTimeout(() => app.setState({ lrDelAsk: null }), 4000); return; }
-      deleteReportAction(r.id).then(x => { if (x.error) return toast(x.error); app.setState({ view: 'templates', lrDelAsk: null, lrDraft: null }); refresh(); }); },
+      deleteReportAction(r.id).then(x => { if (x.error) return toast(x.error); app.setState({ view: 'templates', lrDelAsk: null, lrDraft: null, lrPendingId: null }); refresh(); }); },
     lrDeleteLabel: S.lrDelAsk === r.id ? 'Click again to delete' : 'Delete',
   };
 }
