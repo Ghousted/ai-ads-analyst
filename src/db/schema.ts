@@ -1,6 +1,6 @@
 // Database schema. Neon Auth keeps its own tables in the neon_auth schema of the same database;
 // users.authUserId links a person here to their Neon Auth account.
-import { boolean, date, doublePrecision, index, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, date, doublePrecision, index, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const ROLES = ['owner', 'admin', 'member'] as const;
 export const roleEnum = pgEnum('member_role', ROLES);
@@ -106,3 +106,35 @@ export const metricRows = pgTable('metric_rows', {
   metric: text('metric').notNull(),
   value: doublePrecision('value').notNull(),
 }, t => [primaryKey({ columns: [t.accountId, t.day, t.dim, t.dimValue, t.metric] }), index('metric_rows_account_day_idx').on(t.accountId, t.day)]);
+
+// A client report. facts is the snapshot of numbers it was written from (so it never changes under the reader);
+// content is the written report (headline, summary, sections, next steps), editable after Claude writes it.
+export const REPORT_STATUS = ['draft', 'sent'] as const;
+export const reportStatusEnum = pgEnum('report_status', REPORT_STATUS);
+
+export const reports = pgTable('reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agencyId: uuid('agency_id').notNull().references(() => agencies.id, { onDelete: 'cascade' }),
+  clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  periodStart: date('period_start').notNull(),
+  periodEnd: date('period_end').notNull(),
+  status: reportStatusEnum('status').notNull().default('draft'),
+  facts: jsonb('facts').notNull(),
+  content: jsonb('content').notNull(),
+  model: text('model'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+}, t => [index('reports_agency_idx').on(t.agencyId, t.createdAt)]);
+
+// Every paid AI call, for per-agency daily limits.
+export const aiUsage = pgTable('ai_usage', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agencyId: uuid('agency_id').notNull().references(() => agencies.id, { onDelete: 'cascade' }),
+  action: text('action').notNull(),
+  inputTokens: doublePrecision('input_tokens').notNull().default(0),
+  outputTokens: doublePrecision('output_tokens').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [index('ai_usage_agency_idx').on(t.agencyId, t.createdAt)]);

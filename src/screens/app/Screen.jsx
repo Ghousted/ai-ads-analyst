@@ -94,7 +94,7 @@ class Logic extends React.Component {
       ['kpis', 'KPIs & goals', [['kpi', 'KPIs & goals']]],
     ];
     const rkCount = C.filter(c => c.s !== 'h' && !(S.rkGone || {})[c.name]).length;
-    const activeView = S.view === 'client' ? 'clients' : (S.view === 'builder' || S.view === 'repview' || S.view === 'reports') ? 'templates' : S.view;
+    const activeView = S.view === 'client' ? 'clients' : (S.view === 'builder' || S.view === 'repview' || S.view === 'reports' || S.view === 'lrep') ? 'templates' : S.view;
     const modules = M.map(([id, label, items]) => {
       const hasActive = items.some(x => x[0] === activeView || (x[2] && x[2].some(y => y[0] === activeView))), open = hasActive;
       const single = id === 'reporting' || id === 'monitoring' || id === 'clients' || id === 'kpis' || id === 'workflow' || id === 'risk';
@@ -185,12 +185,10 @@ class Logic extends React.Component {
       swProfile: false, goProfile: () => this.setState({ view: 'clients', clList: false, swOpen: false, pfDraft: null }), swProfileLabel: 'View client profile',
       swList: [{ name: 'All clients', initials: 'All', sub: `${clients.length} clients`, avBg: '#0b1626', avC: '#ffffff', on: S.sel == null, bg: S.sel == null ? '#eef3fd' : 'transparent', pick: () => this.setState(s => ({ sel: null, swOpen: false, view: (s.view === 'clients' && !s.cForm) ? 'an' : s.view })) }]
         .concat(clients.map((c, i) => ({ name: c.name, initials: c.initials, sub: c.status, avBg: '#d6e4f8', avC: '#0b1626', on: S.sel === i, bg: S.sel === i ? '#eef3fd' : 'transparent', pick: () => this.setState({ sel: i, cid: i, tab: 0, swOpen: false }) }))),
-      hdrShadow: S.hdrStuck ? '0 1px 0 #e6ebf2, 0 8px 20px -16px rgba(11,22,38,.35)' : 'none', showHeader: v !== 'client' && v !== 'builder' && v !== 'repview' && v !== 'settings', crumb: p[0], pageTitle: v === 'kpi' ? 'KPIs & goals' : (v === 'clients' && S.cForm) ? 'New client' : p[1], pageSub: v === 'kpi' ? `${atRisk.length} clients need attention. ${clients.length - atRisk.length} are doing well.` : p[2],
-      showSw: v === 'an' || v.startsWith('an-') || v === 'kpi', hasAction: !!p[3] && !(v === 'clients' && S.cForm) && !(live && ['templates', 'reports'].includes(v)), actionLabel: p[3], action: v === 'tasks' ? () => this.setState({ tw: { step: 1, title: '', desc: '', client: S.sel != null ? C[S.sel].name : '', due: '', who: ['AR'], items: [], itemVal: '' }, twErr: null }) : v === 'clients' ? () => this.setState({ view: 'clients', sel: null, swOpen: false, cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : v === 'templates' ? () => this.setState({ newRep: { step: 1, name: '', tpl: 'blank', err: false, direct: true } }) : v === 'clients' ? () => this.setState({ cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : () => {},
+      hdrShadow: S.hdrStuck ? '0 1px 0 #e6ebf2, 0 8px 20px -16px rgba(11,22,38,.35)' : 'none', showHeader: v !== 'client' && v !== 'builder' && v !== 'repview' && v !== 'settings' && v !== 'lrep', crumb: p[0], pageTitle: v === 'kpi' ? 'KPIs & goals' : (v === 'clients' && S.cForm) ? 'New client' : p[1], pageSub: v === 'kpi' ? `${atRisk.length} clients need attention. ${clients.length - atRisk.length} are doing well.` : p[2],
+      showSw: v === 'an' || v.startsWith('an-') || v === 'kpi', hasAction: !!p[3] && !(v === 'clients' && S.cForm), // Live agencies: the Reports header button opens the write-a-report dialog.
+      actionLabel: live && (v === 'templates' || v === 'reports') ? 'Write report' : p[3], action: live && (v === 'templates' || v === 'reports') ? () => this.setState({ lrModal: true, lrErr: null }) : v === 'tasks' ? () => this.setState({ tw: { step: 1, title: '', desc: '', client: S.sel != null ? C[S.sel].name : '', due: '', who: ['AR'], items: [], itemVal: '' }, twErr: null }) : v === 'clients' ? () => this.setState({ view: 'clients', sel: null, swOpen: false, cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : v === 'templates' ? () => this.setState({ newRep: { step: 1, name: '', tpl: 'blank', err: false, direct: true } }) : v === 'clients' ? () => this.setState({ cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : () => {},
       vKpi: v === 'kpi', vClient: v === 'client', vTasks: v === 'tasks', vBuilder: v === 'builder' && !live,
-      // Live agencies: reports need real numbers and the AI writer, which are not built yet. Say so instead of filling reports with examples.
-      liveReportsEmpty: !!live && ['templates', 'reports', 'builder', 'repview'].includes(v),
-      liveReportsGo: () => this.setState({ view: 'settings', stgTab: 'conn' }),
       meName: S.me?.name || '', meInitials: (S.me?.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), meRole: S.me?.role || '', agencyName: S.agName, sampleMode: !!this.props.agency?.sampleMode, canConnect: S.me?.role !== 'Member',
       goSettings: go('settings'), goReports: go('reports'), goHistory: go('reports'), histCount: '', goTemplates: go('templates'), viewRef: this.viewRef, setAria: v === 'settings' ? 'page' : undefined, setBg: v === 'settings' ? '#eef3fd' : 'transparent', setC: v === 'settings' ? '#1f6be2' : '#45505f',
       ...FEATURES.reduce((o, f) => Object.assign(o, f.vals(this, ctx)), {}),
@@ -198,7 +196,7 @@ class Logic extends React.Component {
   }
 }
 // Download PDF uses the browser's print dialog: only the report page is printed.
-const PRINT_CSS = '@media print{body *{visibility:hidden !important}.clario-print,.clario-print *{visibility:visible !important}.clario-print{position:absolute !important;left:0;top:0;box-shadow:none !important}}';
+const PRINT_CSS = '@media print{body *{visibility:hidden !important}.clario-print,.clario-print *{visibility:visible !important}.clario-print{position:absolute !important;left:0;top:0;box-shadow:none !important}.clario-print .clario-noprint,.clario-print .clario-noprint *{display:none !important}.clario-print button[aria-label^="Remove"]{display:none !important}}';
 
 export default function AppScreen(props) {
   const router = useRouter();

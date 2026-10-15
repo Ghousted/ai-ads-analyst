@@ -12,6 +12,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.134.0",
     "@neondatabase/auth": "^0.6.0-beta",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.0",

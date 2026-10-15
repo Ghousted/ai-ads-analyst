@@ -310,13 +310,6 @@ export default function View({ v }) {
               {" "}
             </>) : null}
             {" "}
-            {(v.liveReportsEmpty) ? (
-              <div style={{ minHeight: "52vh", padding: "48px 24px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", textAlign: "center" }}>
-                <span style={{ fontWeight: "700", fontSize: "18px" }}>{"Reports start with real numbers"}</span>
-                <span style={{ color: "#5a6474", maxWidth: "440px" }}>{"Once Google Analytics data is pulled for a client's linked property, "}<span style={{ color: "#1f6be2" }}>{"Analyst"}</span>{" writes their report here for you to review and send."}</span>
-                <button onClick={v.liveReportsGo} style={{ marginTop: "8px", height: "44px", padding: "0 18px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{"Open integrations"}</button>
-              </div>
-            ) : null}
             {FEATURES.map(f => <f.View key={f.id} v={v} />)}
             {" "}
           </div>
@@ -325,7 +318,7 @@ export default function View({ v }) {
         {" "}
         {FEATURES.map(f => f.Overlay && <f.Overlay key={f.id} v={v} />)}
         {" "}
-        <div style={{ position: "fixed", right: "24px", bottom: "24px", zIndex: "40", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px" }}>
+        <div style={{ position: "fixed", right: "24px", bottom: "24px", zIndex: "40", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px", pointerEvents: "none" }}>
           {" "}
           <div role={"dialog"} aria-label={"Ask Analyst"} style={{ width: "min(380px,calc(100vw - 48px))", height: "min(560px,calc(100vh - 120px))", background: "#ffffff", borderRadius: "0", boxShadow: "0 24px 60px -20px rgba(11,22,38,.35)", display: "flex", flexDirection: "column", overflow: "hidden", transformOrigin: "bottom right", opacity: v.chatO, transform: v.chatT, pointerEvents: v.chatPe, visibility: v.chatVis, transition: "opacity 180ms ease,transform 240ms cubic-bezier(0.23,1,0.32,1),visibility 180ms" }}>
             {" "}
@@ -406,7 +399,7 @@ export default function View({ v }) {
             {" "}
           </div>
           {" "}
-          <button onClick={v.toggleChat} aria-expanded={v.chatOpen} style={{ display: "flex", alignItems: "center", gap: "10px", height: "52px", padding: "0 20px 0 14px", border: "0", borderRadius: "16px", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer", boxShadow: "0 12px 30px -10px rgba(31,107,226,.6)", transition: "transform 160ms cubic-bezier(0.23,1,0.32,1),background-color 160ms ease" }} className="dc9482609 dcadff8cd">
+          <button onClick={v.toggleChat} aria-expanded={v.chatOpen} style={{ pointerEvents: "auto", display: "flex", alignItems: "center", gap: "10px", height: "52px", padding: "0 20px 0 14px", border: "0", borderRadius: "16px", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer", boxShadow: "0 12px 30px -10px rgba(31,107,226,.6)", transition: "transform 160ms cubic-bezier(0.23,1,0.32,1),background-color 160ms ease" }} className="dc9482609 dcadff8cd">
             <span style={{ flex: "none", width: "30px", height: "30px", borderRadius: "50%", background: "#ffffff", display: "grid", placeItems: "center" }}>
               <img src={"/assets/clario-mark-v2.png"} alt={""} width={"24"} height={"24"} style={{ width: "24px", height: "24px" }} />
             </span>

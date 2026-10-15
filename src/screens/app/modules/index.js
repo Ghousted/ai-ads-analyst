@@ -5,5 +5,6 @@ import reporting from './reporting';
 import tasks from './tasks';
 import goals from './goals';
 import settings from './settings';
+import livereports from './livereports';
 
-export const FEATURES = [dashboard, clients, reporting, tasks, goals, settings];
+export const FEATURES = [dashboard, clients, reporting, livereports, tasks, goals, settings];

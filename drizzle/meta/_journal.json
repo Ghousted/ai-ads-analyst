@@ -22,6 +22,13 @@
       "when": 1792037286408,
       "tag": "0002_metric_rows",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792037848650,
+      "tag": "0003_reports",
+      "breakpoints": true
     }
   ]
 }
