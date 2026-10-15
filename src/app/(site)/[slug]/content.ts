@@ -6,7 +6,7 @@ const signup = { label: 'Start free with 2 clients', href: '/login?mode=signup' 
 export const PAGES: Record<string, InfoPage> = {
   integrations: {
     title: 'Integrations',
-    lead: 'Sign in once with your agency login. Clario finds the client accounts you manage and only reads the data.',
+    lead: 'Sign in once with your agency login. Clario finds the client accounts you manage. It only reads your data and never changes your ads.',
     sections: [
       { heading: 'Available at launch', items: ['Meta Ads (Facebook and Instagram ads)', 'Google Analytics 4'] },
       { heading: 'Coming next', items: ['Google Ads', 'TikTok Ads', 'LinkedIn Ads', 'Microsoft Ads', 'Google Search Console', 'Google Business Profile'] },

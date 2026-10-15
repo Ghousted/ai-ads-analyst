@@ -210,22 +210,6 @@ export default function View({ v }) {
                         </a>
                         <a href={"/integrations"} style={{ display: "flex", alignItems: "center", gap: "12px", minHeight: "44px", padding: "8px 12px", borderRadius: "12px", textDecoration: "none", color: "#0b1626", transition: "background-color 120ms ease" }} className="dc0d2bdff">
                           <span style={{ flex: "none", width: "24px", display: "grid", placeItems: "center" }}>
-                            <img src={"/assets/logo-facebook.png"} alt={""} width={"22"} height={"22"} style={{ width: "22px", height: "22px", objectFit: "contain", display: "block" }} />
-                          </span>
-                          <span style={{ fontWeight: "500", whiteSpace: "nowrap" }}>
-                            {"Facebook Ads"}
-                          </span>
-                        </a>
-                        <a href={"/integrations"} style={{ display: "flex", alignItems: "center", gap: "12px", minHeight: "44px", padding: "8px 12px", borderRadius: "12px", textDecoration: "none", color: "#0b1626", transition: "background-color 120ms ease" }} className="dc0d2bdff">
-                          <span style={{ flex: "none", width: "24px", display: "grid", placeItems: "center" }}>
-                            <img src={"/assets/logo-instagram.png"} alt={""} width={"22"} height={"22"} style={{ width: "22px", height: "22px", objectFit: "contain", display: "block" }} />
-                          </span>
-                          <span style={{ fontWeight: "500", whiteSpace: "nowrap" }}>
-                            {"Instagram Ads"}
-                          </span>
-                        </a>
-                        <a href={"/integrations"} style={{ display: "flex", alignItems: "center", gap: "12px", minHeight: "44px", padding: "8px 12px", borderRadius: "12px", textDecoration: "none", color: "#0b1626", transition: "background-color 120ms ease" }} className="dc0d2bdff">
-                          <span style={{ flex: "none", width: "24px", display: "grid", placeItems: "center" }}>
                             <img src={"/assets/logo-linkedin.png"} alt={""} width={"22"} height={"22"} style={{ width: "22px", height: "22px", objectFit: "contain", display: "block" }} />
                           </span>
                           <span style={{ fontWeight: "500", whiteSpace: "nowrap" }}>
@@ -963,22 +947,6 @@ export default function View({ v }) {
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 16px 8px 8px", borderRadius: "9999px", background: "#f0f3f8" }}>
                           <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "#ffffff", display: "grid", placeItems: "center" }}>
-                            <img src={"/assets/logo-facebook.png"} alt={""} width={"22"} height={"22"} style={{ width: "22px", height: "22px", objectFit: "contain", display: "block" }} />
-                          </span>
-                          <span style={{ fontWeight: "500", whiteSpace: "nowrap" }}>
-                            {"Facebook Ads"}
-                          </span>
-                        </span>
-                        <span style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 16px 8px 8px", borderRadius: "9999px", background: "#f0f3f8" }}>
-                          <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "#ffffff", display: "grid", placeItems: "center" }}>
-                            <img src={"/assets/logo-instagram.png"} alt={""} width={"22"} height={"22"} style={{ width: "22px", height: "22px", objectFit: "contain", display: "block" }} />
-                          </span>
-                          <span style={{ fontWeight: "500", whiteSpace: "nowrap" }}>
-                            {"Instagram Ads"}
-                          </span>
-                        </span>
-                        <span style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 16px 8px 8px", borderRadius: "9999px", background: "#f0f3f8" }}>
-                          <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "#ffffff", display: "grid", placeItems: "center" }}>
                             <img src={"/assets/logo-linkedin.png"} alt={""} width={"22"} height={"22"} style={{ width: "22px", height: "22px", objectFit: "contain", display: "block" }} />
                           </span>
                           <span style={{ fontWeight: "500", whiteSpace: "nowrap" }}>
@@ -1042,22 +1010,6 @@ export default function View({ v }) {
                           </span>
                           <span style={{ fontWeight: "500", whiteSpace: "nowrap" }}>
                             {"Google Ads"}
-                          </span>
-                        </span>
-                        <span style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 16px 8px 8px", borderRadius: "9999px", background: "#f0f3f8" }}>
-                          <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "#ffffff", display: "grid", placeItems: "center" }}>
-                            <img src={"/assets/logo-facebook.png"} alt={""} width={"22"} height={"22"} style={{ width: "22px", height: "22px", objectFit: "contain", display: "block" }} />
-                          </span>
-                          <span style={{ fontWeight: "500", whiteSpace: "nowrap" }}>
-                            {"Facebook Ads"}
-                          </span>
-                        </span>
-                        <span style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 16px 8px 8px", borderRadius: "9999px", background: "#f0f3f8" }}>
-                          <span style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "#ffffff", display: "grid", placeItems: "center" }}>
-                            <img src={"/assets/logo-instagram.png"} alt={""} width={"22"} height={"22"} style={{ width: "22px", height: "22px", objectFit: "contain", display: "block" }} />
-                          </span>
-                          <span style={{ fontWeight: "500", whiteSpace: "nowrap" }}>
-                            {"Instagram Ads"}
                           </span>
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 16px 8px 8px", borderRadius: "9999px", background: "#f0f3f8" }}>
@@ -1875,7 +1827,7 @@ export default function View({ v }) {
                             {"+"}
                           </span>
                           <span>
-                            {"6 more, including Search Console and Instagram"}
+                            {"3 more: Microsoft Ads, Search Console and Business Profile"}
                           </span>
                         </li>
                       </ul>
