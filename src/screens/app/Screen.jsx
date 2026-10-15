@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import View, { css } from './View';
 import { FEATURES } from './modules';
 import { clSplit, TCOLS, PEOPLE, DEF_TASKS, LOGOS, clientTools } from './data';
+import { makeMetrics, pct } from './metrics';
 
 
 class Logic extends React.Component {
@@ -61,6 +62,13 @@ class Logic extends React.Component {
     // A client's tools come only from the accounts assigned to it in Settings › Integrations.
     const SL = live ? { ...S, live } : S;
     C.forEach(c => { c.logos = clientTools(SL, c.name); });
+    // Live clients: leads are GA4 key events for the last 7 days, compared with the 7 before; bars are the last 6 weeks.
+    if (live && live.metrics && live.metrics.through) {
+      const M = this._metricsFor === live.metrics ? this._metrics : (this._metricsFor = live.metrics, this._metrics = makeMetrics(live.metrics));
+      C.forEach(c => { const a = M.accountsFor(c.extra && c.extra.id); if (!a.length) return;
+        c.leads = Math.round(M.sum(a, 'keyEvents', 7)); c.delta = pct(c.leads, M.sum(a, 'keyEvents', 7, 1));
+        c.bars = [5, 4, 3, 2, 1, 0].map(w => M.sum(a, 'keyEvents', 7, w) || 0.001); });
+    }
     const card = (c, idx) => {
       const [status, bg, col] = ST[c.s], mx = Math.max(...c.bars);
       return { ...c, initials: c.i, status, bg, c: col, dc: c.delta.startsWith('+') ? '#1d6b3a' : '#5a6474',

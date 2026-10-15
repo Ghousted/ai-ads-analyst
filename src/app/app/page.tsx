@@ -4,6 +4,7 @@ import AppScreen from '@/screens/app/Screen';
 import { db, schema } from '@/db';
 import { requireAgency } from '@/lib/auth';
 import { listIntegrations } from '@/lib/integrations';
+import { loadMetrics } from '@/lib/metrics';
 
 export const metadata: Metadata = { title: 'AI Ads Analyst' };
 
@@ -24,6 +25,7 @@ export default async function Page() {
     clients: (await db.select().from(schema.clients).where(eq(schema.clients.agencyId, agency.id)).orderBy(asc(schema.clients.createdAt)))
       .map(c => ({ id: c.id, name: c.name, email: c.email, contactName: c.contactName, schedule: c.schedule, tone: c.tone })),
     conns: await listIntegrations(agency.id),
+    metrics: await loadMetrics(agency.id),
   };
   const team = members.map(m => ({ id: m.id, name: m.name || m.email.split('@')[0], email: m.email, role: cap(m.role), pending: false }))
     .concat(invites.map(i => ({ id: '', name: i.email, email: i.email, role: cap(i.role), pending: true })));
