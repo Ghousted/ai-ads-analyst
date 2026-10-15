@@ -9,7 +9,7 @@ import { decrypt, encrypt } from '@/lib/crypto';
 import { revokeToken, GoogleError } from '@/lib/google';
 import { syncGoogleAccounts, syncMetaAccounts } from '@/lib/integrations';
 import { checkToken, tokenProblem } from '@/lib/meta';
-import { syncGa4Account } from '@/lib/ga4';
+import { syncAccount } from '@/lib/sync';
 
 const Id = z.string().uuid();
 
@@ -31,8 +31,8 @@ export async function assignAccountAction(input: { accountId: string; clientId: 
   }
   const changed = await db.update(schema.accounts).set({ clientId: p.data.clientId }).where(and(eq(schema.accounts.id, p.data.accountId), eq(schema.accounts.agencyId, agency.id))).returning({ id: schema.accounts.id });
   if (!changed.length) return { error: 'That account is no longer connected.' };
-  // A newly linked property starts pulling its numbers in the background (only accounts this agency owns).
-  if (p.data.clientId) { const id = changed[0].id, ag = agency.id; after(() => syncGa4Account(id, ag)); }
+  // A newly linked account starts pulling its numbers in the background (only accounts this agency owns).
+  if (p.data.clientId) { const id = changed[0].id, ag = agency.id; after(() => syncAccount(id, ag)); }
   revalidatePath('/app');
   return { ok: true };
 }
