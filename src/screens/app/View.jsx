@@ -16,8 +16,8 @@ export default function View({ v }) {
             <a href={"/"} onClick={v.logoClick} aria-label={v.logoLabel} title={v.logoLabel} style={{ display: "flex", alignItems: "center", gap: "8px", padding: `0 ${v.navPad ?? ""}`, textDecoration: "none", color: "#0b1626", fontSize: "20px", fontWeight: "700", letterSpacing: "-0.7px" }}>
               {" "}
               <img src={"/assets/clario-mark-v2.png"} alt={""} width={"30"} height={"30"} style={{ width: "30px", height: "30px", display: "block" }} />
-              <span style={{ display: v.navTxt }}>
-                {"Clario"}
+              <span style={{ display: v.navTxt, whiteSpace: "nowrap" }}>
+                {"AI Ads Analyst"}
               </span>
               {" "}
             </a>
@@ -313,7 +313,7 @@ export default function View({ v }) {
         {" "}
         <div style={{ position: "fixed", right: "24px", bottom: "24px", zIndex: "40", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px" }}>
           {" "}
-          <div role={"dialog"} aria-label={"Ask Clario"} style={{ width: "min(380px,calc(100vw - 48px))", height: "min(560px,calc(100vh - 120px))", background: "#ffffff", borderRadius: "0", boxShadow: "0 24px 60px -20px rgba(11,22,38,.35)", display: "flex", flexDirection: "column", overflow: "hidden", transformOrigin: "bottom right", opacity: v.chatO, transform: v.chatT, pointerEvents: v.chatPe, visibility: v.chatVis, transition: "opacity 180ms ease,transform 240ms cubic-bezier(0.23,1,0.32,1),visibility 180ms" }}>
+          <div role={"dialog"} aria-label={"Ask Analyst"} style={{ width: "min(380px,calc(100vw - 48px))", height: "min(560px,calc(100vh - 120px))", background: "#ffffff", borderRadius: "0", boxShadow: "0 24px 60px -20px rgba(11,22,38,.35)", display: "flex", flexDirection: "column", overflow: "hidden", transformOrigin: "bottom right", opacity: v.chatO, transform: v.chatT, pointerEvents: v.chatPe, visibility: v.chatVis, transition: "opacity 180ms ease,transform 240ms cubic-bezier(0.23,1,0.32,1),visibility 180ms" }}>
             {" "}
             <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 12px 14px 18px", background: "#f4f7fb" }}>
               {" "}
@@ -323,7 +323,7 @@ export default function View({ v }) {
                 <span style={{ fontWeight: "700" }}>
                   {"Ask "}
                   <span style={{ color: "#1f6be2" }}>
-                    {"Clario"}
+                    {"Analyst"}
                   </span>
                 </span>
                 <span style={{ fontSize: "13px", color: "#5a6474" }}>
@@ -354,7 +354,7 @@ export default function View({ v }) {
               {(v.chatTyping) ? (<>
                 <span style={{ alignSelf: "flex-start", fontSize: "14px", color: "#5a6474", padding: "4px 2px" }}>
                   <span style={{ color: "#1f6be2" }}>
-                    {"Clario"}
+                    {"Analyst"}
                   </span>
                   {" is working on it…"}
                 </span>
@@ -380,7 +380,7 @@ export default function View({ v }) {
             {" "}
             <form onSubmit={v.sendChat} style={{ display: "flex", gap: "8px", padding: "12px", background: "#f4f7fb" }}>
               {" "}
-              <input value={(v.chatInput) ?? ""} onChange={v.setChatInput} aria-label={"Message Clario"} placeholder={"Tell Clario what to do"} style={{ flex: "1", minWidth: "0", height: "44px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", letterSpacing: "inherit", outline: "none", background: "#ffffff" }} className="dc120a618" />
+              <input value={(v.chatInput) ?? ""} onChange={v.setChatInput} aria-label={"Message Analyst"} placeholder={"Tell Analyst what to do"} style={{ flex: "1", minWidth: "0", height: "44px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", letterSpacing: "inherit", outline: "none", background: "#ffffff" }} className="dc120a618" />
               {" "}
               <button type={"submit"} aria-label={"Send"} style={{ flex: "none", width: "44px", height: "44px", border: "0", borderRadius: "0", background: "#1f6be2", display: "grid", placeItems: "center", cursor: "pointer" }} className="dc9482609">
                 <svg width={"18"} height={"18"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#ffffff"} strokeWidth={"2.4"} strokeLinecap={"round"} strokeLinejoin={"round"}>

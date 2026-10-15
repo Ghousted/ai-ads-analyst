@@ -35,7 +35,8 @@ export const acctFor = (sel, conn, j) => { const k = acctKey(conn.id, j); return
 export const toolAccts = (S, tool) => connList(S).filter(c => c.tool === tool).flatMap(c => c.accts.map((a, j) => ({ conn: c, j, a, client: acctFor(S.stgSel, c, j) })));
 // A client's tools are the tools with at least one account assigned to that client.
 export const clientTools = (S, name) => TOOL_ORDER.filter(t => toolAccts(S, t).some(x => x.client === name));
-export const clSplit = s => { s = String(s == null ? '' : s); const i = s.indexOf('Clario'); return i < 0 ? { a: s, b: '', c: '' } : { a: s.slice(0, i), b: 'Clario', c: s.slice(i + 6) }; };
+// The product's name is shown in blue: AI Ads Analyst when spelled out, Analyst when it acts in a sentence.
+export const clSplit = s => { s = String(s == null ? '' : s); const w = s.includes('AI Ads Analyst') ? 'AI Ads Analyst' : 'Analyst', i = s.indexOf(w); return i < 0 ? { a: s, b: '', c: '' } : { a: s.slice(0, i), b: w, c: s.slice(i + w.length) }; };
 
 export const TCOLS = [['todo', 'To do'], ['doing', 'In progress'], ['review', 'Review'], ['done', 'Done']];
 export const PEOPLE = { AR: ['Alex Rivera', '#d6e4f8'], JS: ['Jordan Santos', '#fde2c8'], MK: ['Mia Kim', '#d4f0dd'] };

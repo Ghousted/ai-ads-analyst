@@ -526,7 +526,7 @@ export function ReportingView({ v }) {
                   {" "}
                   <form onSubmit={v.rbAsk} style={{ display: "flex", gap: "8px" }}>
                     {" "}
-                    <input value={(v.rbInput) ?? ""} onChange={v.rbSetInput} aria-label={"Ask Clario to change the report"} placeholder={"Ask Clario to write, shorten or add something"} style={{ flex: "1", minWidth: "0", height: "44px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", fontSize: "15px", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
+                    <input value={(v.rbInput) ?? ""} onChange={v.rbSetInput} aria-label={"Ask Analyst to change the report"} placeholder={"Ask Analyst to write, shorten or add something"} style={{ flex: "1", minWidth: "0", height: "44px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", font: "inherit", fontSize: "15px", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
                     {" "}
                     <button type={"submit"} aria-label={"Send"} style={{ flex: "none", width: "44px", height: "44px", border: "0", borderRadius: "0", background: "#1f6be2", display: "grid", placeItems: "center", cursor: "pointer" }} className="dc9482609">
                       <svg width={"18"} height={"18"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#ffffff"} strokeWidth={"2.4"} strokeLinecap={"round"} strokeLinejoin={"round"}>
@@ -549,7 +549,7 @@ export function ReportingView({ v }) {
                     {(v.rbTyping) ? (<>
                       <span style={{ fontSize: "14px", color: "#5a6474", marginLeft: "6px" }}>
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" is editing the report…"}
                       </span>

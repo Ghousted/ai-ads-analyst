@@ -24,7 +24,7 @@ export function DashboardView({ v }) {
               <span style={{ color: "#5a6474", maxWidth: "420px" }}>
                 {"Your agency is already connected. Link this client's account and "}
                 <span style={{ color: "#1f6be2" }}>
-                  {"Clario"}
+                  {"Analyst"}
                 </span>
                 {" fills this page with their results."}
               </span>
@@ -32,7 +32,7 @@ export function DashboardView({ v }) {
             {(v.anEmptyLink) ? null : <span style={{ color: "#5a6474", maxWidth: "420px" }}>
               {"Connect it and "}
               <span style={{ color: "#1f6be2" }}>
-                {"Clario"}
+                {"Analyst"}
               </span>
               {" will pull in the results automatically, so you never have to log in to the tool itself."}
             </span>}
@@ -93,7 +93,7 @@ export function DashboardView({ v }) {
                 {" "}
                 <div onMouseEnter={v.showTake} onMouseLeave={v.hideTake} onFocus={v.showTake} onBlur={v.hideTake} style={{ position: "relative" }}>
                   {" "}
-                  <button onClick={v.tapTake} aria-expanded={v.takeOpenB} aria-label={"Clario's take"} aria-describedby={"clario-take"} style={{ display: "grid", placeItems: "center", width: "44px", height: "44px", padding: "0", border: "0", borderRadius: "12px", background: v.takeBtnBg, cursor: "pointer", transition: "background-color 160ms ease,transform 120ms ease" }} className="dce5ff64e">
+                  <button onClick={v.tapTake} aria-expanded={v.takeOpenB} aria-label={"Analyst's take"} aria-describedby={"clario-take"} style={{ display: "grid", placeItems: "center", width: "44px", height: "44px", padding: "0", border: "0", borderRadius: "12px", background: v.takeBtnBg, cursor: "pointer", transition: "background-color 160ms ease,transform 120ms ease" }} className="dce5ff64e">
                     <svg width={"22"} height={"22"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#1f6be2"} strokeWidth={"2"} strokeLinecap={"round"} strokeLinejoin={"round"} aria-hidden={"true"}>
                       <path d={"M9 18h6M10 21h4"}></path>
                       <path d={"M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2V16h5v-.2c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z"}></path>

@@ -47,12 +47,12 @@ export function reportingVals(app, ctx) {
           wlHasLogo: !!S.wlLogo, wlLogo: S.wlLogo || '', wlLogoLabel: S.wlLogo ? 'Replace logo' : 'Upload your logo (PNG or SVG)',
           wlPickLogo: e => { const file = e.target.files && e.target.files[0]; if (!file) return; const rd = new FileReader(); rd.onload = () => app.setState({ wlLogo: rd.result }); rd.readAsDataURL(file); },
           wlDomain: S.wlDomain ?? 'reports@riveradigital.com', wlSetDomain: e => app.setState({ wlDomain: e.target.value, wlVer: null }),
-          // Sending as the agency needs SPF and DKIM records on its domain. Until then reports send from Clario's own address.
+          // Sending as the agency needs SPF and DKIM records on its domain. Until then reports send from AI Ads Analyst's own address.
           ...(() => { const st = S.wlVer, dom = ((S.wlDomain ?? 'reports@riveradigital.com').split('@')[1] || '').trim();
             return { wlVerOk: st === 'ok', wlVerRecs: st === 'recs' || st === 'checking', wlVerDom: dom || 'your domain',
               wlVerLabel: st === 'ok' ? 'Domain verified' : st === 'checking' ? 'Checking…' : st === 'recs' ? 'Check records' : 'Verify domain',
-              wlVerNote: st === 'ok' ? '' : 'Until ' + (dom || 'the domain') + ' is verified, reports send from reports@clario.app with your agency name.',
-              wlVerRows: [['TXT', dom, 'v=spf1 include:send.clario.app ~all'], ['CNAME', 'clario._domainkey.' + dom, 'dkim.send.clario.app']].map(([type, host, value]) => ({ type, host, value })),
+              wlVerNote: st === 'ok' ? '' : 'Until ' + (dom || 'the domain') + ' is verified, reports send from reports@aiadsanalyst.app with your agency name.',
+              wlVerRows: [['TXT', dom, 'v=spf1 include:send.aiadsanalyst.app ~all'], ['CNAME', 'clario._domainkey.' + dom, 'dkim.send.aiadsanalyst.app']].map(([type, host, value]) => ({ type, host, value })),
               wlVerify: () => { if (!dom) return; if (!st) { app.setState({ wlVer: 'recs' }); return; } if (st !== 'recs') return; app.setState({ wlVer: 'checking' }); clearTimeout(app.wvT); app.wvT = setTimeout(() => app.setState(s => s.wlVer === 'checking' ? { wlVer: 'ok' } : null), 1500); } }; })(),
           wlClient: S.sel != null ? C[S.sel].name : 'Harbor & Pine Dental',
           tplName: S.tplName || '', tplSetName: e => app.setState({ tplName: e.target.value, tplErr: false, tplOk: null }), tplErrOn: !!S.tplErr, tplBd: S.tplErr ? '#e0481a' : '#d3dbe6', tplOk: !!S.tplOk, tplOkText: S.tplOk || '',
@@ -69,7 +69,7 @@ export function reportingVals(app, ctx) {
         const setB = fn => app.setState(s => ({ rbBlocks: fn(s.rbBlocks || defs) }));
         const nid = () => Date.now() + Math.floor(Math.random() * 1000);
         const insert = (blk, list) => { const i = list.findIndex(x => x.id === sel); const arr = list.slice(); arr.splice(i < 0 ? arr.length : i + 1, 0, blk); return arr; };
-        const add = (t, text) => { const blk = { id: nid(), t, text: text ?? (t === 'heading' ? 'New section' : t === 'text' ? 'Write something here, or ask Clario to write it.' : undefined) }; setB(l => insert(blk, l)); app.setState({ rbSel: blk.id }); return blk; };
+        const add = (t, text) => { const blk = { id: nid(), t, text: text ?? (t === 'heading' ? 'New section' : t === 'text' ? 'Write something here, or ask Analyst to write it.' : undefined) }; setB(l => insert(blk, l)); app.setState({ rbSel: blk.id }); return blk; };
         const move = (id, d) => setB(l => { const i = l.findIndex(x => x.id === id), j = i + d; if (j < 0 || j >= l.length) return l; const arr = l.slice(); [arr[i], arr[j]] = [arr[j], arr[i]]; return arr; });
         const pts = [44, 48, 46, 52, 55, 50, 58, 61, 57, 63, 66, 62, 68, 72], mx = 80;
         const line = pts.map((p, i) => (i ? 'L' : 'M') + Math.round(i * 600 / (pts.length - 1)) + ' ' + Math.round(160 - p / mx * 150)).join(' ');
@@ -97,7 +97,7 @@ export function reportingVals(app, ctx) {
         };
         const ask = q => { const text = (q || '').trim(); if (!text || S.rbTyping) return; app.setState(s => ({ rbMsgs: [...(s.rbMsgs || []), { me: true, text }], rbInput: '', rbTyping: true })); clearTimeout(app.rbA); app.rbA = setTimeout(() => { const a = reply(text); app.setState(s => ({ rbTyping: false, rbMsgs: [...(s.rbMsgs || []), { me: false, text: a }] })); }, 800); };
         const tab = ['home', 'insert', 'design', 'ai'].includes(S.rbTab) ? S.rbTab : 'home';
-        const CAT = [['kpis', 'Key numbers', 'Leads, cost per lead, spend', 'M4 20V10M10 20V4M16 20v-7M22 20H2'], ['line', 'Trend chart', 'A metric over time', 'M3 17l5-5 4 3 8-8'], ['donut', 'Breakdown', 'Share by platform', 'M12 3a9 9 0 1 0 9 9h-9z'], ['text', 'Text', 'Write it or ask Clario', 'M4 6h16M4 12h16M4 18h10'], ['table', 'Top campaigns', 'Best performers this week', 'M3 5h18v14H3zM3 10h18M9 10v9'], ['goals', 'Goal progress', 'Targets and pacing', 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z'], ['heading', 'Section heading', 'Organise the report', 'M6 4v16M18 4v16M6 12h12']];
+        const CAT = [['kpis', 'Key numbers', 'Leads, cost per lead, spend', 'M4 20V10M10 20V4M16 20v-7M22 20H2'], ['line', 'Trend chart', 'A metric over time', 'M3 17l5-5 4 3 8-8'], ['donut', 'Breakdown', 'Share by platform', 'M12 3a9 9 0 1 0 9 9h-9z'], ['text', 'Text', 'Write it or ask Analyst', 'M4 6h16M4 12h16M4 18h10'], ['table', 'Top campaigns', 'Best performers this week', 'M3 5h18v14H3zM3 10h18M9 10v9'], ['goals', 'Goal progress', 'Targets and pacing', 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z'], ['heading', 'Section heading', 'Organise the report', 'M6 4v16M18 4v16M6 12h12']];
         return {
           rbTitle: S.rbTitle ?? 'Weekly report', rbSetTitle: e => app.setState({ rbTitle: e.target.value }), rbClient: cl.name,
           rbAgency: S.rbAgency ?? 'Rivera Digital', rbSetAgency: e => app.setState({ rbAgency: e.target.value }), rbPeriod: S.rbPeriod ?? 'Sep 29 – Oct 5, 2026', rbSetPeriod: e => app.setState({ rbPeriod: e.target.value }), rbPrepared: S.rbPrepared ?? ('Prepared for ' + cl.name), rbSetPrepared: e => app.setState({ rbPrepared: e.target.value }),
@@ -113,11 +113,11 @@ export function reportingVals(app, ctx) {
             setText: e => { const val = e.target.value; setB(l => l.map(x => x.id === b.id ? { ...x, text: val } : x)); },
             up: e => { e.stopPropagation(); move(b.id, -1); }, down: e => { e.stopPropagation(); move(b.id, 1); },
             remove: e => { e.stopPropagation(); setB(l => l.filter(x => x.id !== b.id)); app.setState({ rbSel: null }); toast('Widget removed'); },
-            rewrite: e => { e.stopPropagation(); setB(l => l.map(x => x.id !== b.id ? x : x.v === 'a' ? { ...x, text: sum.b, v: 'b' } : x.v === 'b' ? { ...x, text: sum.a, v: 'a' } : { ...x, text: 'Coming up: we will refresh a tired ad and shift budget toward the hours when people book most.', v: 'n2' })); toast('Clario rewrote that paragraph'); } }); }),
+            rewrite: e => { e.stopPropagation(); setB(l => l.map(x => x.id !== b.id ? x : x.v === 'a' ? { ...x, text: sum.b, v: 'b' } : x.v === 'b' ? { ...x, text: sum.a, v: 'a' } : { ...x, text: 'Coming up: we will refresh a tired ad and shift budget toward the hours when people book most.', v: 'n2' })); toast('Analyst rewrote that paragraph'); } }); }),
           rbLine: line, rbArea: line + ' L600 160 L0 160 Z', rbFill: (S.wlColor || '#1f6be2') + '1f', rbDonut: donut,
           rbCamps: [{ name: 'Retargeting · site visitors', leads: '64 leads', cpl: '$6.12' }, { name: 'Brand search', leads: '41 leads', cpl: '$6.72' }, { name: 'Lookalike · past leads', leads: '37 leads', cpl: '$7.84' }],
           rbGoals: [{ label: 'Cost per lead under $10', status: 'On track', c: '#2f9e5b', w: '58%' }, { label: 'Monthly budget $2,000', status: 'On pace', c: '#2f9e5b', w: '64%' }],
-          rbTabs: [['home', 'Home'], ['insert', 'Insert'], ['design', 'Design'], ['ai', 'Clario AI']].map(([k, label]) => ({ label, ai: k === 'ai', on: tab === k, line: tab === k ? '#1f6be2' : 'transparent', c: tab === k ? '#1f6be2' : '#45505f', pick: () => app.setState({ rbTab: k }) })),
+          rbTabs: [['home', 'Home'], ['insert', 'Insert'], ['design', 'Design'], ['ai', 'Ask Analyst']].map(([k, label]) => ({ label, ai: k === 'ai', on: tab === k, line: tab === k ? '#1f6be2' : 'transparent', c: tab === k ? '#1f6be2' : '#45505f', pick: () => app.setState({ rbTab: k }) })),
           rbTabHome: tab === 'home', rbTabInsert: tab === 'insert', rbTabDesign: tab === 'design', rbTabAi: tab === 'ai', rbLastOn: !S.rbTyping && msgs.some(m => !m.me), rbLast: (msgs.filter(m => !m.me).slice(-1)[0] || {}).text || '',
           rbAddHint: 'Adds where your cursor is in the report',
           rbCatalog: CAT.map(([t, label, desc, icon]) => ({ label, desc, icon, keep: e => e.preventDefault(), add: () => { app.insertAtCaret(t === 'text' ? '<p>Write something here.</p>' : t === 'heading' ? '<h2 style="font-size:22px;letter-spacing:-0.5px;margin:22px 0 6px">New section</h2>' : app._widget(t)); toast(label + ' added'); } })),
@@ -150,7 +150,7 @@ export function reportingVals(app, ctx) {
           crm: ['Leads to sales', 'Which leads became paying customers.', [T('text', 'Of ' + Ld + ' leads this month, ' + Math.round(Ld * 0.42) + ' were qualified and ' + Math.round(Ld * 0.12) + ' became paying customers.'), T('kpis', '', { m: 'crm' }), T('goals'), T('table')]],
           email: ['Email campaigns', 'Opens, clicks and the emails that worked.', [T('text', nm + ' sent ' + (Ld * 48).toLocaleString() + ' emails this month. ' + (41 + ci) + '% were opened.'), T('kpis', '', { m: 'email' }), T('line'), T('table', '', { title: 'Top emails', rows: [['October offer', '46% opened', '4.1% clicked'], ['Monthly tips', '39% opened', '2.8% clicked'], ['Welcome series', '52% opened', '5.6% clicked']] })]]
         };
-        // Hidden until Clario connects to their data source: organic Facebook, Instagram and LinkedIn Page insights,
+        // Hidden until Analyst connects to their data source: organic Facebook, Instagram and LinkedIn Page insights,
         // Shopify or WooCommerce, a call tracking tool, a CRM, and Mailchimp or Klaviyo. No current integration provides them.
         ['social', 'ecom', 'calls', 'crm', 'email'].forEach(k => { delete TPL[k]; });
         (S.customTpls || []).forEach((c, i) => { TPL['custom' + i] = [c.name, 'Your saved layout and branding.', TPL.weekly[2], true, c.color]; });

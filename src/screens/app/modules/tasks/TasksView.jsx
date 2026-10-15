@@ -194,7 +194,7 @@ export function TasksView({ v }) {
             <span style={{ fontSize: "14px", fontWeight: "600", color: "#5a6474" }}>
               {"Flagged by "}
               <span style={{ color: "#1f6be2" }}>
-                {"Clario"}
+                {"Analyst"}
               </span>
             </span>
             {" "}
@@ -230,7 +230,7 @@ export function TasksView({ v }) {
               <h3 style={{ margin: "0", fontSize: "17px", fontWeight: "700" }}>
                 {"Why "}
                 <span style={{ color: "#1f6be2" }}>
-                  {"Clario"}
+                  {"Analyst"}
                 </span>
                 {" flagged them"}
               </h3>
@@ -311,7 +311,7 @@ export function TasksView({ v }) {
             <button onClick={v.rpAsk} style={{ height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
               {"Ask "}
               <span style={{ color: "#1f6be2" }}>
-                {"Clario"}
+                {"Analyst"}
               </span>
             </button>
             {" "}
@@ -398,7 +398,7 @@ export function TasksView({ v }) {
                       <button onClick={rk?.ask} style={{ height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">
                         {"Ask "}
                         <span style={{ color: "#1f6be2" }}>
-                          {"Clario"}
+                          {"Analyst"}
                         </span>
                         {" why"}
                       </button>
@@ -430,9 +430,9 @@ export function TasksView({ v }) {
             {" "}
             <span style={{ color: "#5a6474", maxWidth: "380px" }}>
               <span style={{ color: "#1f6be2" }}>
-                {"Clario"}
+                {"Analyst"}
               </span>
-              {" will message you here, in Ask Clario and by email when a client starts slipping."}
+              {" will message you here, in Ask Analyst and by email when a client starts slipping."}
             </span>
             {" "}
           </div>

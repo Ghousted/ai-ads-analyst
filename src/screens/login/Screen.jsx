@@ -55,7 +55,7 @@ class Logic extends React.Component {
       done: this.state.done, notDone: !this.state.done,
       doneTitle: signup ? 'Your account is ready' : 'Welcome back',
       doneText: signup ? 'Next, connect your first ad account. It takes about two minutes.' : 'Taking you to your clients\u2026',
-      title: signup ? 'Create your account' : 'Log in to Clario',
+      title: signup ? 'Create your account' : 'Log in to AI Ads Analyst',
       subtitle: signup ? 'Free for your first two clients. No card needed.' : 'Welcome back. Your reports are waiting.',
       googleLabel: signup ? 'Sign up with Google' : 'Continue with Google',
       name: this.state.name, email, password,
@@ -89,7 +89,7 @@ class Logic extends React.Component {
       google: () => { this.setState({ loading: true }); this.t = setTimeout(() => (window.location.href = signup ? '/setup' : '/app'), 900); },
       forgot: e => { e.preventDefault(); if (!emailOk) { this.setState({ touched: true, forgotNote: null }); return; } this.setState({ touched: false, forgotNote: 'We emailed a reset link to ' + email.trim() + '.' }); },
       forgotNote: this.state.forgotNote,
-      switchText: signup ? 'Already have an account?' : 'New to Clario?',
+      switchText: signup ? 'Already have an account?' : 'New to AI Ads Analyst?',
       switchLink: signup ? 'Log in' : 'Start free',
       switchMode: e => { e.preventDefault(); this.setState({ mode: signup ? 'login' : 'signup', touched: false, password: '' }); }
     };
