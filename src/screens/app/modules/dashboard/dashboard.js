@@ -72,11 +72,17 @@ export function dashboardVals(app, ctx) {
         const A = AN[av];
         const anTools = Object.keys(AN).map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === av, bg: key === av ? '#ffffff' : 'transparent', fw: key === av ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
         // Live agencies have no stored numbers until GA4 data is pulled; show that instead of the sample charts.
-        if (live) { const hasLinked = live.conns.some(c => c.accounts.some(x => x.clientId));
-          return { ...blank, anTools, anEmpty: true, anEmptyLive: true, anEmptyLogo: L.ga4, anEmptyTool: 'Google Analytics 4',
-            anEmptyTitle: hasLinked ? 'Your numbers are on the way' : 'Connect Google Analytics to see results',
-            anEmptyLiveText: hasLinked ? 'Properties are linked to clients. Results appear here after the first data pull from Google Analytics.' : 'Sign in with Google, then link each GA4 property to a client in Integrations.',
-            anEmptyBtn: hasLinked ? 'Open integrations' : 'Connect Google Analytics', anEmptyGo: () => app.setState({ view: 'settings', stgTab: 'conn' }) }; }
+        if (live) {
+          const props = live.conns.flatMap(c => c.accounts), linked = props.filter(x => x.clientId).length;
+          const st = !live.conns.length ? 'none' : !props.length ? 'empty' : !linked ? 'unlinked' : 'waiting';
+          const T = {
+            none: ['Connect Google Analytics to see results', 'Sign in with Google. Every GA4 property that login can see shows up in Integrations.', 'Connect Google Analytics', () => { window.location.href = '/api/integrations/google/start'; }],
+            empty: ['No GA4 properties found', 'The Google login you connected can\'t see any GA4 properties. Connect a login that has access, or ask the client to add it.', 'Open integrations', null],
+            unlinked: [props.length + (props.length === 1 ? ' GA4 property found' : ' GA4 properties found'), 'Link each property to the client it belongs to. Results start once a property is linked.', 'Link properties', null],
+            waiting: ['Your numbers are on the way', linked + (linked === 1 ? ' property is' : ' properties are') + ' linked to clients. Results appear here after the first data pull from Google Analytics.', 'Open integrations', null],
+          }[st];
+          return { ...blank, anTools, anEmpty: true, anEmptyLive: true, anEmptyLogo: L.ga4, anEmptyTool: 'Google Analytics 4', anEmptyTitle: T[0], anEmptyLiveText: T[1], anEmptyBtn: T[2],
+            anEmptyGo: T[3] || (() => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), ga4: true } }))) }; }
         const toolKey = ({ 'an-meta': 'meta', 'an-ga4': 'ga4', 'an-gads': 'gads', 'an-tt': 'tt' })[av];
         // The agency may already be connected and only the client's account is unlinked. Then the fix is linking, not connecting.
         const agencyHas = !!toolKey && connList(S).some(c => c.tool === toolKey);

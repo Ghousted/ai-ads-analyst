@@ -46,6 +46,8 @@ export function clientsVals(app, ctx) {
         const F = S.cForm, E = S.cErr || {}, extra = S.extraClients || [];
         // Accounts no client uses yet. An account belongs to at most one client.
         const free = TOOL_ORDER.flatMap(k => toolAccts(S, k).filter(x => !x.client).map(x => ({ ...x, k, key: acctKey(x.conn.id, x.j) })));
+        // Loose name match for suggesting accounts: "Onnit" matches "onnit.com" and "Onnit · Main".
+        const norm = x => String(x || '').toLowerCase().replace(/\.(com|co|net|org|io)\b.*$/, '').replace(/[^a-z0-9]/g, '');
         const addedMsg = () => F.name.trim() + ' added. ' + (F.plats.length ? F.plats.length + (F.plats.length === 1 ? ' account is' : ' accounts are') + ' linked.' : 'Link their accounts to start seeing results.');
         const addClient = () => {
           if (!live) { app.setState(s => ({ extraClients: [...(s.extraClients || []), { name: F.name.trim(), email: F.email.trim() }], stgSel: assign(s), cForm: null, cErr: {}, sel: C.length, cid: C.length, view: 'clients' })); toast(addedMsg()); return; }
@@ -74,7 +76,7 @@ export function clientsVals(app, ctx) {
           ...[1, 2, 3].reduce((o, n) => { const st = F ? F.step || 1 : 1; o['cW' + n] = { done: n < st, cur: n === st, todo: n > st, sum: n === 1 ? (F ? F.name : '') : n === 2 ? (F ? F.email : '') : '', go: () => app.setState(s => ({ cForm: { ...s.cForm, step: n }, cErr: {} })) }; return o; }, {}),
           cBackOrClose: () => { const st = F ? F.step || 1 : 1; if (st > 1) app.setState(s => ({ cForm: { ...s.cForm, step: st - 1 }, cErr: {} })); else app.setState({ cForm: null, cErr: {} }); },
           cBack: () => app.setState(s => ({ cForm: { ...s.cForm, step: Math.max(1, (s.cForm.step || 1) - 1) }, cErr: {} })),
-          cNext: e => { e.preventDefault(); const st = F.step || 1; if (st === 1) { if (!F.name.trim()) { app.setState({ cErr: { name: true } }); return; } app.setState(s => ({ cForm: { ...s.cForm, step: 2 }, cErr: {} })); return; } if (st === 2) { if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(F.email.trim())) { app.setState({ cErr: { email: true } }); return; } app.setState(s => ({ cForm: { ...s.cForm, step: 3 }, cErr: {} })); return; } addClient(); },
+          cNext: e => { e.preventDefault(); const st = F.step || 1; if (st === 1) { if (!F.name.trim()) { app.setState({ cErr: { name: true } }); return; } app.setState(s => ({ cForm: { ...s.cForm, step: 2 }, cErr: {} })); return; } if (st === 2) { if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(F.email.trim())) { app.setState({ cErr: { email: true } }); return; } const nm = norm(F.name), guess = nm.length > 2 ? free.filter(x => { const an = norm(x.a[0]); return an.length > 2 && (an.includes(nm) || nm.includes(an)); }).map(x => x.key) : []; app.setState(s => ({ cForm: { ...s.cForm, step: 3, plats: s.cForm.plats.length ? s.cForm.plats : guess }, cErr: {} })); return; } addClient(); },
           cSave: e => { e.preventDefault(); const err = { name: !F.name.trim(), email: !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(F.email.trim()) }; if (err.name || err.email) { app.setState({ cErr: err }); return; } addClient(); }
         };
       })(),
