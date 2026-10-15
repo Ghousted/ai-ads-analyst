@@ -41,6 +41,8 @@ const TONES: Record<string, string> = {
   Detailed: 'Thorough, explains the reasoning.',
 };
 
+const GOAL_NAMES: Record<string, string> = { leads: 'leads per week (at least)', cpl: 'Meta cost per lead (at most)', conv: 'conversion rate % (at least)', budget: 'monthly ad budget' };
+
 // Breakdowns for the last 14 days against the 14 before: GA4 channels (sessions, leads) and Meta campaigns (spend, leads).
 export function flagFacts(metrics: Metrics, clientId: string, risk: Risk) {
   const through = risk.through;
@@ -64,6 +66,8 @@ export function flagFacts(metrics: Metrics, clientId: string, risk: Risk) {
     signals: risk.signals.map(s => s.say),
     weeks: risk.weeks,
     metaCostPerLead: risk.cpl && { last14Days: r2(risk.cpl.now), previous14Days: r2(risk.cpl.before) },
+    // "now" is this week's number, or the month's spend so far for the budget.
+    goals: risk.goals.map(g => ({ goal: GOAL_NAMES[g.type] || g.type, target: g.target, now: g.now == null ? null : r2(g.now) })),
     lastReport: risk.lastReport,
     accounts: risk.accounts,
     channels: compare('channel', ['sessions', 'keyEvents'], 6),

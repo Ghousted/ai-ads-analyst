@@ -39,7 +39,7 @@ export default async function Page() {
         .where(eq(schema.tasks.agencyId, agency.id)).orderBy(asc(schema.taskComments.createdAt)),
     ]);
     // Who is flagged and why, with Claude's saved analysis while it still matches the numbers.
-    const scored = scoreClients(metrics, clients, reports);
+    const scored = scoreClients(metrics, clients, reports, goals);
     const risk = Object.fromEntries(Object.entries(scored).map(([id, r]) => {
       const f = flags.find(x => x.clientId === id), wk = r.weeks.at(-1);
       return [id, { level: r.level, keys: r.keys, signals: r.signals.map(s => ({ key: s.key, label: s.label, detail: s.detail, say: s.say, act: s.act })),

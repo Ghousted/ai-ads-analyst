@@ -14,11 +14,12 @@ const Id = z.string().uuid();
 async function riskFor(agencyId: string, clientId: string) {
   const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.id, clientId), eq(schema.clients.agencyId, agencyId)));
   if (!client) return null;
-  const [metrics, reports] = await Promise.all([
+  const [metrics, reports, goals] = await Promise.all([
     loadMetrics(agencyId),
     db.select({ clientId: schema.reports.clientId, createdAt: schema.reports.createdAt, status: schema.reports.status, sentAt: schema.reports.sentAt }).from(schema.reports).where(eq(schema.reports.clientId, client.id)),
+    db.select().from(schema.clientGoals).where(eq(schema.clientGoals.clientId, client.id)),
   ]);
-  return { client, metrics, risk: scoreClients(metrics, [client], reports)[client.id] };
+  return { client, metrics, risk: scoreClients(metrics, [client], reports, goals)[client.id] };
 }
 
 // Claude's read of a flagged client and what to do. Reuses the saved analysis while the numbers and signals are the

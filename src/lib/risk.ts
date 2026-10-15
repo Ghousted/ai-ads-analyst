@@ -2,13 +2,14 @@ import 'server-only';
 import type { loadMetrics } from './metrics';
 import { addDays } from './metric-store';
 
-// Rule-based risk for each client, from their stored numbers and report history. A client is flagged when one of
+// Rule-based risk for each client, from their stored numbers, goals and report history. A client is flagged when one of
 // the signals below fires: "At risk" (r) for a severe signal or two at once, "Needs attention" (n) for one.
 // Claude explains a flag and suggests what to do (see flag-writer.ts); the rules alone decide who is flagged.
 
 type Metrics = Awaited<ReturnType<typeof loadMetrics>>;
 type Client = { id: string; name: string; createdAt: Date };
 type Report = { clientId: string; createdAt: Date; status: string; sentAt: Date | null };
+type Goal = { clientId: string; type: string; target: number };
 
 export type Signal = { key: string; label: string; detail: string; say: string; act: string; severe?: boolean };
 export type Risk = {
@@ -20,6 +21,8 @@ export type Risk = {
   leadSource: 'ga4' | 'meta' | null;
   weeks: { end: string; leads: number; sessions: number; spend: number; metaLeads: number }[];
   cpl: { now: number; before: number } | null;
+  // now is this week's number, or this month's spend for the budget.
+  goals: { type: string; target: number; now: number | null }[];
   lastReport: { day: string; status: string } | null;
   accounts: { tool: string; name: string; error: string | null }[];
 };
@@ -29,15 +32,19 @@ const fmtDay = (d: string) => { const x = new Date(d + 'T00:00:00Z'); return MON
 const pct = (a: number, b: number) => Math.round(((a - b) / b) * 100);
 const signed = (p: number) => (p > 0 ? '+' : p < 0 ? '−' : '') + Math.abs(p) + '%';
 const money = (v: number) => v.toFixed(2);
+const cash = (v: number) => '$' + Math.round(v).toLocaleString('en-US');
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
 
 // Weeks of 7 days ending at `through`, oldest first.
 const WEEKS = 6;
 
-export function scoreClients(metrics: Metrics, clients: Client[], reports: Report[], today = new Date().toISOString().slice(0, 10)) {
+export function scoreClients(metrics: Metrics, clients: Client[], reports: Report[], goals: Goal[] = [], today = new Date().toISOString().slice(0, 10)) {
   // total[account index][metric][day]
   const total: Record<number, Record<string, Record<string, number>>> = {};
   for (const [a, day, dim, , metric, v] of metrics.rows) if (dim === 'total') ((total[a] ??= {})[metric] ??= {})[day] = v;
+  // Google Ads cost only comes broken down by campaign in GA4.
+  const adCost: Record<number, Record<string, number>> = {};
+  for (const [a, day, dim, , metric, v] of metrics.rows) if (dim === 'campaign' && metric === 'adCost') (adCost[a] ??= {})[day] = ((adCost[a] ??= {})[day] || 0) + v;
   const out: Record<string, Risk> = {};
   for (const c of clients) {
     const idx = metrics.accounts.map((a, i) => (a.clientId === c.id ? i : -1)).filter(i => i >= 0);
@@ -85,6 +92,52 @@ export function scoreClients(metrics: Metrics, clients: Client[], reports: Repor
       }
     }
 
+    // The goals set in the client's profile, against this week's numbers (the same ones the profile shows).
+    const target = (t: string) => goals.find(g => g.clientId === c.id && g.type === t)?.target ?? null;
+    const wk = W.at(-1), wkRaw = weeks.at(-1);
+    const now = {
+      leads: wk && leadSource ? wk.leads : null,
+      cpl: wk && wk.metaLeads > 0 ? wk.spend / wk.metaLeads : null,
+      conv: wkRaw && leadSource === 'ga4' && wkRaw.sessions > 0 ? wkRaw.ga4Leads / wkRaw.sessions * 100 : null,
+    };
+    const tLeads = target('leads'), tCpl = target('cpl'), tConv = target('conv');
+    if (tLeads != null && now.leads != null && now.leads < tLeads)
+      signals.push({ key: 'goal-leads', label: 'Below lead goal', detail: now.leads + ' of ' + Math.round(tLeads) + ' this week', severe: now.leads < tLeads * 0.5,
+        say: 'They got ' + now.leads + ' leads this week, short of their goal of ' + Math.round(tLeads) + ' a week.', act: 'find which channel is short of leads and fix it this week' });
+    // A few leads make cost per lead swing too much to judge.
+    if (tCpl != null && now.cpl != null && wk!.metaLeads >= 3 && now.cpl > tCpl)
+      signals.push({ key: 'goal-cpl', label: 'Cost per lead over goal', detail: '$' + money(now.cpl) + ' against $' + money(tCpl), severe: now.cpl >= tCpl * 1.5,
+        say: 'Each Meta lead cost $' + money(now.cpl) + ' this week, over their goal of $' + money(tCpl) + '.', act: 'pause or refresh the Meta ads that cost the most per lead' });
+    if (tConv != null && now.conv != null && wkRaw!.sessions >= 100 && now.conv < tConv)
+      signals.push({ key: 'goal-conv', label: 'Conversion rate below goal', detail: now.conv.toFixed(1) + '% against ' + tConv.toFixed(1) + '%',
+        say: 'Their conversion rate was ' + now.conv.toFixed(1) + '% this week, under their goal of ' + tConv.toFixed(1) + '%.', act: 'check the forms and landing pages that get the most visits' });
+
+    // Monthly budget: spend so far this month (Meta spend plus Google Ads cost) against how far through the month we are.
+    const budget = target('budget');
+    let spentThisMonth: number | null = null;
+    if (budget != null && through) {
+      const month = through.slice(0, 8), td = Number(through.slice(8)), [y, m] = through.split('-').map(Number);
+      const dim = new Date(Date.UTC(y, m, 0)).getUTCDate(), pace = td / dim;
+      const spent = idx.reduce((t, i) => {
+        const days = metrics.accounts[i].tool === 'meta' ? (total[i] || {}).spend || {} : metrics.accounts[i].tool === 'ga4' ? adCost[i] || {} : {};
+        for (const [d, v] of Object.entries(days)) if (d.startsWith(month) && d <= through) t += v;
+        return t;
+      }, 0);
+      spentThisMonth = spent;
+      const left = dim - td, forecast = spent / td * dim;
+      if (spent >= budget && left > 0)
+        signals.push({ key: 'budget-out', label: 'Budget used up', detail: cash(spent) + ' of ' + cash(budget), severe: true,
+          say: 'They’ve spent ' + cash(spent) + ' of their ' + cash(budget) + ' monthly budget with ' + left + ' days of the month to go.', act: 'agree with the client whether to pause ads or add budget' });
+      // Pacing waits for the 5th: the first few days of a month say little about where it will land.
+      else if (spent > 0 && td >= 5 && spent / budget > pace + 0.1)
+        signals.push({ key: 'budget-fast', label: 'Spending fast', detail: 'On course for ' + cash(forecast),
+          say: 'Spend is on course for ' + cash(forecast) + ' this month, over their ' + cash(budget) + ' budget.', act: 'lower daily budgets so the month lands on ' + cash(budget) });
+      else if (spent > 0 && td >= 5 && spent / budget < pace - 0.15)
+        signals.push({ key: 'budget-slow', label: 'Spending slow', detail: 'On course for ' + cash(forecast),
+          say: 'Spend is on course for ' + cash(forecast) + ' this month, well under their ' + cash(budget) + ' budget.', act: 'check the campaigns are running and raise daily budgets if needed' });
+    }
+    const goalList = (['leads', 'cpl', 'conv', 'budget'] as const).flatMap(t => { const v = target(t); return v == null ? [] : [{ type: t, target: v, now: t === 'budget' ? spentThisMonth : now[t] }]; });
+
     // Numbers that stopped arriving make every other signal unreliable.
     const broken = accts.find(a => a.error);
     if (broken) signals.push({ key: 'sync-error', label: 'Data not updating', detail: broken.name,
@@ -103,7 +156,7 @@ export function scoreClients(metrics: Metrics, clients: Client[], reports: Repor
     signals.sort((a, b) => +/sync-error|stale/.test(b.key) - +/sync-error|stale/.test(a.key));
     const level = signals.some(s => s.severe) || signals.length >= 2 ? 'r' : signals.length ? 'n' : 'h';
     const keys = signals.map(s => s.key).sort().join(',');
-    out[c.id] = { level, signals, keys, signature: (through || '') + ':' + keys, through, leadSource, weeks: W, cpl, lastReport, accounts: accts.map(a => ({ tool: a.tool, name: a.name, error: a.error })) };
+    out[c.id] = { level, signals, keys, signature: (through || '') + ':' + keys, through, leadSource, weeks: W, cpl, goals: goalList, lastReport, accounts: accts.map(a => ({ tool: a.tool, name: a.name, error: a.error })) };
   }
   return out;
 }
