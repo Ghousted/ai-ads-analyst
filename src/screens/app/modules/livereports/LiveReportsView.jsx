@@ -1,5 +1,5 @@
 import React from 'react';
-import ReportEditor from './ReportEditor';
+import ReportEditor, { DataBody } from './ReportEditor';
 
 const btn = { height: "44px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", whiteSpace: "nowrap" };
 const primary = { ...btn, border: "0", background: "#1f6be2", color: "#ffffff" };
@@ -226,13 +226,61 @@ function TemplateCard({ t }) {
         <span style={{ display: "flex", alignItems: "center", gap: "12px", minHeight: "20px", marginTop: "auto" }}>
           {(t.logos || []).map(lg => <span key={lg} aria-hidden="true" style={{ display: "block", width: "20px", height: "20px", background: `url('${lg}') center / contain no-repeat` }}></span>)}
         </span>
-        <button type="button" onClick={t.create} style={{ alignSelf: "flex-start", height: "40px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">{t.btn}</button>
+        <span style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" }}>
+          <button type="button" onClick={t.create} style={{ height: "40px", padding: "0 16px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer" }} className="dce60d758">{t.btn}</button>
+          {t.preview ? <button type="button" onClick={t.preview} aria-label={t.previewLabel} style={{ height: "40px", padding: "0 12px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#1f6be2", cursor: "pointer" }} className="dc20c6b10">{"Preview"}</button> : null}
+        </span>
       </span>
     </div>
   );
 }
 
+// A template shown as a full report with example numbers, before the agency picks it.
+function TemplatePreview({ v }) {
+  const f = v.lrPrevFacts, color = v.lrPrevColor;
+  const H1 = { margin: "0 0 12px", fontSize: "34px", fontWeight: "700", letterSpacing: "-1px", lineHeight: "1.2" };
+  const H2 = { margin: "22px 0 6px", fontSize: "22px", fontWeight: "700", letterSpacing: "-0.5px", lineHeight: "1.3" };
+  const P = { margin: "0 0 14px", textWrap: "pretty" };
+  // Charts and tables sit side by side when their widths add up to a row, as in the editor.
+  const rows = [];
+  for (const b of v.lrPrevBlocks) { const last = rows[rows.length - 1]; if (!['title', 'heading', 'text', 'list'].includes(b.t) && last && last.data && last.w + (b.w || 1) <= 1.001) { last.items.push(b); last.w += b.w || 1; } else rows.push({ data: !['title', 'heading', 'text', 'list'].includes(b.t), w: b.w || 1, items: [b] }); }
+  return (
+    <div onClick={v.lrPrevBackdrop} style={{ position: "fixed", inset: "0", zIndex: "70", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="lr-prev-title" style={{ width: "min(920px,100%)", height: "min(860px,calc(100vh - 48px))", display: "flex", flexDirection: "column", background: "#ffffff", boxShadow: "0 24px 64px -24px rgba(11,22,38,.45)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "16px 24px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: "0" }}>
+            <h2 id="lr-prev-title" style={{ margin: "0", fontSize: "20px", fontWeight: "700", letterSpacing: "-0.4px" }}>{v.lrPrevLabel}</h2>
+            <span style={{ fontSize: "14px", color: "#5a6474" }}>{"Example numbers. Your report uses the client’s own."}</span>
+          </div>
+          <button type="button" onClick={v.lrPrevClose} aria-label="Close preview" style={{ flex: "none", width: "44px", height: "44px", marginRight: "-10px", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcf0b705f"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#45505f" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        </div>
+        <div style={{ flex: "1", minHeight: "0", overflowY: "auto", background: "#f4f7fb", padding: "24px" }}>
+          <article aria-label={"Example " + v.lrPrevLabel + " report"} style={{ maxWidth: "760px", margin: "0 auto", background: "#ffffff", padding: "36px 40px 40px", fontSize: "17px", lineHeight: "1.65", color: "#0b1626", boxShadow: "0 1px 2px rgba(11,22,38,.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", fontSize: "14px", color: "#5a6474" }}>
+              {v.lrPrevLogo ? <img src={v.lrPrevLogo} alt="" style={{ height: "32px", maxWidth: "160px", objectFit: "contain", display: "block" }} /> : null}
+              <strong style={{ color: "#0b1626" }}>{v.lrPrevAgency}</strong><span>{"Prepared for Example client"}</span>
+            </div>
+            {rows.map((r, i) => r.data ? (
+              <div key={i} style={{ display: "flex", gap: "24px", margin: "8px 0 22px", flexWrap: "wrap" }}>
+                {r.items.map((b, j) => <div key={j} style={{ flex: "1 1 " + Math.round((b.w || 1) * 100 - 4) + "%", minWidth: "220px" }}><DataBody a={{ ...b, kind: b.t }} f={f} color={color} /></div>)}
+              </div>
+            ) : r.items.map((b, j) => b.t === 'title' ? <h3 key={i + '-' + j} style={H1}>{b.text}</h3>
+              : b.t === 'heading' ? <h4 key={i + '-' + j} style={H2}>{b.text}</h4>
+              : b.t === 'list' ? <ol key={i + '-' + j} style={{ margin: "0 0 14px", paddingLeft: "24px" }}>{b.items.map((x, k) => <li key={k} style={{ marginBottom: "4px" }}>{x}</li>)}</ol>
+              : <p key={i + '-' + j} style={P}>{b.text}</p>))}
+          </article>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", padding: "14px 24px" }}>
+          <button type="button" onClick={v.lrPrevClose} style={{ height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{"Close"}</button>
+          <button type="button" onClick={v.lrPrevUse} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{"Use template"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function LiveReportsOverlay({ v }) {
+  if (v.lrPrevOn && !v.lrModal) return <TemplatePreview v={v} />;
   if (!v.lrModal) return null;
   const ghost = { height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" };
   const go = { height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" };

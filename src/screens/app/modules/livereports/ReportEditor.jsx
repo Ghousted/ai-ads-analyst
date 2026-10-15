@@ -65,9 +65,8 @@ function startResize(e, node, editor, updateAttributes) {
   window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
 }
 
-function DataView({ node, selected, updateAttributes, extension, editor }) {
-  const f = extension.options.facts, color = extension.options.color, a = node.attrs;
-  if (!f) return <NodeViewWrapper />;
+// A chart, table or key numbers drawn from a report's numbers. Also used by the template preview.
+export function DataBody({ a, f, color }) {
   let body = null;
   if (a.kind === 'kpis') body = (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "8px" }}>
@@ -127,6 +126,13 @@ function DataView({ node, selected, updateAttributes, extension, editor }) {
       )}
     </section>
   ); }
+  return body;
+}
+
+function DataView({ node, selected, updateAttributes, extension, editor }) {
+  const f = extension.options.facts, color = extension.options.color, a = node.attrs;
+  if (!f) return <NodeViewWrapper />;
+  const body = <DataBody a={a} f={f} color={color} />;
   return (
     <NodeViewWrapper draggable={editor.isEditable ? "true" : "false"} data-drag-handle style={{ position: "relative", outline: selected ? "2px solid #1f6be2" : "none", outlineOffset: "6px", cursor: editor.isEditable ? "grab" : "default" }} title={editor.isEditable ? "Drag to move" : undefined}>
       {selected && editor.isEditable ? (

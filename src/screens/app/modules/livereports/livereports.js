@@ -2,6 +2,7 @@
 import { generateReportAction, saveReportAction, rewritePartAction, deleteReportAction } from '@/app/actions/reports';
 import { fmtDay } from '../../metrics';
 import { TEMPLATES, templateBlocks } from '@/lib/report-blocks';
+import { sampleFacts, sampleWritten } from './preview';
 
 // New reports are titled "Weekly report · Oct 8 – Oct 14". The list shows the period in its own column, so the dates come off the title there.
 const listTitle = t => t.replace(/ · [A-Z][a-z]{2} \d{1,2} – [A-Z][a-z]{2} \d{1,2}$/, '');
@@ -56,7 +57,15 @@ export function liveReportsVals(app, ctx) {
       lrSubmit: e => { e.preventDefault(); create(tplId); }, lrTplLabel: tpl.label, lrName: S.lrName || '', lrSetName: e => app.setState({ lrName: e.target.value }), lrNamePh: (() => { const end = (live.metrics.accounts || []).filter(a => a.clientId === pick).map(a => a.through).filter(Boolean).sort().pop(); if (!end) return ''; const d = new Date(end + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - days + 1); return (days === 30 ? 'Monthly' : days === 14 ? 'Two-week' : 'Weekly') + ' report \u00b7 ' + fmtDay(d.toISOString().slice(0, 10)) + ' \u2013 ' + fmtDay(end); })(), lrGoLabel: tplId === 'blank' ? 'Create blank report' : 'Write report',
       lrCats: ['All templates', 'Traffic', 'Leads'].map(c => ({ label: c, count: String(all.filter(t => c === 'All templates' || t.id === 'blank' || t.cats.includes(c)).length), aria: c === cat ? 'true' : undefined, bg: c === cat ? '#eef3fd' : 'transparent', fw: c === cat ? 700 : 500, pick: () => app.setState({ lrCat: c }) })),
       lrQ: S.lrQ || '', lrSetQ: e => app.setState({ lrQ: e.target.value }), lrClearQ: () => app.setState({ lrQ: '' }), lrNoMatch: !!q && shown.length === 0,
-      lrTpls: shown.map(t => ({ ...t, blank: t.id === 'blank', btn: t.id === 'blank' ? 'Start blank' : 'Use template', create: () => app.setState({ lrModal: true, lrTpl: t.id, lrErr: null, lrName: '' }) })),
+      lrTpls: shown.map(t => ({ ...t, blank: t.id === 'blank', btn: t.id === 'blank' ? 'Start blank' : 'Use template', create: () => app.setState({ lrModal: true, lrTpl: t.id, lrErr: null, lrName: '', lrPrev: null }),
+        preview: t.id === 'blank' ? null : () => app.setState({ lrPrev: t.id }), previewLabel: 'Preview ' + t.label })),
+      // The preview: the template laid out as a real report, filled with example numbers and words.
+      ...(() => { const pt = S.lrPrev && all.find(t => t.id === S.lrPrev && t.id !== 'blank'); if (!pt) return { lrPrevOn: false };
+        const end = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        return { lrPrevOn: true, lrPrevLabel: pt.label, lrPrevDesc: pt.desc, lrPrevFacts: app._pf && app._pf.end === end ? app._pf : (app._pf = sampleFacts(end)), lrPrevBlocks: app._pb && app._pbId === pt.id ? app._pb : (app._pbId = pt.id, app._pb = templateBlocks(pt.id, sampleWritten(pt.id), null)),
+          lrPrevColor: S.brandColor || '#1f6be2', lrPrevLogo: S.brandLogo || '', lrPrevAgency: S.agName || '',
+          lrPrevClose: () => app.setState({ lrPrev: null }), lrPrevBackdrop: e => { if (e.target === e.currentTarget) app.setState({ lrPrev: null }); },
+          lrPrevUse: () => app.setState({ lrPrev: null, lrModal: true, lrTpl: pt.id, lrErr: null, lrName: '' }) }; })(),
       lrNoBrand: !S.brandLogo && !S.lrBrandSkip, lrSkipBrand: () => app.setState({ lrBrandSkip: true }),
       lrSetBrand: () => app.setState({ lrModal: false, view: 'settings', stgTab: 'agency' }),
       lrBusy: busy, lrErr: S.lrErr || '', lrHasErr: !!S.lrErr };
