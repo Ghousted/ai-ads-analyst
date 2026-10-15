@@ -1,5 +1,5 @@
 // Settings, including integrations.
-import { assignAccountAction, disconnectAction } from '@/app/actions/integrations';
+import { assignAccountAction, connectMetaAction, disconnectAction, refreshAccountsAction } from '@/app/actions/integrations';
 import { renameMeAction, renameAgencyAction, inviteAction, setRoleAction, updateBrandAction } from '@/app/actions/agency';
 import { signOutAction, forgotAction } from '@/app/actions/auth';
 import { connList, nextConn, toolAccts, acctFor, acctKey, clSplit, LOGOS, TOOL_NAMES, MULTI } from '../../data';
@@ -7,6 +7,10 @@ import { connList, nextConn, toolAccts, acctFor, acctKey, clSplit, LOGOS, TOOL_N
 const TOOLS = [['meta', 'Meta', 'Facebook and Instagram ads'], ['ga4', 'Google Analytics 4', 'Website visits and conversions'], ['gads', 'Google Ads', 'Search, display and Performance Max'], ['tt', 'TikTok Ads', 'Video ads on TikTok'], ['sc', 'Google Search Console', 'Organic search clicks and rankings'], ['li', 'LinkedIn Ads', 'Sponsored content and lead forms'], ['ms', 'Microsoft Ads', 'Bing search ads'], ['gbp', 'Google Business Profile', 'Calls, directions and website clicks']];
 // What one Google login gives access to, per tool.
 const UNIT = { ga4: 'property', gads: 'ad account', sc: 'site', gbp: 'location' };
+const PLURAL = { property: 'properties' };
+const units = (n, u) => n + ' ' + (n === 1 ? u : PLURAL[u] || u + 's');
+// A Meta token that runs out within this many days gets a warning on its row.
+const SOON = 14;
 const CHANNELS = ['#client-alerts', '#marketing-team', '#general'];
 const PLANS = [['Free', '$0', 'Up to 2 clients'], ['Solo', '$19', 'Up to 5 clients'], ['Studio', '$49', 'Up to 20 clients'], ['Agency', '$99', 'Unlimited clients and teammates']];
 const INVOICES = [['Oct 1, 2026', '$79.00'], ['Sep 1, 2026', '$79.00'], ['Aug 1, 2026', '$79.00']];
@@ -42,10 +46,16 @@ export function settingsVals(app, ctx) {
             const rows = mine.map(c => {
               const nA = c.accts.filter((_, j) => acctFor(sel, c, j)).length;
               if (c.live) { const err = c.status === 'error' ? ' ' + (c.error || 'This login stopped working.') : '';
-                return { ...bt('Connected as ' + c.who, 'Connected by ' + c.by + ' · ' + c.sync + ' · ' + nA + ' of ' + c.accts.length + (c.accts.length === 1 ? ' property' : ' properties') + ' assigned to clients.' + err, 'Reconnect', () => { window.location.href = '/api/integrations/google/start?hint=' + encodeURIComponent(c.who); }), hasBtn2: true, btn2Label: 'Disconnect', btn2: dlg({ kind: 'disconnect', id: c.id }) }; }
+                if (tool === 'meta') { const left = c.expiresAt ? Math.ceil((new Date(c.expiresAt).getTime() - Date.now()) / 864e5) : null;
+                  const exp = left === null ? '' : left <= 0 ? ' The token has expired. Paste a new one.' : left <= SOON ? ' The token expires in ' + units(left, 'day') + '. Paste a new one before then.' : '';
+                  return { ...bt('Connected as ' + c.who, 'System user, not tied to a person · added by ' + c.by + ' · ' + c.sync + ' · ' + nA + ' of ' + units(c.accts.length, 'ad account') + ' assigned to clients.' + err + exp, 'Replace token', dlg({ kind: 'metaToken', id: c.id })), hasBtn2: true, btn2Label: 'Disconnect', btn2: dlg({ kind: 'disconnect', id: c.id }) }; }
+                return { ...bt('Connected as ' + c.who, 'Connected by ' + c.by + ' · ' + c.sync + ' · ' + nA + ' of ' + units(c.accts.length, 'property') + ' assigned to clients.' + err, 'Reconnect', () => { window.location.href = '/api/integrations/google/start?hint=' + encodeURIComponent(c.who); }), hasBtn2: true, btn2Label: 'Disconnect', btn2: dlg({ kind: 'disconnect', id: c.id }) }; }
               const note = pend[c.id] ? ' Waiting for ' + pend[c.id] + ' to sign in again.' : tool === 'meta' && !c.sys ? ' It stops working if ' + c.by.split(' ')[0] + ' leaves or loses access. A system user is safer.' : '';
               return { ...bt('Connected as ' + c.who, (c.sys ? 'System user, not tied to a person' : 'Connected by ' + c.by) + ' · ' + c.sync + ' · ' + nA + ' of ' + c.accts.length + ' accounts assigned to clients.' + note, 'Reconnect', dlg({ kind: 'reconnect', id: c.id, who: tool === 'meta' && !c.sys ? 'sys' : me.name })), hasBtn2: true, btn2Label: 'Disconnect', btn2: dlg({ kind: 'disconnect', id: c.id }) };
             });
+            // Ad accounts given to the system user later only show up after a fresh look.
+            if (tool === 'meta' && live) mine.forEach(c => rows.push(bt('Find ad accounts added later', 'After you give ' + c.who + ' another ad account in Business Manager, look again to add it here.', S.metaLook === c.id ? 'Looking…' : 'Find new accounts', () => { if (S.metaLook) return; app.setState({ metaLook: c.id });
+              refreshAccountsAction(c.id).then(r => { app.setState({ metaLook: null }); if (r.error) return toast(r.error); toast(units(r.found, 'ad account') + ' found for ' + c.who); app.setState(st => ({ stgOpen: { ...(st.stgOpen || {}), meta: true } })); refresh(); }); })));
             if (MULTI.includes(tool)) rows.push(nextConn(S, tool) ? bt('Add another Google login', 'Clients share ' + TOOL_NAMES[tool] + ' with whichever teammate asked. Add each login so every ' + UNIT[tool] + ' shows up.', 'Add login', live ? () => { window.location.href = '/api/integrations/google/start'; } : dlg({ kind: 'connect', tool, st: 'pick', another: true })) : { t: 'Add another Google login', d: 'Every teammate\'s Google login is connected.' });
             return { title: TOOL_NAMES[tool], logo: L[tool], rows,
               subLabel: (open ? 'Hide ' : 'Show ') + all.length + (all.length === 1 ? ' account' : ' accounts'), subOpen: open, subChev: open ? 'rotate(180deg)' : 'rotate(0deg)', subRows: open ? '1fr' : '0fr', subToggle: () => app.setState(st => ({ stgOpen: { ...(st.stgOpen || {}), [tool]: !open } })),
@@ -104,6 +114,9 @@ function dialogVals(app, S, { toast, me, agency, members, conns, C, live, refres
     invite: ['Invite a teammate', 'They get an email to join ' + agency + '.', 'Send invite'],
     disconnect: ['Disconnect ' + tn, 'Analyst stops pulling data from every account ' + cn.who + ' can see. Clients using these accounts show no new numbers until you connect again. Past reports stay as they are.', 'Disconnect'],
     connect: D.another ? ['Add another Google login', 'Sign in with the Google login a client shared their ' + (UNIT[D.tool] || 'account') + ' with. Analyst adds what it can see and remembers which login reads each one.', 'Sign in with Google'] : ['Connect a tool', 'Sign in once with your agency login. Analyst finds every account you manage. It only reads your data and never changes your ads.', 'Connect'],
+    // A Business Manager system user token, pasted. D.id is set when it replaces an existing connection's token.
+    metaToken: D.id ? ['Replace the Meta token', 'Paste a new token for ' + cn.who + '. Every ad account stays assigned to its client.', 'Save token']
+      : ['Connect Meta', 'In Meta Business settings, open Users › System users and add a system user. Give it your clients\' ad accounts, then choose Generate new token with the ads_read permission and paste it here. Analyst only reads your data and never changes your ads.', 'Connect Meta'],
     reconnect: ['Reconnect ' + tn, 'Choose who owns this connection. Every account stays assigned to its client while you switch.', 'Reconnect'],
     slack: ['Connect Slack', 'AI Ads Analyst installs once for ' + agency + '. Pick the channel your team watches for alerts.', 'Continue to Slack'],
     plan: ['Change plan', 'You pay per number of clients. Changes apply from your next invoice.', 'Switch plan'],
@@ -125,8 +138,16 @@ function dialogVals(app, S, { toast, me, agency, members, conns, C, live, refres
       if (!D.tool) return app.setState({ dlgErr: 'Pick a tool to connect.' });
       const c = nextConn(S, D.tool);
       if (c && c.start) { set({ st: 'signing' }); window.location.href = '/api/integrations/google/start'; return; }
+      if (c && c.token) return set({ kind: 'metaToken', st: null, val: '' });
       if (!c) return app.setState({ dlgErr: live ? TOOL_NAMES[D.tool] + ' isn\'t available yet.' : TOOL_NAMES[D.tool] + ' is already connected.' });
       return signIn(s => ({ connOn: { ...(s.connOn || {}), [c.id]: true }, connOff: { ...(s.connOff || {}), [c.id]: false }, connBy: c.base ? s.connBy : { ...(s.connBy || {}), [c.id]: { by: me.name } }, dlg: { ...s.dlg, st: 'done', conn: c.id }, dlgErr: null }));
+    }
+    if (k === 'metaToken') {
+      if (signing) return;
+      if (!val) return app.setState({ dlgErr: 'Paste the system user token.' });
+      set({ st: 'signing' });
+      return connectMetaAction(val).then(r => { if (r.error) return app.setState(s => ({ dlg: s.dlg && { ...s.dlg, st: null }, dlgErr: r.error }));
+        app.setState(s => ({ stgOpen: { ...(s.stgOpen || {}), meta: true } })); close(); toast('Meta connected as ' + r.login + '. ' + units(r.found, 'ad account') + ' found. Link each one to a client below.'); refresh(); });
     }
     if (k === 'reconnect') {
       const who = D.who || owners[0][0];
@@ -145,17 +166,17 @@ function dialogVals(app, S, { toast, me, agency, members, conns, C, live, refres
   return { ...base,
     dlgTitle: done ? (D.another ? added.who : TOOL_NAMES[D.tool]) + ' is connected' : T[0],
     dlgText: done ? found + (found === 1 ? ' account' : ' accounts') + ' found. ' + (D.from ? 'Pick the ones that belong to this client.' : 'Assign each one to a client below.') : T[1],
-    dlgSubmitLabel: signing ? 'Signing in…' : done ? (D.from ? 'Back to the client' : 'Assign accounts') : T[2],
+    dlgSubmitLabel: signing ? (k === 'metaToken' ? 'Checking…' : 'Signing in…') : done ? (D.from ? 'Back to the client' : 'Assign accounts') : T[2],
     dlgDanger: k === 'disconnect', dlgSubmitBg: k === 'disconnect' ? '#a3330c' : '#1f6be2',
     dlgSubmit: done ? e => { e.preventDefault(); app.setState(s => ({ stgOpen: { ...(s.stgOpen || {}), [D.tool]: true } })); close(); } : submit,
     dlgShowCancel: k !== 'invoices' && !done,
-    dlgHasInput: ['name', 'email', 'agency', 'invite'].includes(k), dlgInputLabel: { name: 'Your name', email: 'New email', agency: 'Agency name', invite: 'Their work email' }[k] || '',
-    dlgInputType: k === 'email' || k === 'invite' ? 'email' : 'text', dlgPlaceholder: k === 'invite' || k === 'email' ? 'name@agency.com' : '',
+    dlgHasInput: ['name', 'email', 'agency', 'invite', 'metaToken'].includes(k), dlgInputLabel: { name: 'Your name', email: 'New email', agency: 'Agency name', invite: 'Their work email', metaToken: 'System user token' }[k] || '',
+    dlgInputType: k === 'email' || k === 'invite' ? 'email' : 'text', dlgPlaceholder: k === 'invite' || k === 'email' ? 'name@agency.com' : k === 'metaToken' ? 'EAA…' : '', dlgSecret: k === 'metaToken',
     dlgVal: D.val || '', dlgSetVal: e => set({ val: e.target.value }), dlgInputBd: err ? '#e0481a' : '#d3dbe6',
     dlgHasRoles: radios.length > 0 && !signing, dlgRoleLegend: { invite: 'Role', reconnect: 'Who owns the connection', slack: 'Alert channel' }[k] || '',
     dlgRoles: radios.map(([id, label, desc]) => ({ label, desc, on: picked === id, bd: picked === id ? '#1f6be2' : '#d3dbe6', bg: picked === id ? '#eef3fd' : '#ffffff', pick: () => set(k === 'invite' ? { role: id } : { who: id }) })),
-    dlgHasTools: k === 'connect' && D.st === 'pick' && !D.another, dlgTools: TOOLS.map(([id, label, desc]) => { const nx = nextConn(S, id), live = conns.some(c => c.tool === id), on = D.tool === id; return { label, desc: S.live ? (id === 'ga4' ? (live ? 'Add another Google login' : 'Sign in with Google') : 'Coming soon') : !nx ? 'Already connected' : live ? 'Add another Google login' : desc, logo: LOGOS[id], disabled: !nx, on, bd: on ? '#1f6be2' : '#e6ebf2', bg: on ? '#eef3fd' : !nx ? '#f4f7fb' : '#ffffff', o: !nx ? 0.6 : 1, pick: () => { if (nx) set({ tool: id }); } }; }),
-    dlgSigning: signing, dlgSignText: k === 'slack' ? 'Waiting for Slack to confirm the install…' : 'Waiting for you to sign in…',
+    dlgHasTools: k === 'connect' && D.st === 'pick' && !D.another, dlgTools: TOOLS.map(([id, label, desc]) => { const nx = nextConn(S, id), live = conns.some(c => c.tool === id), on = D.tool === id; return { label, desc: S.live ? (id === 'ga4' ? (live ? 'Add another Google login' : 'Sign in with Google') : id === 'meta' ? (live ? 'Add another system user' : 'Paste a system user token') : 'Coming soon') : !nx ? 'Already connected' : live ? 'Add another Google login' : desc, logo: LOGOS[id], disabled: !nx, on, bd: on ? '#1f6be2' : '#e6ebf2', bg: on ? '#eef3fd' : !nx ? '#f4f7fb' : '#ffffff', o: !nx ? 0.6 : 1, pick: () => { if (nx) set({ tool: id }); } }; }),
+    dlgSigning: signing, dlgSignText: k === 'slack' ? 'Waiting for Slack to confirm the install…' : k === 'metaToken' ? 'Checking the token with Meta and listing its ad accounts…' : 'Waiting for you to sign in…',
     dlgHasPlans: k === 'plan', dlgPlans: PLANS.map(([n, price, note]) => { const on = D.val === n; return { label: n, price: price + ' a month', note, on, bd: on ? '#1f6be2' : '#e6ebf2', bg: on ? '#eef3fd' : '#ffffff', pick: () => set({ val: n }) }; }),
     dlgHasInvoices: k === 'invoices', dlgInvoices: INVOICES.map(([date, amt]) => ({ date, amt, download: () => {
       const html = '<!doctype html><meta charset="utf-8"><title>Invoice ' + date + '</title><body style="font-family:sans-serif;padding:40px"><h1>AI Ads Analyst invoice</h1><p>' + agency + '<br>' + me.email + '</p><p>Date: ' + date + '</p><p>Agency plan, monthly: <strong>' + amt + '</strong></p><p>Paid with Visa ending 4242.</p></body>';
