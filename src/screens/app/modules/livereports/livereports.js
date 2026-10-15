@@ -14,21 +14,26 @@ export function liveReportsVals(app, ctx) {
   const hasData = id => (live.metrics.accounts || []).some(a => a.clientId === id && a.through);
   const withData = clients.filter(c => hasData(c.id));
   const toast = t => { clearTimeout(app.lrT); app.setState({ lrToast: t }); app.lrT = setTimeout(() => app.setState({ lrToast: null }), 4000); };
-  const base = { ...off, lrToast: !!S.lrToast, lrToastText: S.lrToast || '' };
+  const base = { ...off, lrModal: false, lrToast: !!S.lrToast, lrToastText: S.lrToast || '' };
+
+  // The write-a-report dialog, opened from the Reports header button.
+  const modal = (() => {
+    const pick = S.lrClient && withData.some(c => c.id === S.lrClient) ? S.lrClient : (S.sel != null && C[S.sel] && C[S.sel].extra && hasData(C[S.sel].extra.id) ? C[S.sel].extra.id : (withData[0] || {}).id || '');
+    const days = S.lrDays || 7, busy = !!S.lrBusy, close = () => { if (!busy) app.setState({ lrModal: false, lrErr: null }); };
+    return { lrModal: !!S.lrModal && (v === 'templates' || v === 'reports'), lrClose: close, lrBackdrop: e => { if (e.target === e.currentTarget) close(); },
+      lrCanWrite: withData.length > 0,
+      lrNoDataText: clients.length ? 'None of your clients has Google Analytics numbers yet. Link a property to a client in Integrations, and their numbers arrive within a minute.' : 'Add a client and link their Google Analytics property. Then Analyst can write their report from real numbers.',
+      lrGoInt: () => app.setState({ lrModal: false, view: 'settings', stgTab: 'conn' }),
+      lrClients: withData.map(c => ({ id: c.id, name: c.name })), lrClient: pick, lrSetClient: e => app.setState({ lrClient: e.target.value, lrErr: null }),
+      lrDaysOpts: [[7, 'Last 7 days'], [14, 'Last 14 days'], [30, 'Last 30 days']].map(([d, label]) => ({ value: String(d), label })), lrDays: String(days), lrSetDays: e => app.setState({ lrDays: Number(e.target.value), lrErr: null }),
+      lrBusy: busy, lrWriteLabel: busy ? 'Writing\u2026' : 'Write report', lrErr: S.lrErr || '', lrHasErr: !!S.lrErr,
+      lrWrite: e => { e.preventDefault(); if (busy || !pick) return; app.setState({ lrBusy: true, lrErr: null });
+        generateReportAction({ clientId: pick, days }).then(r => { if (r.error) return app.setState({ lrBusy: false, lrErr: r.error }); app.setState({ lrBusy: false, lrModal: false, view: 'lrep', lrId: r.id, lrDraft: null }); refresh(); },
+          () => app.setState({ lrBusy: false, lrErr: 'Writing the report failed. Try again.' })); } };
+  })();
 
   if (v === 'templates' || v === 'reports') {
-    const pick = S.lrClient && withData.some(c => c.id === S.lrClient) ? S.lrClient : (S.sel != null && C[S.sel] && C[S.sel].extra && hasData(C[S.sel].extra.id) ? C[S.sel].extra.id : (withData[0] || {}).id || '');
-    const days = S.lrDays || 7, busy = !!S.lrBusy;
-    return { ...base, lrList: true,
-      lrCanWrite: withData.length > 0, lrNoData: withData.length === 0,
-      lrNoDataText: clients.length ? 'None of your clients has Google Analytics numbers yet. Link a property to a client in Integrations, and their numbers arrive within a minute.' : 'Add a client and link their Google Analytics property. Then Analyst can write their report from real numbers.',
-      lrGoInt: () => app.setState({ view: 'settings', stgTab: 'conn' }),
-      lrClients: withData.map(c => ({ id: c.id, name: c.name })), lrClient: pick, lrSetClient: e => app.setState({ lrClient: e.target.value }),
-      lrDaysOpts: [[7, 'Last 7 days'], [14, 'Last 14 days'], [30, 'Last 30 days']].map(([d, label]) => ({ value: String(d), label })), lrDays: String(days), lrSetDays: e => app.setState({ lrDays: Number(e.target.value) }),
-      lrBusy: busy, lrWriteLabel: busy ? 'Writing the report…' : 'Write report', lrErr: S.lrErr || '', lrHasErr: !!S.lrErr,
-      lrWrite: e => { e.preventDefault(); if (busy || !pick) return; app.setState({ lrBusy: true, lrErr: null });
-        generateReportAction({ clientId: pick, days }).then(r => { if (r.error) return app.setState({ lrBusy: false, lrErr: r.error }); app.setState({ lrBusy: false, view: 'lrep', lrId: r.id, lrDraft: null }); refresh(); },
-          () => app.setState({ lrBusy: false, lrErr: 'Writing the report failed. Try again.' })); },
+    return { ...base, ...modal, lrList: true,
       lrRows: reports.map(r => { const c = clients.find(x => x.id === r.clientId); return { title: r.title, client: c ? c.name : 'Removed client', status: r.status === 'sent' ? 'Sent' : 'Draft', pBg: r.status === 'sent' ? '#e3f3e8' : '#eef1f6', pC: r.status === 'sent' ? '#1d6b3a' : '#45505f',
         date: 'Written ' + fmtDay(r.createdAt.slice(0, 10)), open: () => app.setState({ view: 'lrep', lrId: r.id, lrDraft: null, lrAsk: '', lrAskErr: null }) }; }),
       lrNoReports: reports.length === 0 };

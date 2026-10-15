@@ -9,32 +9,9 @@ const field = { width: "100%", padding: "4px 6px", margin: "0 -6px", border: "1p
 export function LiveReportsView({ v }) {
   if (v.lrList) return (
     <>
-      <section style={{ background: "#ffffff", padding: "22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-        <h2 style={{ margin: "0", fontSize: "20px", fontWeight: "700", letterSpacing: "-0.4px" }}>{"Write a report"}</h2>
-        {v.lrCanWrite ? (
-          <form onSubmit={v.lrWrite} style={{ display: "flex", alignItems: "flex-end", gap: "12px", flexWrap: "wrap" }}>
-            <label style={{ display: "flex", flexDirection: "column", gap: "6px", flex: "1 1 220px" }}>
-              <span style={{ fontSize: "14px", fontWeight: "600" }}>{"Client"}</span>
-              <select value={v.lrClient} onChange={v.lrSetClient} style={select}>{v.lrClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-            </label>
-            <label style={{ display: "flex", flexDirection: "column", gap: "6px", flex: "0 1 200px" }}>
-              <span style={{ fontSize: "14px", fontWeight: "600" }}>{"Period"}</span>
-              <select value={v.lrDays} onChange={v.lrSetDays} style={select}>{v.lrDaysOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
-            </label>
-            <button type="submit" disabled={v.lrBusy} style={{ ...primary, opacity: v.lrBusy ? 0.8 : 1 }} className="dc9482609">{v.lrWriteLabel}</button>
-          </form>
-        ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-            <span style={{ flex: "1 1 320px", color: "#5a6474" }}>{v.lrNoDataText}</span>
-            <button onClick={v.lrGoInt} style={btn}>{"Open integrations"}</button>
-          </div>
-        )}
-        {v.lrBusy ? <span role="status" style={{ fontSize: "14px", color: "#5a6474" }}>{"Analyst is reading the numbers and writing. This takes about half a minute."}</span> : null}
-        {v.lrHasErr ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.lrErr}</span> : null}
-      </section>
       <section aria-label="Reports" style={{ background: "#ffffff", display: "flex", flexDirection: "column" }}>
         {v.lrNoReports ? (
-          <div style={{ padding: "32px 22px", color: "#5a6474" }}>{"No reports yet. Reports you write appear here as drafts to review before sending."}</div>
+          <div style={{ padding: "32px 22px", color: "#5a6474" }}>{"No reports yet. Click Write report and Analyst drafts one from the client's real numbers for you to review."}</div>
         ) : v.lrRows.map((r, i) => (
           <button key={i} onClick={r.open} style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", minHeight: "64px", padding: "12px 22px", border: "0", borderTop: i ? "1px solid #eef1f6" : "0", borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", textAlign: "left" }} className="dcbbe0dc7">
             <span style={{ flex: "1 1 260px", display: "flex", flexDirection: "column", lineHeight: "1.3" }}>
@@ -150,5 +127,41 @@ export function LiveReportsView({ v }) {
         </article>
       </div>
     </>
+  );
+}
+
+// The write-a-report dialog. Same layout as the settings dialogs.
+export function LiveReportsOverlay({ v }) {
+  if (!v.lrModal) return null;
+  return (
+    <div onClick={v.lrBackdrop} style={{ position: "fixed", inset: "0", zIndex: "70", background: "rgba(11,22,38,.45)", display: "grid", placeItems: "center", padding: "24px" }}>
+      <form role="dialog" aria-modal="true" aria-labelledby="lr-title" onSubmit={v.lrWrite} noValidate style={{ width: "min(520px,100%)", maxHeight: "calc(100vh - 48px)", overflowY: "auto", background: "#ffffff", padding: "28px", display: "flex", flexDirection: "column", gap: "20px", boxShadow: "0 30px 80px -30px rgba(11,22,38,.5)" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <h2 id="lr-title" style={{ margin: "0", fontSize: "26px", fontWeight: "700", letterSpacing: "-0.8px" }}>{"Write a report"}</h2>
+            <p style={{ margin: "0", color: "#5a6474", textWrap: "pretty" }}>{v.lrCanWrite ? "Analyst reads the client's Google Analytics numbers and writes a draft for you to review before it goes anywhere." : v.lrNoDataText}</p>
+          </div>
+          <button type="button" onClick={v.lrClose} aria-label="Close" style={{ flex: "none", width: "44px", height: "44px", margin: "-10px -10px 0 0", border: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#45505f" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        </div>
+        {v.lrCanWrite ? (<>
+          <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <span style={{ fontWeight: "600" }}>{"Client"}</span>
+            <select autoFocus value={v.lrClient} onChange={v.lrSetClient} disabled={v.lrBusy} style={select}>{v.lrClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <span style={{ fontWeight: "600" }}>{"Period"}</span>
+            <select value={v.lrDays} onChange={v.lrSetDays} disabled={v.lrBusy} style={select}>{v.lrDaysOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+          </label>
+          {v.lrBusy ? <div role="status" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px", background: "#f4f7fb" }}><span style={{ flex: "none", width: "20px", height: "20px", borderRadius: "50%", border: "3px solid #e6ebf2", borderTopColor: "#1f6be2", animation: "clario-spin 800ms linear infinite" }}></span>{"Reading the numbers and writing. This takes about half a minute."}</div> : null}
+        </>) : null}
+        {v.lrHasErr ? <span role="alert" style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.lrErr}</span> : null}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+          <button type="button" onClick={v.lrClose} disabled={v.lrBusy} style={{ height: "48px", padding: "0 18px", border: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }}>{"Cancel"}</button>
+          {v.lrCanWrite
+            ? <button type="submit" disabled={v.lrBusy} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer", opacity: v.lrBusy ? 0.8 : 1 }} className="dc9482609">{v.lrWriteLabel}</button>
+            : <button type="button" onClick={v.lrGoInt} style={{ height: "48px", padding: "0 22px", border: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">{"Open integrations"}</button>}
+        </div>
+      </form>
+    </div>
   );
 }
