@@ -338,6 +338,7 @@ export default function View({ v }) {
                 </span>
               </span>
               {" "}
+              {(v.chatCanClear) ? <button type={"button"} onClick={v.chatClear} style={{ height: "44px", padding: "0 10px", marginLeft: "auto", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer", whiteSpace: "nowrap" }} className="dc20c6b10">{"New chat"}</button> : null}
               <button onClick={v.toggleChat} aria-label={"Close chat"} style={{ width: "44px", height: "44px", border: "0", borderRadius: "0", background: "transparent", display: "grid", placeItems: "center", cursor: "pointer" }} className="dcbbe0dc7">
                 <svg width={"18"} height={"18"} viewBox={"0 0 24 24"} fill={"none"} stroke={"#45505f"} strokeWidth={"2.4"} strokeLinecap={"round"}>
                   <path d={"M6 6l12 12M18 6L6 18"}></path>
@@ -354,6 +355,19 @@ export default function View({ v }) {
                   <div style={{ alignSelf: cm?.align, maxWidth: "85%", padding: "10px 14px", borderRadius: "0", background: cm?.bg, color: cm?.c, lineHeight: "1.45", fontSize: "15px", whiteSpace: "pre-line", textWrap: "pretty" }}>
                     {cm?.text}
                   </div>
+                  {(cm?.acts?.length) ? (
+                    <div style={{ alignSelf: "flex-start", width: "85%", display: "flex", flexDirection: "column", gap: "6px", marginTop: "-4px" }}>
+                      {cm.acts.map((x, j) => (
+                        <div key={j} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 8px 8px 12px", background: "#ffffff", boxShadow: "inset 0 0 0 1px #e6ebf2" }}>
+                          <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "1px" }}>
+                            <span style={{ fontSize: "14px", fontWeight: "600", lineHeight: "1.35" }}>{x.title}</span>
+                            <span style={{ fontSize: "13px", color: "#5a6474", lineHeight: "1.35" }}>{x.why}</span>
+                          </span>
+                          <button type={"button"} onClick={x.go} aria-label={x.label} aria-disabled={x.done ? "true" : "false"} style={{ flex: "none", height: "40px", padding: "0 12px", border: x.done ? "0" : "1px solid #d3dbe6", borderRadius: "0", background: x.done ? "transparent" : "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: x.done ? "#1d6b3a" : "#0b1626", cursor: x.done ? "default" : "pointer", whiteSpace: "nowrap" }} className="dce60d758">{x.btn}</button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   {" "}
                 </React.Fragment>
               ))}
