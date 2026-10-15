@@ -3,10 +3,13 @@ import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
+import { randomBytes } from 'node:crypto';
 import { requireAgency } from '@/lib/auth';
+import { emailConfigured, sendEmail } from '@/lib/email';
+import { reportEmail } from '@/lib/report-email';
 import { aiErrorMessage, aiModel, recordAiUsage, takeAiQuota } from '@/lib/ai';
 import { buildFacts, rewritePart, writeReport } from '@/lib/report-writer';
-import { blankContent, Content, docText, layoutTemplate, TEMPLATES, type Doc } from '@/lib/report-blocks';
+import { blankContent, Content, docText, layoutTemplate, normalizeContent, TEMPLATES, type Doc } from '@/lib/report-blocks';
 
 const Id = z.string().uuid();
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -79,6 +82,36 @@ export async function deleteReportAction(id: string) {
   const { agency } = await requireAgency();
   if (!Id.safeParse(id).success) return { error: 'Unknown report.' };
   await db.delete(schema.reports).where(and(eq(schema.reports.id, id), eq(schema.reports.agencyId, agency.id)));
+  revalidatePath('/app');
+  return { ok: true };
+}
+
+// Sends the saved report to the client: an email with the headline, key numbers and a private link to the full report.
+export async function sendReportAction(input: { id: string; to: string[]; subject: string; message: string }) {
+  const { user, agency } = await requireAgency();
+  const p = z.object({ id: Id, to: z.array(z.string().trim().email()).min(1).max(5), subject: z.string().trim().min(1).max(200), message: z.string().trim().max(3000) }).safeParse(input);
+  if (!p.success) return { error: 'Check the email addresses (up to 5) and the subject.' };
+  if (!emailConfigured()) return { error: 'Email isn’t set up on this server yet. Add RESEND_API_KEY and EMAIL_FROM.' };
+  const [r] = await db.select({ report: schema.reports, client: schema.clients }).from(schema.reports)
+    .innerJoin(schema.clients, eq(schema.clients.id, schema.reports.clientId))
+    .where(and(eq(schema.reports.id, p.data.id), eq(schema.reports.agencyId, agency.id)));
+  if (!r) return { error: 'That report was deleted.' };
+  if (!(await takeAiQuota(agency.id, 'email'))) return { error: 'You’ve reached today’s limit for sending reports. It resets within 24 hours.' };
+  const token = r.report.shareToken || randomBytes(18).toString('base64url');
+  const base = (process.env.APP_URL || '').replace(/\/$/, '');
+  const content = normalizeContent(r.report.content, r.report.facts as never);
+  const { html, text } = reportEmail({
+    agency: agency.name, color: agency.brandColor, logoUrl: agency.brandLogo && base.startsWith('https://') ? base + '/api/brand/' + agency.id : null,
+    client: r.client.name, title: r.report.title, period: label(r.report.periodStart) + ' – ' + label(r.report.periodEnd),
+    message: p.data.message, doc: content.doc as Doc, facts: r.report.facts, link: base + '/r/' + token,
+  });
+  try {
+    await sendEmail({ fromName: agency.name, replyTo: user.email, to: p.data.to, subject: p.data.subject, html, text, tag: 'report' });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Sending failed. Try again.' };
+  }
+  await recordAiUsage(agency.id, 'email');
+  await db.update(schema.reports).set({ status: 'sent', sentAt: new Date(), sentTo: p.data.to.join(', '), shareToken: token, updatedAt: new Date() }).where(eq(schema.reports.id, r.report.id));
   revalidatePath('/app');
   return { ok: true };
 }

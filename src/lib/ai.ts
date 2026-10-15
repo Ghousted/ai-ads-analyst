@@ -25,7 +25,7 @@ export function getClaude(): Anthropic | null {
 export const aiModel = () => process.env.AI_MODEL || config()?.model || 'claude-sonnet-5-5';
 
 // Per-agency daily limits on paid AI calls. Override with AI_LIMIT_<ACTION>, e.g. AI_LIMIT_REPORT=100.
-const LIMITS: Record<string, number> = { report: 40, revise: 80 };
+const LIMITS: Record<string, number> = { report: 40, revise: 80, email: 100 };
 
 export async function takeAiQuota(agencyId: string, action: string): Promise<boolean> {
   const limit = Number(process.env['AI_LIMIT_' + action.toUpperCase()]) || LIMITS[action] || 20;

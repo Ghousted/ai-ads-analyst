@@ -1,6 +1,6 @@
 // Database schema. Neon Auth keeps its own tables in the neon_auth schema of the same database;
 // users.authUserId links a person here to their Neon Auth account.
-import { boolean, date, doublePrecision, index, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, date, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const ROLES = ['owner', 'admin', 'member'] as const;
 export const roleEnum = pgEnum('member_role', ROLES);
@@ -130,7 +130,13 @@ export const reports = pgTable('reports', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   sentAt: timestamp('sent_at', { withTimezone: true }),
-}, t => [index('reports_agency_idx').on(t.agencyId, t.createdAt)]);
+  // Sending: who it went to, and the private link the client opens. Views of that link are counted.
+  sentTo: text('sent_to'),
+  shareToken: text('share_token'),
+  viewCount: integer('view_count').notNull().default(0),
+  firstViewedAt: timestamp('first_viewed_at', { withTimezone: true }),
+  lastViewedAt: timestamp('last_viewed_at', { withTimezone: true }),
+}, t => [index('reports_agency_idx').on(t.agencyId, t.createdAt), uniqueIndex('reports_share_token_idx').on(t.shareToken)]);
 
 // Every paid AI call, for per-agency daily limits.
 export const aiUsage = pgTable('ai_usage', {

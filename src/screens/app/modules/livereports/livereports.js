@@ -1,5 +1,5 @@
 // Reports for live agencies: list, "write a report" with Claude, and the report page (numbers + editable text + Ask Analyst).
-import { generateReportAction, saveReportAction, rewritePartAction, deleteReportAction } from '@/app/actions/reports';
+import { generateReportAction, saveReportAction, rewritePartAction, deleteReportAction, sendReportAction } from '@/app/actions/reports';
 import { fmtDay } from '../../metrics';
 import { TEMPLATES, templateBlocks } from '@/lib/report-blocks';
 import { sampleFacts, sampleWritten } from './preview';
@@ -74,7 +74,7 @@ export function liveReportsVals(app, ctx) {
 
   if (v === 'templates' || v === 'reports') {
     return { ...base, ...modal, lrList: true,
-      lrRows: reports.map(r => { const c = clients.find(x => x.id === r.clientId); return { title: listTitle(r.title), period: fmtDay(r.periodStart) + ' – ' + fmtDay(r.periodEnd), client: c ? c.name : 'Removed client', status: r.status === 'sent' ? 'Sent' : 'Draft', pBg: r.status === 'sent' ? '#e3f3e8' : '#eef1f6', pC: r.status === 'sent' ? '#1d6b3a' : '#45505f',
+      lrRows: reports.map(r => { const c = clients.find(x => x.id === r.clientId); return { title: listTitle(r.title), period: fmtDay(r.periodStart) + ' – ' + fmtDay(r.periodEnd), client: c ? c.name : 'Removed client', status: r.viewCount ? 'Viewed' : r.status === 'sent' ? 'Sent' : 'Draft', pBg: r.viewCount ? '#e3f3e8' : r.status === 'sent' ? '#eef3fd' : '#eef1f6', pC: r.viewCount ? '#1d6b3a' : r.status === 'sent' ? '#1f5bc4' : '#45505f',
         date: fmtDay(r.createdAt.slice(0, 10)), open: () => app.setState({ view: 'lrep', lrId: r.id, lrDraft: null, lrAsk: '', lrAskErr: null }) }; }),
       lrNoReports: reports.length === 0 };
   }
@@ -87,6 +87,8 @@ export function liveReportsVals(app, ctx) {
   // The editor holds the document; every change lands here as an unsaved draft. Discard reloads the saved version.
   const D = S.lrDraft && S.lrDraft.id === r.id ? S.lrDraft : { id: r.id, title: r.title, content: r.content };
   const dirty = !!(S.lrDraft && S.lrDraft.id === r.id);
+  // Saving resolves true when it worked, so sending can wait for it.
+  const save = () => { app.setState({ lrSaving: true }); return saveReportAction({ id: r.id, title: D.title, content: D.content }).then(x => { app.setState({ lrSaving: false }); if (x.error) { toast(x.error); return false; } app.setState({ lrDraft: null }); toast('Report saved'); refresh(); return true; }); };
   const setDraft = o => app.setState(s => ({ lrDraft: { ...(s.lrDraft && s.lrDraft.id === r.id ? s.lrDraft : { id: r.id, title: r.title, content: r.content }), ...o } }));
   return { ...base, lrPage: true, lrMissing: false,
     lrBack: () => app.setState({ view: 'templates', lrDraft: null }),
@@ -98,7 +100,27 @@ export function liveReportsVals(app, ctx) {
       onRewrite: ({ kind, text, doc, instruction }) => rewritePartAction({ id: r.id, kind, text, content: { doc }, instruction }) },
     lrSource: 'From Google Analytics: ' + f.properties.join(', ') + '.',
     lrDirty: dirty, lrSaving: !!S.lrSaving,
-    lrSave: () => { if (!dirty) return; app.setState({ lrSaving: true }); saveReportAction({ id: r.id, title: D.title, content: D.content }).then(x => { app.setState({ lrSaving: false }); if (x.error) return toast(x.error); app.setState({ lrDraft: null }); toast('Report saved'); refresh(); }); },
+    lrSave: () => { if (dirty) save(); },
+    // Send to client: the saved report goes out, so unsaved edits are saved first.
+    ...(() => { const sd = S.lrSend && S.lrSend.id === r.id ? S.lrSend : null, cl = (live.clients || []).find(x => x.id === r.clientId) || {};
+      const first = (cl.contactName || '').trim().split(/\s+/)[0], me = (S.me && S.me.name || '').trim().split(/\s+/)[0];
+      const open = () => app.setState({ lrSend: { id: r.id, to: cl.email || '', subject: D.title + ' from ' + S.agName, message: 'Hi ' + (first || 'there') + ',\n\nHere\u2019s your report for ' + fmtDay(f.start) + ' \u2013 ' + fmtDay(f.end) + '. The highlights are below, and the full report is one click away.\n\n' + (me || S.agName) }, lrSendErr: null });
+      const set = o => app.setState(s => ({ lrSend: { ...s.lrSend, ...o }, lrSendErr: null }));
+      const views = r.viewCount ? 'Viewed ' + (r.viewCount === 1 ? 'once' : r.viewCount + ' times') + ', last ' + fmtDay(r.lastViewedAt.slice(0, 10)) : 'Not viewed yet';
+      return { lrSendOpen: !!sd, lrSendTo: sd ? sd.to : '', lrSendSubject: sd ? sd.subject : '', lrSendMsg: sd ? sd.message : '', lrSendErr: S.lrSendErr || '', lrSending: !!S.lrSending,
+        lrSendLabel: r.status === 'sent' ? 'Send again' : 'Send to client', lrSendTitle: r.status === 'sent' ? 'Send ' + client.name + ' this report again' : 'Send to ' + client.name,
+        lrSentNote: r.status === 'sent' && r.sentAt ? 'Sent ' + fmtDay(r.sentAt.slice(0, 10)) + (r.sentTo ? ' to ' + r.sentTo : '') + ' \u00b7 ' + views : '',
+        lrClientLink: r.shareToken ? '/r/' + r.shareToken + '?preview=1' : '',
+        lrSend: () => { if (S.lrSaving) return; if (dirty) save().then(ok => ok && open()); else open(); },
+        lrSendClose: () => { if (!S.lrSending) app.setState({ lrSend: null, lrSendErr: null }); },
+        lrSetTo: e => set({ to: e.target.value }), lrSetSubject: e => set({ subject: e.target.value }), lrSetMsg: e => set({ message: e.target.value }),
+        lrSendGo: e => { e.preventDefault(); const to = sd.to.split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
+          if (!to.length) return app.setState({ lrSendErr: 'Add at least one email address.' });
+          if (to.some(x => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x))) return app.setState({ lrSendErr: 'Check the email addresses. Separate several with commas.' });
+          if (!sd.subject.trim()) return app.setState({ lrSendErr: 'Add a subject.' });
+          app.setState({ lrSending: true, lrSendErr: null });
+          sendReportAction({ id: r.id, to, subject: sd.subject, message: sd.message }).then(x => { if (x.error) return app.setState({ lrSending: false, lrSendErr: x.error }); app.setState({ lrSending: false, lrSend: null }); toast('Sent to ' + to.join(', ')); refresh(); },
+            () => app.setState({ lrSending: false, lrSendErr: 'Couldn\u2019t reach the server. Try again.' })); } }; })(),
     lrDiscard: () => app.setState(s => ({ lrDraft: null, lrEditorKey: (s.lrEditorKey || 0) + 1 })),
     lrPdf: () => { if (document.activeElement) document.activeElement.blur(); setTimeout(() => window.print(), 50); },
     lrDelete: () => { if (S.lrDelAsk !== r.id) { app.setState({ lrDelAsk: r.id }); clearTimeout(app.lrDT); app.lrDT = setTimeout(() => app.setState({ lrDelAsk: null }), 4000); return; }
