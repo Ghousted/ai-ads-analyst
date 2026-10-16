@@ -13,7 +13,11 @@ export type Role = (typeof schema.ROLES)[number];
 // The signed-in person, or null. Creates their profile row on first visit and accepts any pending invite.
 export const getUser = cache(async (): Promise<User | null> => {
   await connection();
-  const { data } = await neonAuth().getSession();
+  // When the session needs refreshing, Neon Auth writes new cookies, which a page render isn't allowed to do. Pages
+  // behind the proxy (/app, /setup) are refreshed there first; elsewhere (/login) treat it as signed out for now.
+  let data;
+  try { ({ data } = await neonAuth().getSession()); }
+  catch (e) { if (e instanceof Error && /Cookies can only be modified/.test(e.message)) return null; throw e; }
   const au = data?.user;
   if (!au) return null;
   const email = au.email.toLowerCase();
