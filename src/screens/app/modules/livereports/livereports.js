@@ -1,5 +1,6 @@
 // Reports for live agencies: list, "write a report" with Claude, and the report page (numbers + editable text + Ask Analyst).
-import { generateReportAction, saveReportAction, rewritePartAction, deleteReportAction, sendReportAction, previewReportEmailAction } from '@/app/actions/reports';
+import { generateReportAction, saveReportAction, rewritePartAction, deleteReportAction, sendReportAction, previewReportEmailAction, approveReportAction } from '@/app/actions/reports';
+import { sendLabel } from '@/lib/schedule';
 import { fmtDay } from '../../metrics';
 import { TEMPLATES, templateBlocks } from '@/lib/report-blocks';
 import { sampleFacts, sampleWritten } from './preview';
@@ -101,7 +102,7 @@ export function liveReportsVals(app, ctx) {
 
   if (v === 'templates' || v === 'reports') {
     return { ...base, ...modal, lrList: true,
-      lrRows: reports.map(r => { const c = clients.find(x => x.id === r.clientId); return { title: listTitle(r.title), period: fmtDay(r.periodStart) + ' – ' + fmtDay(r.periodEnd), client: c ? c.name : 'Removed client', status: r.viewCount ? 'Viewed' : r.status === 'sent' ? 'Sent' : 'Draft', pBg: r.viewCount ? '#e3f3e8' : r.status === 'sent' ? '#eef3fd' : '#eef1f6', pC: r.viewCount ? '#1d6b3a' : r.status === 'sent' ? '#1f5bc4' : '#45505f',
+      lrRows: reports.map(r => { const c = clients.find(x => x.id === r.clientId); return { title: listTitle(r.title), period: fmtDay(r.periodStart) + ' – ' + fmtDay(r.periodEnd), client: c ? c.name : 'Removed client', status: r.viewCount ? 'Viewed' : r.status === 'sent' ? 'Sent' : r.approvedAt ? 'Approved' : r.scheduledFor ? 'To review' : 'Draft', pBg: r.viewCount ? '#e3f3e8' : r.status === 'sent' || r.approvedAt ? '#eef3fd' : r.scheduledFor ? '#fff6c2' : '#eef1f6', pC: r.viewCount ? '#1d6b3a' : r.status === 'sent' || r.approvedAt ? '#1f5bc4' : r.scheduledFor ? '#7a5a00' : '#45505f',
         date: fmtDay(r.createdAt.slice(0, 10)), open: () => app.setState({ view: 'lrep', lrId: r.id, lrDraft: null, lrAsk: '', lrAskErr: null }),
           sendLabel: r.status === 'sent' ? 'Send again' : 'Send', sendAria: (r.status === 'sent' ? 'Send again: ' : 'Send: ') + r.title + (c ? ' to ' + c.name : ''), send: e => { e.stopPropagation(); openSend(r); } }; }),
       lrNoReports: reports.length === 0 };
@@ -121,7 +122,17 @@ export function liveReportsVals(app, ctx) {
   const setDraft = o => app.setState(s => ({ lrDraft: { ...(s.lrDraft && s.lrDraft.id === r.id ? s.lrDraft : { id: r.id, title: r.title, content: r.content }), ...o } }));
   return { ...base, lrPage: true, lrMissing: false,
     lrBack: () => app.leaveGuard(() => app.setState({ view: 'templates', lrDraft: null })),
-    lrStatus: r.status === 'sent' ? 'Sent' : 'Draft', lrDate: 'Written ' + fmtDay(r.createdAt.slice(0, 10)),
+    lrStatus: r.status === 'sent' ? 'Sent' : r.approvedAt ? 'Approved' : r.scheduledFor ? 'To review' : 'Draft', lrDate: 'Written ' + fmtDay(r.createdAt.slice(0, 10)),
+    // A scheduled draft: approving it lets it send itself at its time. Unsaved edits are saved first.
+    ...(() => { const sch = r.status === 'draft' && r.scheduledFor; if (!sch) return { lrApproveShow: false };
+      const tz = S.timeZone || 'America/New_York', when = sendLabel(r.scheduledFor, tz), past = new Date(r.scheduledFor).getTime() < Date.now(), who = client.email || 'the client';
+      const set = approve => { if (S.lrApproving || S.lrSaving) return; const go = () => { app.setState({ lrApproving: true });
+        approveReportAction({ id: r.id, approve }).then(x => { app.setState({ lrApproving: false }); if (x.error) return toast(x.error); toast(approve ? (past ? 'Approved. It goes to ' + who + ' within the hour.' : 'Approved. It goes to ' + who + ' ' + when + '.') : 'Approval cancelled. It won\u2019t send by itself.'); refresh(); }); };
+        if (dirty) save().then(ok => ok && go()); else go(); };
+      return { lrApproveShow: true, lrApproved: !!r.approvedAt, lrApproveBusy: !!S.lrApproving,
+        lrApproveLabel: S.lrApproving ? 'Saving\u2026' : r.approvedAt ? 'Cancel approval' : past ? 'Approve and send' : 'Approve',
+        lrApprove: () => set(!r.approvedAt),
+        lrScheduleNote: r.approvedAt ? (past ? 'Approved. Goes to ' + who + ' within the hour' : 'Approved. Goes to ' + who + ' ' + when) : past ? 'Was due ' + when + '. Approve it to send it now' : 'Goes to ' + who + ' ' + when + ' once you approve it' }; })(),
     lrAgency: S.agName, lrLogo: S.brandLogo || '', lrPeriod: fmtDay(f.start) + ' \u2013 ' + fmtDay(f.end), lrClientName: client.name, lrColor: S.brandColor || '#1f6be2',
     lrTitle: D.title, lrSetTitle: e => setDraft({ title: e.target.value }),
     lrEditor: { docKey: r.id + ':' + (S.lrEditorKey || 0), initialDoc: r.content.doc, facts: f, color: S.brandColor || '#1f6be2', logo: S.brandLogo || '', toast,

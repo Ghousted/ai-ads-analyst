@@ -56,7 +56,8 @@ export default async function Page() {
       goals: goals.map(g => ({ clientId: g.clientId, type: g.type, target: g.target })),
       tasks: tasks.map(t => ({ id: t.id, clientId: t.clientId, title: t.title, desc: t.description, status: t.status, dueDay: t.due, who: t.assignees, items: t.items,
         comments: comments.filter(c => c.taskId === t.id).map(c => ({ who: c.userId, at: c.createdAt.toISOString(), text: c.body })) })),
-      reports: reports.map(r => ({ id: r.id, clientId: r.clientId, title: r.title, status: r.status, createdAt: r.createdAt.toISOString(), sentAt: r.sentAt?.toISOString() ?? null, sentTo: r.sentTo, shareToken: r.shareToken, viewCount: r.viewCount, lastViewedAt: r.lastViewedAt?.toISOString() ?? null, periodStart: r.periodStart, periodEnd: r.periodEnd, facts: r.facts, content: normalizeContent(r.content, r.facts as never) })),
+      reports: reports.map(r => ({ id: r.id, clientId: r.clientId, title: r.title, status: r.status, createdAt: r.createdAt.toISOString(), sentAt: r.status === 'sent' ? r.sentAt?.toISOString() ?? null : null,
+        scheduledFor: r.scheduledFor?.toISOString() ?? null, approvedAt: r.approvedAt?.toISOString() ?? null, sentTo: r.sentTo, shareToken: r.shareToken, viewCount: r.viewCount, lastViewedAt: r.lastViewedAt?.toISOString() ?? null, periodStart: r.periodStart, periodEnd: r.periodEnd, facts: r.facts, content: normalizeContent(r.content, r.facts as never) })),
     };
   })();
   const team = members.map(m => ({ id: m.id, name: m.name || m.email.split('@')[0], email: m.email, role: cap(m.role), pending: false }))
@@ -64,7 +65,7 @@ export default async function Page() {
   return (
     <AppScreen
       me={{ id: user.id, name: user.name || user.email.split('@')[0], email: user.email, role: cap(role) }}
-      agency={{ name: agency.name, sampleMode: agency.sampleMode, reportFreq: agency.reportFreq, reportTone: agency.reportTone, brandLogo: agency.brandLogo, brandColor: agency.brandColor }}
+      agency={{ name: agency.name, sampleMode: agency.sampleMode, timeZone: agency.timeZone, reportFreq: agency.reportFreq, reportTone: agency.reportTone, brandLogo: agency.brandLogo, brandColor: agency.brandColor }}
       team={team}
       live={live}
     />

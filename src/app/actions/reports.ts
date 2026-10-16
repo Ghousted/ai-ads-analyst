@@ -1,50 +1,29 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
 import { requireAgency } from '@/lib/auth';
-import { emailConfigured, sendEmail } from '@/lib/email';
-import { reportEmail } from '@/lib/report-email';
-import { reportLink } from '@/lib/report-link';
-import { pdfName, reportPdf } from '@/lib/report-pdf';
-import { aiErrorMessage, aiModel, recordAiUsage, takeAiQuota } from '@/lib/ai';
-import { buildFacts, rewritePart, writeReport } from '@/lib/report-writer';
-import { blankContent, Content, docText, layoutTemplate, normalizeContent, TEMPLATES, type Doc } from '@/lib/report-blocks';
+import { emailConfigured } from '@/lib/email';
+import { aiErrorMessage, recordAiUsage, takeAiQuota } from '@/lib/ai';
+import { rewritePart } from '@/lib/report-writer';
+import { createReport } from '@/lib/report-create';
+import { buildReportEmail, deliverReport, reportFor } from '@/lib/report-send';
+import { Content, docText, TEMPLATES, type Doc } from '@/lib/report-blocks';
 
 const Id = z.string().uuid();
-const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const label = (d: string) => { const x = new Date(d + 'T00:00:00Z'); return MON[x.getUTCMonth()] + ' ' + x.getUTCDate(); };
 
 // Claude writes a report for one client from their latest numbers. Saved as a draft for the agency to review.
-// With a template, Claude writes the words and the template places them with charts and tables. Blank creates an empty
-// report (no AI) that the agency builds from the same blocks.
 export async function generateReportAction(input: { clientId: string; days: number; template: string; title?: string }) {
   const { user, agency } = await requireAgency();
   const p = z.object({ clientId: Id, days: z.union([z.literal(7), z.literal(14), z.literal(30)]), template: z.enum(['blank', ...TEMPLATES.map(t => t.id)] as [string, ...string[]]), title: z.string().trim().max(160).optional() }).safeParse(input);
   if (!p.success) return { error: 'Pick a client, a period and a template.' };
   const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.id, p.data.clientId), eq(schema.clients.agencyId, agency.id)));
   if (!client) return { error: 'That client no longer exists.' };
-  const facts = await buildFacts(client.id, p.data.days);
-  if (!facts) return { error: client.name + ' has no Google Analytics or Meta numbers yet. Link their property or ad account in Integrations first.' };
-  // The agency's name for the report, or one from the period.
-  const title = p.data.title || (p.data.days === 30 ? 'Monthly' : p.data.days === 14 ? 'Two-week' : 'Weekly') + ' report · ' + label(facts.start) + ' – ' + label(facts.end);
-  const save = async (content: Content, model: string | null) => {
-    const [r] = await db.insert(schema.reports).values({ agencyId: agency.id, clientId: client.id, title, periodStart: facts.start, periodEnd: facts.end, facts, content, model, createdBy: user.id }).returning({ id: schema.reports.id });
-    revalidatePath('/app');
-    return { ok: true, id: r.id };
-  };
-  if (p.data.template === 'blank') return save(blankContent(client.name + ' report'), null);
-  if (!(await takeAiQuota(agency.id, 'report'))) return { error: 'You’ve reached today’s limit for AI-written reports. It resets within 24 hours.' };
-  try {
-    const tpl = TEMPLATES.find(t => t.id === p.data.template)!;
-    const { content: written, usage } = await writeReport(facts, { client: client.name, agency: agency.name, tone: client.tone }, tpl.focus);
-    await recordAiUsage(agency.id, 'report', usage);
-    return await save(layoutTemplate(tpl.id, written, facts), aiModel());
-  } catch (e) {
-    console.error('[report]', e);
-    return { error: e instanceof Error && !('status' in e) ? e.message : aiErrorMessage(e) };
-  }
+  const r = await createReport({ agency, client, days: p.data.days, template: p.data.template, title: p.data.title, createdBy: user.id });
+  if ('error' in r) return { error: r.error };
+  revalidatePath('/app');
+  return { ok: true, id: r.id };
 }
 
 // Saves edits the agency made to the written report.
@@ -87,32 +66,14 @@ export async function deleteReportAction(id: string) {
   return { ok: true };
 }
 
-// The report and client for sending, and the email built from them. Shared by the preview and the send.
-async function emailFor(agencyId: string, id: string) {
-  const [r] = await db.select({ report: schema.reports, client: schema.clients }).from(schema.reports)
-    .innerJoin(schema.clients, eq(schema.clients.id, schema.reports.clientId))
-    .where(and(eq(schema.reports.id, id), eq(schema.reports.agencyId, agencyId)));
-  return r || null;
-}
-function buildEmail(agency: { id: string; name: string; brandColor: string; brandLogo: string | null }, r: NonNullable<Awaited<ReturnType<typeof emailFor>>>, message: string, token: string) {
-  const base = (process.env.APP_URL || '').replace(/\/$/, '');
-  const content = normalizeContent(r.report.content, r.report.facts as never);
-  return reportEmail({
-    agency: agency.name, color: agency.brandColor, // Email apps don't show SVG, so only image logos go in the email.
-    logoUrl: agency.brandLogo && !agency.brandLogo.startsWith('data:image/svg') && base.startsWith('https://') ? base + '/api/brand/' + agency.id : null,
-    client: r.client.name, title: r.report.title, period: label(r.report.periodStart) + ' – ' + label(r.report.periodEnd),
-    message, doc: content.doc as Doc, facts: r.report.facts, link: base + '/r/' + token,
-  });
-}
-
 // What the client will receive, for the send dialog's preview. Nothing is sent.
 export async function previewReportEmailAction(input: { id: string; message: string }) {
   const { agency } = await requireAgency();
   const p = z.object({ id: Id, message: z.string().max(3000) }).safeParse(input);
   if (!p.success) return { error: 'The preview couldn’t be built.' };
-  const r = await emailFor(agency.id, p.data.id);
+  const r = await reportFor(agency.id, p.data.id);
   if (!r) return { error: 'That report was deleted.' };
-  return { ok: true, html: buildEmail(agency, r, p.data.message.trim(), r.report.shareToken || 'your-private-link').html, configured: emailConfigured() };
+  return { ok: true, html: buildReportEmail(agency, r, p.data.message.trim(), r.report.shareToken || 'your-private-link').html, configured: emailConfigured() };
 }
 
 // Sends the saved report to the client: an email with the headline, key numbers and a private link to the full report.
@@ -120,28 +81,23 @@ export async function sendReportAction(input: { id: string; to: string[]; subjec
   const { user, agency } = await requireAgency();
   const p = z.object({ id: Id, to: z.array(z.string().trim().email()).min(1).max(5), subject: z.string().trim().min(1).max(200), message: z.string().trim().max(3000), attachPdf: z.boolean().optional() }).safeParse(input);
   if (!p.success) return { error: 'Check the email addresses (up to 5) and the subject.' };
-  if (!emailConfigured()) return { error: 'Email isn’t set up on this server yet. Add RESEND_API_KEY and EMAIL_FROM.' };
-  const r = await emailFor(agency.id, p.data.id);
+  const r = await reportFor(agency.id, p.data.id);
   if (!r) return { error: 'That report was deleted.' };
-  if (!(await takeAiQuota(agency.id, 'email'))) return { error: 'You’ve reached today’s limit for sending reports. It resets within 24 hours.' };
-  // Count the send before it goes out, so sends fired together can't all slip under the limit. A failed send gives it back.
-  const [use] = await db.insert(schema.aiUsage).values({ agencyId: agency.id, action: 'email' }).returning({ id: schema.aiUsage.id });
-  const giveBack = () => db.delete(schema.aiUsage).where(eq(schema.aiUsage.id, use.id));
-  try {
-    const token = await reportLink(r.report.id);
-    const { html, text } = buildEmail(agency, r, p.data.message, token);
-    // The PDF is printed from the report's private page, made above.
-    let attachments: { filename: string; content: Buffer }[] | undefined;
-    if (p.data.attachPdf) {
-      try { attachments = [{ filename: pdfName(r.client.name, r.report.title), content: await reportPdf(token) }]; }
-      catch (e) { console.error('[pdf]', e); await giveBack(); return { error: 'The PDF couldn’t be made, so nothing was sent. Try again, or send without the PDF.' }; }
-    }
-    await sendEmail({ fromName: agency.name, replyTo: user.email, to: p.data.to, subject: p.data.subject, html, text, tag: 'report', attachments });
-  } catch (e) {
-    await giveBack();
-    return { error: e instanceof Error ? e.message : 'Sending failed. Try again.' };
-  }
-  await db.update(schema.reports).set({ status: 'sent', sentAt: new Date(), sentTo: p.data.to.join(', '), updatedAt: new Date() }).where(eq(schema.reports.id, r.report.id));
+  const res = await deliverReport(agency, r, { to: p.data.to, subject: p.data.subject, message: p.data.message, attachPdf: p.data.attachPdf, replyTo: user.email });
+  if ('error' in res) return { error: res.error };
+  revalidatePath('/app');
+  return { ok: true };
+}
+
+// Approving a scheduled draft lets it send itself at its scheduled time. Unapproving stops that.
+export async function approveReportAction(input: { id: string; approve: boolean }) {
+  const { user, agency } = await requireAgency();
+  const p = z.object({ id: Id, approve: z.boolean() }).safeParse(input);
+  if (!p.success) return { error: 'Unknown report.' };
+  const [r] = await db.update(schema.reports).set(p.data.approve ? { approvedAt: new Date(), approvedBy: user.id } : { approvedAt: null, approvedBy: null })
+    .where(and(eq(schema.reports.id, p.data.id), eq(schema.reports.agencyId, agency.id), eq(schema.reports.status, 'draft'), isNotNull(schema.reports.scheduledFor)))
+    .returning({ id: schema.reports.id });
+  if (!r) return { error: 'This report was already sent or deleted.' };
   revalidatePath('/app');
   return { ok: true };
 }
