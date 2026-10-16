@@ -6,7 +6,7 @@ import { googleAuthUrl } from '@/lib/google';
 
 // Starts Google sign-in for GA4. The state nonce is kept in a short-lived cookie and checked on the way back.
 // With ?connect=<token> a client signs in from their ask-to-connect link: no agency login is needed, and the token
-// rides along in a second cookie.
+// rides along in a second cookie. ?from=setup comes back to setup's connect step.
 export async function GET(req: Request) {
   const q = new URL(req.url).searchParams, connect = q.get('connect');
   const cookie = { httpOnly: true, sameSite: 'lax' as const, secure: req.url.startsWith('https:'), path: '/api/integrations/google', maxAge: 600 };
@@ -29,5 +29,8 @@ export async function GET(req: Request) {
   const res = NextResponse.redirect(googleAuthUrl(state, q.get('hint') || undefined));
   res.cookies.set('ga_oauth_state', state, cookie);
   res.cookies.delete({ name: 'ga_oauth_connect', path: '/api/integrations/google' });
+  // Connecting from setup returns to setup's connect step instead of the app.
+  if (q.get('from') === 'setup') res.cookies.set('ga_oauth_from', 'setup', cookie);
+  else res.cookies.delete({ name: 'ga_oauth_from', path: '/api/integrations/google' });
   return res;
 }

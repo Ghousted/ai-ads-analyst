@@ -260,7 +260,8 @@ export default function View({ v }) {
                   {((v.q?.options) || []).map((p, $index) => (
                     <React.Fragment key={$index}>
                       {" "}
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", minHeight: "72px", padding: "12px 16px", borderRadius: "16px", border: `2px solid ${p?.bd ?? ""}`, background: p?.bg, transition: "border-color 200ms ease,background-color 200ms ease" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "12px 16px", borderRadius: "16px", border: `2px solid ${p?.bd ?? ""}`, background: p?.bg, transition: "border-color 200ms ease,background-color 200ms ease" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "14px", minHeight: "48px" }}>
                         {" "}
                         <span style={{ flex: "none", width: "44px", height: "44px", borderRadius: "12px", background: "#f4f7fb", display: "grid", placeItems: "center" }}>
                           <img src={p?.logo} alt={""} width={"26"} height={"26"} style={{ width: "26px", height: "26px", objectFit: "contain", display: "block" }} />
@@ -275,6 +276,9 @@ export default function View({ v }) {
                               {p?.found}
                             </span>
                           </>) : null}
+                          {(p?.soon) ? (
+                            <span style={{ fontSize: "14px", color: "#5a6474" }}>{"Coming soon. Analyst uses your other tools until then."}</span>
+                          ) : null}
                         </span>
                         {" "}
                         {(p?.idle) ? (<>
@@ -306,6 +310,18 @@ export default function View({ v }) {
                         </>) : null}
                         {" "}
                       </div>
+                      {(p?.tokenOpen) ? (
+                        <form onSubmit={p.tokenSave} noValidate={true} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          <span style={{ fontSize: "14px", color: "#45505f", lineHeight: "1.5", textWrap: "pretty" }}>{"In Meta Business settings, open Users › System users and add a system user. Give it your clients’ ad accounts, then choose Generate new token with the ads_read permission and paste it here."}</span>
+                          <span style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            <input aria-label={"System user token"} type={"password"} autoFocus={true} value={p.tokenVal} onChange={p.tokenSet} placeholder={"EAA…"} style={{ flex: "1 1 220px", minWidth: "0", height: "44px", padding: "0 14px", border: "1px solid " + (p.tokenErr ? "#e0481a" : "#d3dbe6"), borderRadius: "12px", font: "inherit", letterSpacing: "inherit", outline: "none" }} />
+                            <button type={"submit"} disabled={p.tokenBusy} style={{ flex: "none", height: "44px", padding: "0 18px", border: "0", borderRadius: "12px", background: "#1f6be2", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#ffffff", cursor: "pointer", opacity: p.tokenBusy ? 0.7 : 1 }} className="dc9482609">{p.tokenBusy ? "Checking…" : "Connect Meta"}</button>
+                          </span>
+                          {(p.tokenErr) ? <span role={"alert"} style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{p.tokenErr}</span> : null}
+                        </form>
+                      ) : null}
+                      {(p?.err) ? <span role={"alert"} style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{p.err}</span> : null}
+                      </div>
                       {" "}
                     </React.Fragment>
                   ))}
@@ -313,7 +329,7 @@ export default function View({ v }) {
                   {(v.q?.noneSelected) ? (<>
                     {" "}
                     <p style={{ margin: "0", padding: "16px", borderRadius: "16px", background: "#f4f7fb", color: "#45505f" }}>
-                      {"No tools picked yet. Set this up later and Analyst will use sample data until your accounts are connected."}
+                      {v.q?.note}
                     </p>
                     {" "}
                   </>) : null}

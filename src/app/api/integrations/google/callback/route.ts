@@ -15,12 +15,14 @@ const COOKIE_PATH = '/api/integrations/google';
 export async function GET(req: Request) {
   const url = new URL(req.url), cookies = req.headers.get('cookie') || '';
   const read = (name: string) => cookies.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'))?.[1];
-  const connect = read('ga_oauth_connect');
+  const connect = read('ga_oauth_connect'), fromSetup = read('ga_oauth_from') === 'setup';
   const back = (result: string, extra = '') => {
-    const to = connect ? '/connect/' + encodeURIComponent(connect) + '?result=' + result + extra : '/app?integration=google&result=' + result + extra;
+    const to = connect ? '/connect/' + encodeURIComponent(connect) + '?result=' + result + extra
+      : (fromSetup ? '/setup?integration=google&result=' : '/app?integration=google&result=') + result + extra;
     const res = NextResponse.redirect(new URL(to, req.url));
     res.cookies.delete({ name: 'ga_oauth_state', path: COOKIE_PATH });
     res.cookies.delete({ name: 'ga_oauth_connect', path: COOKIE_PATH });
+    res.cookies.delete({ name: 'ga_oauth_from', path: COOKIE_PATH });
     return res;
   };
 
