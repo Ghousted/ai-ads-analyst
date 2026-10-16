@@ -39,14 +39,15 @@ async function saveAccounts(conn: Conn, tool: 'ga4' | 'meta', found: { id: strin
 
 // Integrations as the settings page shows them, for one agency.
 export async function listIntegrations(agencyId: string) {
-  const conns = await db.select({ c: schema.connections, by: schema.users.name, byEmail: schema.users.email })
+  const conns = await db.select({ c: schema.connections, by: schema.users.name, byEmail: schema.users.email, byClient: schema.clients.name })
     .from(schema.connections).leftJoin(schema.users, eq(schema.users.id, schema.connections.connectedBy))
+    .leftJoin(schema.clients, eq(schema.clients.id, schema.connections.forClientId))
     .where(eq(schema.connections.agencyId, agencyId)).orderBy(schema.connections.createdAt);
   const ids = conns.map(r => r.c.id);
   const accts = ids.length ? await db.select().from(schema.accounts).where(inArray(schema.accounts.connectionId, ids)).orderBy(schema.accounts.name) : [];
   // expiresAt only matters for Meta: a system user token can be set to run out. Google tokens refresh themselves.
-  return conns.map(({ c, by, byEmail }) => ({
-    id: c.id, provider: c.provider, login: c.login, by: by || byEmail || 'a former teammate', status: c.status, error: c.error,
+  return conns.map(({ c, by, byEmail, byClient }) => ({
+    id: c.id, provider: c.provider, login: c.login, by: byClient ? byClient + ' (client)' : by || byEmail || 'a former teammate', status: c.status, error: c.error,
     lastSyncAt: c.lastSyncAt?.toISOString() ?? null, expiresAt: c.provider === 'meta' ? c.accessTokenExpiresAt?.toISOString() ?? null : null,
     accounts: accts.filter(a => a.connectionId === c.id).map(a => ({ id: a.id, tool: a.tool, name: a.name, detail: a.detail, clientId: a.clientId })),
   }));
