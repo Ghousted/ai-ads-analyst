@@ -78,7 +78,7 @@ export function liveReportsVals(app, ctx) {
     const tpl = all.find(t => t.id === tplId) || all[0];
     return { ...writingVals, lrModal: writing || (!!S.lrModal && (v === 'templates' || v === 'reports')), lrClose: close, lrBackdrop: e => { if (e.target === e.currentTarget) close(); },
       lrCanWrite: withData.length > 0,
-      lrNoDataText: clients.length ? 'None of your clients has Google Analytics numbers yet. Link a property to a client in Integrations, and their numbers arrive within a minute.' : 'Add a client and link their Google Analytics property. Then Analyst can write their report from real numbers.',
+      lrNoDataText: clients.length ? 'None of your clients has Google Analytics or Meta numbers yet. Link a property or ad account to a client in Integrations, and their numbers arrive within a minute.' : 'Add a client and link their Google Analytics property or Meta ad account. Then Analyst can write their report from real numbers.',
       lrGoInt: () => app.setState({ lrModal: false, view: 'settings', stgTab: 'conn' }),
       lrClients: withData.map(c => ({ id: c.id, name: c.name, logos: toolsOf(c.id), on: c.id === pick, bd: c.id === pick ? '#1f6be2' : '#d3dbe6', bg: c.id === pick ? '#eef3fd' : '#ffffff', pick: () => app.setState({ lrClient: c.id, lrErr: null }) })),
       lrDaysOpts: [[7, 'Last 7 days'], [14, 'Last 14 days'], [30, 'Last 30 days']].map(([d, label]) => ({ value: String(d), label })), lrDays: String(days), lrSetDays: e => app.setState({ lrDays: Number(e.target.value), lrErr: null }),

@@ -10,29 +10,38 @@ const addDays = (day: string, n: number) => { const d = new Date(day + 'T00:00:0
 
 export type Facts = Awaited<ReturnType<typeof buildFacts>>;
 
-// The numbers a report is written from: this period and the one before, for the client's linked GA4 properties.
+// The numbers a report is written from: this period and the one before, for the client's linked GA4 properties and
+// Meta ad accounts.
 export async function buildFacts(clientId: string, periodDays: number) {
-  const accts = await db.select().from(schema.accounts).where(and(eq(schema.accounts.clientId, clientId), eq(schema.accounts.tool, 'ga4')));
+  const accts = await db.select().from(schema.accounts).where(and(eq(schema.accounts.clientId, clientId), inArray(schema.accounts.tool, ['ga4', 'meta'])));
   const through = accts.map(a => a.dataThrough).filter((d): d is string => !!d).sort().pop();
   if (!through) return null;
   const end = through, start = addDays(end, -periodDays + 1), prevEnd = addDays(start, -1), prevStart = addDays(prevEnd, -periodDays + 1);
   const rows = await db.select().from(schema.metricRows)
     .where(and(inArray(schema.metricRows.accountId, accts.map(a => a.id)), gte(schema.metricRows.day, prevStart), lte(schema.metricRows.day, end)));
-  const cur = rows.filter(r => r.day >= start), prev = rows.filter(r => r.day < start);
+  const metaIds = new Set(accts.filter(a => a.tool === 'meta').map(a => a.id));
+  const ga4Rows = rows.filter(r => !metaIds.has(r.accountId)), metaRows = rows.filter(r => metaIds.has(r.accountId));
+  const cur = ga4Rows.filter(r => r.day >= start), prev = ga4Rows.filter(r => r.day < start);
+  const mCur = metaRows.filter(r => r.day >= start), mPrev = metaRows.filter(r => r.day < start);
   const total = (rs: typeof rows, m: string) => Math.round(rs.filter(r => r.dim === 'total' && r.metric === m).reduce((t, r) => t + r.value, 0) * 100) / 100;
-  const totals = (rs: typeof rows) => ({ sessions: total(rs, 'sessions'), engagedSessions: total(rs, 'engagedSessions'), leads: total(rs, 'keyEvents'), pageViews: total(rs, 'screenPageViews'),
-    adCost: Math.round(rs.filter(r => r.dim === 'campaign' && r.metric === 'adCost').reduce((t, r) => t + r.value, 0) * 100) / 100 });
+  // Meta numbers sit beside GA4's, never added to them: Meta counts leads its ads only helped with.
+  const totals = (rs: typeof rows, ms: typeof rows) => ({ sessions: total(rs, 'sessions'), engagedSessions: total(rs, 'engagedSessions'), leads: total(rs, 'keyEvents'), pageViews: total(rs, 'screenPageViews'),
+    adCost: Math.round(rs.filter(r => r.dim === 'campaign' && r.metric === 'adCost').reduce((t, r) => t + r.value, 0) * 100) / 100,
+    metaSpend: total(ms, 'spend'), metaImpressions: total(ms, 'impressions'), metaClicks: total(ms, 'clicks'), metaLeads: total(ms, 'leads') });
   const by = (rs: typeof rows, dim: string, metric: string) => { const o: Record<string, number> = {}; for (const r of rs) if (r.dim === dim && r.metric === metric) o[r.dimValue] = (o[r.dimValue] || 0) + r.value; return o; };
   const top = (dim: string, n: number) => { const s = by(cur, dim, 'sessions'), k = by(cur, dim, 'keyEvents'), ps = by(prev, dim, 'sessions');
     return Object.entries(s).sort((a, b) => b[1] - a[1]).slice(0, n).map(([name, sessions]) => ({ name, sessions, leads: k[name] || 0, prevSessions: ps[name] || 0 })); };
-  const daily = Array.from({ length: periodDays * 2 }, (_, i) => { const day = addDays(prevStart, i), rs = rows.filter(r => r.day === day && r.dim === 'total');
+  const daily = Array.from({ length: periodDays * 2 }, (_, i) => { const day = addDays(prevStart, i), rs = ga4Rows.filter(r => r.day === day && r.dim === 'total');
     return { day, sessions: rs.find(r => r.metric === 'sessions')?.value || 0, leads: rs.find(r => r.metric === 'keyEvents')?.value || 0, engaged: rs.find(r => r.metric === 'engagedSessions')?.value || 0, pageViews: rs.find(r => r.metric === 'screenPageViews')?.value || 0 }; });
   const camps = by(cur, 'campaign', 'adCost'), clicks = by(cur, 'campaign', 'adClicks');
+  const mSpend = by(mCur, 'campaign', 'spend'), mClicks = by(mCur, 'campaign', 'clicks'), mLeads = by(mCur, 'campaign', 'leads'), mPrevSpend = by(mPrev, 'campaign', 'spend');
+  const r2 = (v: number) => Math.round(v * 100) / 100;
   return {
-    periodDays, start, end, prevStart, prevEnd, properties: accts.map(a => a.name),
-    totals: totals(cur), prev: totals(prev), daily,
+    periodDays, start, end, prevStart, prevEnd, properties: accts.filter(a => a.tool === 'ga4').map(a => a.name), adAccounts: accts.filter(a => a.tool === 'meta').map(a => a.name),
+    totals: totals(cur, mCur), prev: totals(prev, mPrev), daily,
     channels: top('channel', 6), devices: top('device', 3), pages: top('page', 5),
     campaigns: Object.entries(camps).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, cost]) => ({ name, cost: Math.round(cost * 100) / 100, clicks: clicks[name] || 0 })),
+    metaCampaigns: Object.entries(mSpend).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, spend]) => ({ name, spend: r2(spend), clicks: mClicks[name] || 0, leads: mLeads[name] || 0, prevSpend: r2(mPrevSpend[name] || 0) })),
   };
 }
 
@@ -60,7 +69,9 @@ const SYSTEM = `You write the weekly or monthly results report that a marketing 
 Rules:
 - Use only the numbers in the data you are given. Never invent numbers, campaigns, events or causes.
 - Compare this period with the previous period of the same length. Say whether things went up or down and by how much.
-- "leads" are the client's Google Analytics key events (the actions they chose to count, such as form submissions). If leads are 0 in both periods, say that leads are not being tracked yet and suggest setting up key events, instead of calling it a drop.
+- "leads" are the client's Google Analytics key events (the actions they chose to count, such as form submissions). If leads are 0 in both periods and the client has a Google Analytics property, say that leads are not being tracked yet and suggest setting up key events, instead of calling it a drop.
+- The meta* numbers and metaCampaigns are from the client's Meta (Facebook and Instagram) ads: spend, impressions, clicks and the leads Meta reports. Meta counts leads its ads only helped with, so never add Meta leads to Google Analytics leads. When both exist, cost per lead is Meta spend divided by Meta leads, and say it is Meta's count. When the client has no Google Analytics property, Meta leads are their leads.
+- Leave out any platform with no numbers. When the client has no Google Analytics property (properties is empty), don't mention Google Analytics, website traffic or tracking set-up at all; report on Meta alone.
 - When you explain why something changed, present it as a likely reason the data supports, not a fact.
 - Write for the client, as the agency ("we"). Plain English, short sentences, no marketing jargon, no emojis. Headings in sentence case.
 - Next steps are concrete things the agency will do in the coming period, based on the data.
