@@ -2,7 +2,7 @@
 import React from 'react';
 import { FEATURES } from './modules';
 
-export const css = "html,body{margin:0;background:#f4f7fb;color:#0b1626;-webkit-font-smoothing:antialiased}\n*{box-sizing:border-box}\na{color:#1f6be2;text-underline-offset:3px}\na:hover{color:#0b1626}\n@keyframes clario-spin{to{transform:rotate(360deg)}}\n@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}\n.dcf0b705f:hover{background:#f4f7fb !important}\n.dc20c6b10:hover{color:#0b1626 !important}\n.dcbbe0dc7:hover{background:#e6ebf2 !important}\n.dc9482609:hover{background:#1858b8 !important}\n.dcadff8cd:active{transform:scale(0.97) !important}\n.dc9335fa9:hover{background:#e1ebfc !important}\n.dc6106149:active{transform:scale(0.98) !important}\n.dce5ff64e:active{transform:scale(0.94) !important}\n.dce60d758:hover{border-color:#0b1626 !important}\n.dc120a618:focus{border-color:#1f6be2 !important;box-shadow:0 0 0 4px #d6e4f8 !important}\n.dc467ff26:hover{color:#1f6be2 !important}\n.dc63085fd:hover{text-decoration-color:currentColor !important}\n.dc228142d:hover{background:#e9eef5 !important}\n.dc6f15efc:hover{background:#f7f9fc !important}\n.dcf4597a3:hover{transform:translateY(-2px) !important}\n.dcdda73d1:hover{background:#e6ebf2 !important;color:#0b1626 !important}\n.dcf4e905a:hover{background:#fbefea !important}\n.dc9ba39f8:hover{background:#eef3fd !important}\n.dcceddbc1:hover{background:#f0f3f8 !important}\n.dce77e1f6:hover{background:#fde2d6 !important}\n.dcc3caca9:hover{background:#0b1626 !important;color:#ffffff !important}\n.dc6bffc71:hover{background:#f8fafc !important}\n.dcae383ef:hover{border-color:#c9d3e0 !important;box-shadow:0 10px 24px -18px rgba(11,22,38,.4) !important}\n.dceb8c957:hover{background:#f4f7fb !important;color:#0b1626 !important}\n.dc054f106:focus{border-color:#1f6be2 !important}\n.dc047ba64:hover{border-color:#1f6be2 !important}\n.dc83474c9:hover{border-color:#1f6be2 !important;color:#0b1626 !important}\n.dc7a04906:hover{background:#cfe8d8 !important}";
+export const css = "html,body{margin:0;background:#f4f7fb;color:#0b1626;-webkit-font-smoothing:antialiased}\n*{box-sizing:border-box}\na{color:#1f6be2;text-underline-offset:3px}\na:hover{color:#0b1626}\n@keyframes clario-spin{to{transform:rotate(360deg)}}\n@keyframes clario-toast-in{from{opacity:0;transform:translateY(8px)}}\n.dcsampleclose:hover{color:#ffffff !important}\n@media (max-width:640px){.dcsampletoast{left:16px !important;bottom:96px !important;width:calc(100vw - 32px) !important}}\n@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}\n.dcf0b705f:hover{background:#f4f7fb !important}\n.dc20c6b10:hover{color:#0b1626 !important}\n.dcbbe0dc7:hover{background:#e6ebf2 !important}\n.dc9482609:hover{background:#1858b8 !important}\n.dcadff8cd:active{transform:scale(0.97) !important}\n.dc9335fa9:hover{background:#e1ebfc !important}\n.dc6106149:active{transform:scale(0.98) !important}\n.dce5ff64e:active{transform:scale(0.94) !important}\n.dce60d758:hover{border-color:#0b1626 !important}\n.dc120a618:focus{border-color:#1f6be2 !important;box-shadow:0 0 0 4px #d6e4f8 !important}\n.dc467ff26:hover{color:#1f6be2 !important}\n.dc63085fd:hover{text-decoration-color:currentColor !important}\n.dc228142d:hover{background:#e9eef5 !important}\n.dc6f15efc:hover{background:#f7f9fc !important}\n.dcf4597a3:hover{transform:translateY(-2px) !important}\n.dcdda73d1:hover{background:#e6ebf2 !important;color:#0b1626 !important}\n.dcf4e905a:hover{background:#fbefea !important}\n.dc9ba39f8:hover{background:#eef3fd !important}\n.dcceddbc1:hover{background:#f0f3f8 !important}\n.dce77e1f6:hover{background:#fde2d6 !important}\n.dcc3caca9:hover{background:#0b1626 !important;color:#ffffff !important}\n.dc6bffc71:hover{background:#f8fafc !important}\n.dcae383ef:hover{border-color:#c9d3e0 !important;box-shadow:0 10px 24px -18px rgba(11,22,38,.4) !important}\n.dceb8c957:hover{background:#f4f7fb !important;color:#0b1626 !important}\n.dc054f106:focus{border-color:#1f6be2 !important}\n.dc047ba64:hover{border-color:#1f6be2 !important}\n.dc83474c9:hover{border-color:#1f6be2 !important;color:#0b1626 !important}\n.dc7a04906:hover{background:#cfe8d8 !important}";
 
 export default function View({ v }) {
   return (
@@ -165,13 +165,6 @@ export default function View({ v }) {
           {" "}
           <div style={{ maxWidth: v.mainMax, margin: "0 auto", display: "flex", flexDirection: "column", gap: v.mainGap }}>
             {" "}
-            {(v.sampleMode) ? (
-              <p role={"note"} style={{ margin: "0", padding: "12px 16px", background: "#fff6c2", color: "#5c4400", fontSize: "15px", textWrap: "pretty" }}>
-                <strong style={{ fontWeight: "700" }}>{"Sample data. "}</strong>
-                {"These clients and numbers are examples so you can look around. Your own clients replace them once you connect Google Analytics or Meta."}
-                {(v.canConnect) ? (<>{" "}<a href={"/api/integrations/google/start"} style={{ fontWeight: "700", color: "#5c4400" }}>{"Connect Google Analytics"}</a>{" · "}<button type={"button"} onClick={v.connectMeta} style={{ padding: "0", border: "0", background: "none", font: "inherit", fontWeight: "700", color: "#5c4400", textDecoration: "underline", cursor: "pointer" }}>{"Connect Meta"}</button></>) : null}
-              </p>
-            ) : null}
             {(v.showHeader) ? (<>
               {" "}
               <header style={{ position: "sticky", top: "0", zIndex: "30", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap", margin: "-32px calc(-1 * clamp(20px,4vw,48px)) 0", padding: "20px clamp(20px,4vw,48px) 16px", background: "#f4f7fb", boxShadow: v.hdrShadow, transition: "box-shadow 200ms ease" }}>
@@ -317,6 +310,18 @@ export default function View({ v }) {
         </main>
         {" "}
         {FEATURES.map(f => f.Overlay && <f.Overlay key={f.id} v={v} />)}
+        {(v.sampleToast) ? (
+          <div role={"status"} className={"dcsampletoast"} style={{ position: "fixed", left: "24px", bottom: "24px", zIndex: "45", display: "flex", alignItems: "flex-start", gap: "4px", width: "min(420px,calc(100vw - 48px))", padding: "12px 4px 12px 16px", background: "#0b1626", color: "#ffffff", fontSize: "14px", lineHeight: "1.45", letterSpacing: "-0.2px", boxShadow: "0 12px 32px -12px rgba(11,22,38,.5)", animation: "clario-toast-in 200ms ease-out" }}>
+            <p style={{ flex: "1", margin: "0", textWrap: "pretty" }}>
+              <strong style={{ fontWeight: "700" }}>{"Sample data. "}</strong>
+              {"These clients and numbers are examples. Your own replace them once Google Analytics or Meta is connected."}
+              {(v.canConnect) ? (<span style={{ display: "flex", gap: "16px", marginTop: "6px" }}><a href={"/api/integrations/google/start"} style={{ fontWeight: "700", color: "#ffffff" }}>{"Connect Google Analytics"}</a><button type={"button"} onClick={v.connectMeta} style={{ padding: "0", border: "0", background: "none", font: "inherit", fontWeight: "700", color: "#ffffff", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}>{"Connect Meta"}</button></span>) : null}
+            </p>
+            <button type={"button"} aria-label={"Close"} onClick={v.closeSampleToast} className={"dcsampleclose"} style={{ flex: "none", width: "44px", height: "44px", marginTop: "-10px", display: "grid", placeItems: "center", padding: "0", border: "0", background: "none", color: "#c9d3e0", cursor: "pointer" }}>
+              <svg width={"14"} height={"14"} viewBox={"0 0 14 14"} aria-hidden={"true"}><path d={"M2 2l10 10M12 2L2 12"} stroke={"currentColor"} strokeWidth={"1.6"} strokeLinecap={"round"} /></svg>
+            </button>
+          </div>
+        ) : null}
         {" "}
         <div style={{ position: "fixed", right: "24px", bottom: "24px", zIndex: "40", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px", pointerEvents: "none" }}>
           {" "}

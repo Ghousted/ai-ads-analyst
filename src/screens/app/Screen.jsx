@@ -44,6 +44,8 @@ class Logic extends React.Component {
     this._sc = () => { const el = this.docRef.current, s = window.getSelection(); if (el && s.rangeCount && el.contains(s.anchorNode)) this._range = s.getRangeAt(0).cloneRange(); }; document.addEventListener('selectionchange', this._sc); setTimeout(() => this.syncDoc?.(), 0);
     this._rs = () => { this.autosize(); const w = window.innerWidth; if (w !== this.state.vw) this.setState({ vw: w }); }; this._rs(); window.addEventListener('resize', this._rs);
     try { if (localStorage.getItem('clario-nav-collapsed') === '1') this.setState({ navC: true }); } catch (e) {}
+    // The sample data toast shows once per browser session until it's closed. It waits for mount so it never flashes.
+    try { if (sessionStorage.getItem('clario-sample-toast') !== 'closed') this.setState({ sampleToast: true }); } catch (e) { this.setState({ sampleToast: true }); }
     requestAnimationFrame(() => { const c = this.chartRef.current; if (c) { c.scrollLeft = c.scrollWidth; this._chartSeen = this._chartKey; } });
     let fade = false;
     try { fade = sessionStorage.getItem('clario-fade-in') === '1'; sessionStorage.removeItem('clario-fade-in'); } catch (e) {}
@@ -242,7 +244,8 @@ class Logic extends React.Component {
       showSw: v === 'an' || v.startsWith('an-'), hasAction: !!p[3] && !(v === 'clients' && S.cForm) && !(live && (v === 'templates' || v === 'reports')), // Live agencies write reports from the template gallery on the Reports page.
       actionLabel: p[3], action: v === 'tasks' ? () => this.setState({ tw: { step: 1, title: '', desc: '', client: S.sel != null ? C[S.sel].name : '', due: '', who: [meKey], items: [], itemVal: '' }, twErr: null }) : v === 'clients' ? () => this.setState({ view: 'clients', sel: null, swOpen: false, cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : v === 'templates' ? () => this.setState({ newRep: { step: 1, name: '', tpl: 'blank', err: false, direct: true } }) : v === 'clients' ? () => this.setState({ cForm: { name: '', email: '', plats: [], step: 1 }, cErr: {} }) : () => {},
       vClient: v === 'client', vTasks: v === 'tasks', vBuilder: v === 'builder' && !live,
-      meName: S.me?.name || '', meInitials: (S.me?.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), meRole: S.me?.role || '', agencyName: S.agName, sampleMode: !!this.props.agency?.sampleMode, // A report being edited uses the full width: its ribbon runs edge to edge, the page stays centred.
+      meName: S.me?.name || '', meInitials: (S.me?.name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(), meRole: S.me?.role || '', agencyName: S.agName, sampleMode: !!this.props.agency?.sampleMode, sampleToast: !!this.props.agency?.sampleMode && !!S.sampleToast,
+      closeSampleToast: () => { this.setState({ sampleToast: false }); try { sessionStorage.setItem('clario-sample-toast', 'closed'); } catch (e) {} }, // A report being edited uses the full width: its ribbon runs edge to edge, the page stays centred.
       mainPad: v === 'lrep' ? '0 0 64px' : '32px clamp(20px,4vw,48px) 64px', mainMax: v === 'lrep' ? 'none' : '1100px', mainGap: v === 'lrep' ? '0' : '24px', canConnect: S.me?.role !== 'Member', connectMeta: () => this.setState({ view: 'settings', stgTab: 'conn', dlg: { kind: 'metaToken' }, dlgErr: null }),
       goSettings: go('settings'), goReports: go('reports'), goHistory: go('reports'), histCount: '', goTemplates: go('templates'), viewRef: this.viewRef, setAria: v === 'settings' ? 'page' : undefined, setBg: v === 'settings' ? '#eef3fd' : 'transparent', setC: v === 'settings' ? '#1f6be2' : '#45505f',
       ...FEATURES.reduce((o, f) => Object.assign(o, f.vals(this, ctx)), {}),
