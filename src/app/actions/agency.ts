@@ -97,6 +97,17 @@ export async function setRoleAction(input: { userId?: string; email?: string; ro
   return { ok: true };
 }
 
+// Defaults for new clients: their report schedule and tone.
+export async function saveWorkspaceAction(input: { reportFreq?: string; reportTone?: string }) {
+  const { agency, role } = await requireAgency();
+  if (!canManage(role)) return { error: 'Only the owner and admins can change these defaults.' };
+  const p = z.object({ reportFreq: z.string().trim().min(1).max(80).optional(), reportTone: z.string().trim().min(1).max(40).optional() }).safeParse(input);
+  if (!p.success) return { error: 'Pick a schedule and a tone from the lists.' };
+  await db.update(schema.agencies).set(p.data).where(eq(schema.agencies.id, agency.id));
+  revalidatePath('/app');
+  return { ok: true };
+}
+
 // The time zone report schedules and alerts follow.
 export async function setTimeZoneAction(tz: string) {
   const { agency, role } = await requireAgency();

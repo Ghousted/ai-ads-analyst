@@ -8,6 +8,7 @@ import { db, schema } from '@/db';
 import { requireAgency } from '@/lib/auth';
 import { connectEmail } from '@/lib/connect-email';
 import { emailConfigured, sendEmail } from '@/lib/email';
+import { joinSchedule, scheduleParts } from '@/lib/schedule';
 import { syncAccount } from '@/lib/sync';
 
 // Adds a client and links the chosen unassigned accounts to it.
@@ -16,7 +17,7 @@ export async function createClientAction(input: { name: string; email: string; a
   const p = z.object({ name: z.string().trim().min(1).max(120), email: z.string().trim().toLowerCase().email(), accountIds: z.array(z.string().uuid()).max(50) }).safeParse(input);
   if (!p.success) return { error: 'Enter a name and a valid email.' };
   const res = await db.transaction(async tx => {
-    const [c] = await tx.insert(schema.clients).values({ agencyId: agency.id, name: p.data.name, email: p.data.email, tone: agency.reportTone }).returning({ id: schema.clients.id });
+    const [c] = await tx.insert(schema.clients).values({ agencyId: agency.id, name: p.data.name, email: p.data.email, tone: agency.reportTone, schedule: joinSchedule(...Object.values(scheduleParts(agency.reportFreq)) as [string, string]) }).returning({ id: schema.clients.id });
     const linked = p.data.accountIds.length ? await tx.update(schema.accounts).set({ clientId: c.id })
       .where(and(eq(schema.accounts.agencyId, agency.id), inArray(schema.accounts.id, p.data.accountIds), isNull(schema.accounts.clientId))).returning({ id: schema.accounts.id }) : [];
     return { id: c.id, linked: linked.map(x => x.id) };
