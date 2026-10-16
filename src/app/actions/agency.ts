@@ -4,6 +4,7 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
 import { requireAgency, requireUser, getMembership, canManage } from '@/lib/auth';
+import { TIME_ZONES } from '@/lib/schedule';
 
 const Opt = z.string().trim().max(80).nullish();
 
@@ -80,6 +81,16 @@ export async function setRoleAction(input: { userId?: string; email?: string; ro
     if (next === null) await db.delete(schema.invitations).where(where);
     else await db.update(schema.invitations).set({ role: next === 'admin' ? 'admin' : 'member' }).where(where);
   }
+  revalidatePath('/app');
+  return { ok: true };
+}
+
+// The time zone report schedules and alerts follow.
+export async function setTimeZoneAction(tz: string) {
+  const { agency, role } = await requireAgency();
+  if (!canManage(role)) return { error: 'Only the owner and admins can change the time zone.' };
+  if (!TIME_ZONES.some(([id]) => id === tz)) return { error: 'Pick a time zone from the list.' };
+  await db.update(schema.agencies).set({ timeZone: tz }).where(eq(schema.agencies.id, agency.id));
   revalidatePath('/app');
   return { ok: true };
 }

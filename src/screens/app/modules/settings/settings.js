@@ -1,6 +1,7 @@
 // Settings, including integrations.
 import { assignAccountAction, connectMetaAction, disconnectAction, refreshAccountsAction } from '@/app/actions/integrations';
-import { renameMeAction, renameAgencyAction, inviteAction, setRoleAction, updateBrandAction } from '@/app/actions/agency';
+import { renameMeAction, renameAgencyAction, inviteAction, setRoleAction, updateBrandAction, setTimeZoneAction } from '@/app/actions/agency';
+import { TIME_ZONES } from '@/lib/schedule';
 import { signOutAction, forgotAction } from '@/app/actions/auth';
 import { connList, nextConn, toolAccts, acctFor, acctKey, clSplit, LOGOS, TOOL_NAMES, MULTI } from '../../data';
 
@@ -66,8 +67,13 @@ export function settingsVals(app, ctx) {
             { title: 'Add a tool', rows: [bt('Connect a new tool', 'Only the owner and admins can connect or change tools. Every teammate sees the data in reports.', 'Connect a tool', dlg({ kind: 'connect', tool: null, st: 'pick' }), true)] }]),
           agency: [{ title: 'Agency', rows: [manager ? bt(agency, C.length + ' clients · ' + members.length + ' teammates', 'Edit agency', dlg({ kind: 'agency', val: agency })) : { t: agency, d: C.length + ' clients · ' + members.length + ' teammates' }] },
             // Report branding: one logo and colour for every report the agency sends.
-            { title: 'Report branding', isBrand: true, rows: [] },
-            { title: 'Client portal', rows: [tg('portal', 'Client portal', 'A secure login where clients see every report you have sent them.', true), sl('rsched', 'Default report schedule', 'New clients start with this schedule.', ['Mondays, 8:00am', 'Fridays, 4:00pm', 'First of the month']), sl('rtone', 'Default report tone', 'How Analyst writes reports for new clients.', ['Friendly', 'Professional', 'Short and direct'])] }],
+            { title: 'Report branding', isBrand: true, rows: [] }].concat(live ? [
+            // Client schedules ("Mondays, 8:00am") and alerts are read in this time zone.
+            { title: 'Schedules', rows: [(() => { const tz = S.timeZone || 'America/New_York', label = (TIME_ZONES.find(t => t[0] === tz) || [tz, tz])[1];
+              return manager ? { t: 'Time zone', d: 'Client report schedules and alerts follow this time.', isSelect: true, opts: TIME_ZONES.map(t => t[1]).concat(TIME_ZONES.some(t => t[0] === tz) ? [] : [tz]), val: label,
+                set: e => { const pick = TIME_ZONES.find(t => t[1] === e.target.value); if (!pick) return; setTimeZoneAction(pick[0]).then(r => { if (r.error) return toast(r.error); app.setState({ timeZone: pick[0] }); toast('Schedules now follow ' + pick[1]); refresh(); }); } }
+                : { t: 'Time zone', d: label + '. Client report schedules and alerts follow this time.' }; })()] }] : []).concat([
+            { title: 'Client portal', rows: [tg('portal', 'Client portal', 'A secure login where clients see every report you have sent them.', true), sl('rsched', 'Default report schedule', 'New clients start with this schedule.', ['Mondays, 8:00am', 'Fridays, 4:00pm', 'First of the month']), sl('rtone', 'Default report tone', 'How Analyst writes reports for new clients.', ['Friendly', 'Professional', 'Short and direct'])] }]),
           members: [{ title: 'Team members', rows: members.map(m => {
               const label = m.pending ? 'Invited · joins when they sign up with this email' : m.email;
               if (m.role === 'Owner' || m.id === me.id || !manager) return { t: m.name + (m.id === me.id ? ' (you)' : ''), d: label + ' · ' + m.role };

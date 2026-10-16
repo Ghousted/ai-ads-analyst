@@ -3,6 +3,9 @@ import { createClientAction, deleteClientAction, sendConnectLinkAction, updateCl
 import { connList, toolAccts, acctKey, clSplit, TOOL_NAMES, TOOL_ORDER } from '../../data';
 import { clientGoalVals } from './clientGoals';
 import { fmtDay, pct } from '../../metrics';
+import { DAYS, TIMES, TIME_ZONES, joinSchedule, scheduleParts } from '@/lib/schedule';
+
+const tzName = tz => ((TIME_ZONES.find(t => t[0] === tz) || [])[1] || tz || 'Eastern time (New York)').replace(/ \(.*\)$/, '');
 
 export const TONES = ['Friendly', 'Professional', 'Short and direct', 'Reassuring', 'Detailed'];
 const money = v => '$' + v.toFixed(2), cash = v => '$' + Math.round(v).toLocaleString('en-US');
@@ -34,7 +37,8 @@ export function clientsVals(app, ctx) {
       ...(() => {
         const pI = S.pfPanel ? S.pfI : S.sel; if (pI == null || !C[pI]) return { pfSub: '', pfView: true, pfEditing: false, pfFields: [], pfInputs: [], pfInts: [], pfKpis: [], pfHasKpis: false, cgGoals: [], cgTypes: [] };
         const i = pI, c = C[i] || C[0], ex = c.extra, ed = (S.pfEdits || {})[i] || {}, D = S.pfDraft, E = S.pfErr || {};
-        const base = ex ? { name: c.name, industry: ex.industry || '', tone: c.tone, contact: ex.contactName || '', email: ex.email, schedule: ex.schedule || 'Mondays, 8:00am' } : { contact: ['Dana Whitfield', 'Marco Reyes', 'Dr. Priya Nair', 'Lena Cho', 'Tom Alvarez'][i], email: ['dana@northsidephysio.com', 'marco@kalye.co', 'office@harborpine.com', 'hello@maraskin.com', 'team@coastline.realty'][i], schedule: 'Mondays, 8:00am' };
+        const sp = scheduleParts(ex && ex.schedule);
+        const base = ex ? { name: c.name, industry: ex.industry || '', tone: c.tone, contact: ex.contactName || '', email: ex.email, schedule: ex.schedule || 'Mondays, 8:00am', sDay: sp.day, sTime: sp.time } : { contact: ['Dana Whitfield', 'Marco Reyes', 'Dr. Priya Nair', 'Lena Cho', 'Tom Alvarez'][i], email: ['dana@northsidephysio.com', 'marco@kalye.co', 'office@harborpine.com', 'hello@maraskin.com', 'team@coastline.realty'][i], schedule: 'Mondays, 8:00am' };
         const info = { ...base, ...ed };
         const industry = ex ? ex.industry || 'Industry not set' : ['Physiotherapy clinic', 'Streetwear brand', 'Dental practice', 'Skincare brand', 'Real estate agency'][i], since = ex ? (ex.createdAt ? new Date(ex.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }) : 'recently') : ['Mar 2025', 'Jan 2026', 'Aug 2024', 'May 2025', 'Nov 2025'][i];
         const INT = [['meta', 'Meta', L.meta], ['ga4', 'Google Analytics 4', L.ga4], ['gads', 'Google Ads', L.gads], ['tt', 'TikTok Ads', L.tt], ['sc', 'Google Search Console', '/assets/logo-search-console.png'], ['li', 'LinkedIn Ads', '/assets/logo-linkedin.png'], ['ms', 'Microsoft Ads', '/assets/logo-microsoft.png'], ['gbp', 'Google Business Profile', '/assets/logo-google-business.png']];
@@ -42,7 +46,9 @@ export function clientsVals(app, ctx) {
         // Live: the link the server made and emailed. Sample: a pretend one.
         const ask = live ? (S.cAskLive || {})[ex.id] || ex.connect : (S.cAsk || {})[c.name] && { to: (S.cAsk || {})[c.name], url: 'https://app.aiadsanalyst.app/connect/' + c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-7f3k' };
         const cpl = [12.9, 10.6, 8.73, 7.4, 9.1][i] ?? 0, spend = [1170, 1968, 960, 1280, 696][i] ?? 0;
-        const keys = (live ? [['name', 'Client name'], ['industry', 'Industry']] : []).concat([['contact', 'Contact person'], ['email', 'Contact email'], ['schedule', 'Report schedule']], live ? [['tone', 'Report tone', TONES]] : []);
+        // Live schedules are a day and a time (in the agency's time zone), so the scheduler can read them.
+        const keys = live ? [['name', 'Client name'], ['industry', 'Industry'], ['contact', 'Contact person'], ['email', 'Contact email'], ['sDay', 'Report day', DAYS], ['sTime', 'Report time', TIMES], ['tone', 'Report tone', TONES]]
+          : [['contact', 'Contact person'], ['email', 'Contact email'], ['schedule', 'Report schedule']];
         const cgToast = t => { clearTimeout(app.ctT); app.setState({ cToast: t }); app.ctT = setTimeout(() => app.setState({ cToast: null }), 4000); };
         const cg = clientGoalVals(app, { S, live, C }, i, cgToast);
         const kp = live ? liveKpis(M, c) : null;
@@ -54,11 +60,11 @@ export function clientsVals(app, ctx) {
         return { ...cg,
           pfSub: industry + ' · Client since ' + since,
           pfView: !D, pfEditing: !!D,
-          pfFields: [{ k: 'Contact person', v: info.contact || 'Not set' }, { k: 'Contact email', v: info.email }, { k: 'Industry', v: live ? info.industry || 'Not set' : industry }, { k: 'Report tone', v: live ? info.tone : c.tone }, { k: 'Report schedule', v: info.schedule }],
+          pfFields: [{ k: 'Contact person', v: info.contact || 'Not set' }, { k: 'Contact email', v: info.email }, { k: 'Industry', v: live ? info.industry || 'Not set' : industry }, { k: 'Report tone', v: live ? info.tone : c.tone }, { k: 'Report schedule', v: live ? (sp.day === 'Not scheduled' ? 'Not scheduled. You send reports yourself.' : info.schedule + ', ' + tzName(S.timeZone)) : info.schedule }],
           pfEdit: () => app.setState({ pfDraft: { ...info }, pfErr: {} }),
           pfCancel: () => app.setState({ pfDraft: null, pfErr: {} }),
           pfInputs: keys.map(([k, label, opts]) => ({ k: label, isSelect: !!opts, opts: opts && (opts.includes(D && D[k]) ? opts : [D && D[k]].filter(Boolean).concat(opts)), isText: !opts, v: D ? D[k] : '', bd: E[k] ? '#e0481a' : '#d3dbe6', hasErr: !!E[k], err: E[k] || '', set: e => { const val = e.target.value; app.setState(s => ({ pfDraft: { ...s.pfDraft, [k]: val }, pfErr: { ...(s.pfErr || {}), [k]: null } })); } })),
-          pfSave: e => { e.preventDefault(); const err = {}; if (live && !D.name.trim()) err.name = 'Enter the client\u2019s name.'; if (!live && !D.contact.trim()) err.contact = 'Enter a contact name.'; if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(D.email.trim())) err.email = 'Enter a valid email.'; if (!D.schedule.trim()) err.schedule = 'Enter when reports should go out.'; if (Object.keys(err).length) { app.setState({ pfErr: err }); return; } const next = { contact: D.contact.trim(), email: D.email.trim(), schedule: D.schedule.trim() };
+          pfSave: e => { e.preventDefault(); const err = {}; if (live && !D.name.trim()) err.name = 'Enter the client\u2019s name.'; if (!live && !D.contact.trim()) err.contact = 'Enter a contact name.'; if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(D.email.trim())) err.email = 'Enter a valid email.'; if (!live && !D.schedule.trim()) err.schedule = 'Enter when reports should go out.'; if (Object.keys(err).length) { app.setState({ pfErr: err }); return; } const next = { contact: D.contact.trim(), email: D.email.trim(), schedule: live ? joinSchedule(D.sDay, D.sTime) : D.schedule.trim() };
             if (!live) { app.setState(s => ({ pfEdits: { ...(s.pfEdits || {}), [i]: next }, pfDraft: null, pfErr: {} })); return; }
             // Live: the server's copy comes back on refresh, so nothing is kept locally.
             const all = { ...next, name: D.name.trim(), industry: D.industry.trim(), tone: D.tone };

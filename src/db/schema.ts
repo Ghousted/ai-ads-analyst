@@ -24,6 +24,8 @@ export const agencies = pgTable('agencies', {
   // Report branding, applied to every report: a logo (data URL) and a brand colour.
   brandLogo: text('brand_logo'),
   brandColor: text('brand_color').notNull().default('#1f6be2'),
+  // Report schedules and alerts follow this time zone.
+  timeZone: text('time_zone').notNull().default('America/New_York'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -59,6 +61,8 @@ export const clients = pgTable('clients', {
   connectToken: text('connect_token'),
   connectSentTo: text('connect_sent_to'),
   connectSentAt: timestamp('connect_sent_at', { withTimezone: true }),
+  // The send time the last scheduled draft was written for, so a draft the agency deleted isn't written again.
+  draftedFor: timestamp('drafted_for', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [index('clients_agency_idx').on(t.agencyId), uniqueIndex('clients_connect_token_idx').on(t.connectToken)]);
 
@@ -143,7 +147,12 @@ export const reports = pgTable('reports', {
   viewCount: integer('view_count').notNull().default(0),
   firstViewedAt: timestamp('first_viewed_at', { withTimezone: true }),
   lastViewedAt: timestamp('last_viewed_at', { withTimezone: true }),
-}, t => [index('reports_agency_idx').on(t.agencyId, t.createdAt), uniqueIndex('reports_share_token_idx').on(t.shareToken)]);
+  // A draft written ahead of the client's schedule: when it is due to go out, and who approved it. Approved drafts
+  // send themselves at scheduledFor; unapproved ones wait for the agency.
+  scheduledFor: timestamp('scheduled_for', { withTimezone: true }),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
+  approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
+}, t => [index('reports_agency_idx').on(t.agencyId, t.createdAt), uniqueIndex('reports_share_token_idx').on(t.shareToken), uniqueIndex('reports_client_scheduled_idx').on(t.clientId, t.scheduledFor)]);
 
 // Every paid AI call, for per-agency daily limits.
 export const aiUsage = pgTable('ai_usage', {
