@@ -404,6 +404,11 @@ export function ClientsView({ v }) {
                     {" "}
                     <div style={{ padding: "6px 22px 18px 70px", display: "flex", flexDirection: "column" }}>
                       {" "}
+                      {(r?.nums) ? (
+                        <span style={{ padding: "8px 0 4px", fontSize: "14px", color: "#0b1626", fontVariantNumeric: "tabular-nums" }}>
+                          {r.nums}
+                        </span>
+                      ) : null}
                       <span style={{ padding: "8px 0", fontSize: "13px", fontWeight: "600", color: "#5a6474" }}>
                         {"Tools in use"}
                       </span>
@@ -551,7 +556,13 @@ export function ClientsView({ v }) {
                           <span style={{ fontSize: "14px", fontWeight: "600" }}>
                             {fi?.k}
                           </span>
-                          <input value={(fi?.v) ?? ""} onChange={fi?.set} style={{ height: "44px", padding: "0 14px", border: `1px solid ${fi?.bd ?? ""}`, borderRadius: "0", font: "inherit", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
+                          {(fi?.isSelect) ? (
+                            <select value={(fi?.v) ?? ""} onChange={fi?.set} style={{ height: "44px", padding: "0 10px", border: `1px solid ${fi?.bd ?? ""}`, borderRadius: "0", background: "#ffffff", font: "inherit", letterSpacing: "inherit", color: "#0b1626", outline: "none" }} className="dc120a618">
+                              {(fi?.opts || []).map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          ) : (
+                            <input value={(fi?.v) ?? ""} onChange={fi?.set} style={{ height: "44px", padding: "0 14px", border: `1px solid ${fi?.bd ?? ""}`, borderRadius: "0", font: "inherit", letterSpacing: "inherit", outline: "none" }} className="dc120a618" />
+                          )}
                           {(fi?.hasErr) ? (<>
                             <span style={{ fontSize: "13px", fontWeight: "600", color: "#a3330c" }}>
                               {fi?.err}
@@ -566,11 +577,16 @@ export function ClientsView({ v }) {
                   {" "}
                   <div style={{ display: "flex", gap: "8px" }}>
                     <button type={"submit"} style={{ height: "44px", padding: "0 20px", border: "0", borderRadius: "0", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", letterSpacing: "inherit", cursor: "pointer" }} className="dc9482609">
-                      {"Save details"}
+                      {v.pfSaveLabel || "Save details"}
                     </button>
                     <button type={"button"} onClick={v.pfCancel} style={{ height: "44px", padding: "0 18px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer" }} className="dcbbe0dc7">
                       {"Cancel"}
                     </button>
+                    {(v.pfCanRemove) ? (
+                      <button type={"button"} onClick={v.pfRemove} style={{ marginLeft: "auto", height: "44px", padding: "0 14px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontWeight: "600", letterSpacing: "inherit", color: "#a3330c", cursor: "pointer" }} className="dcbbe0dc7">
+                        {"Remove client"}
+                      </button>
+                    ) : null}
                   </div>
                   {" "}
                 </form>
@@ -579,6 +595,25 @@ export function ClientsView({ v }) {
               {" "}
             </section>
             {" "}
+            {(v.pfHasKpis) ? (
+              <section aria-labelledby={"pk-h"} style={{ background: "#ffffff", borderRadius: "0", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                <span style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <h2 id={"pk-h"} style={{ margin: "0", fontSize: "18px", fontWeight: "700" }}>{"Results"}</h2>
+                  <span style={{ fontSize: "14px", color: "#5a6474", textWrap: "pretty" }}>{v.pfKpiNote}</span>
+                </span>
+                {((v.pfKpis) || []).length ? (
+                  <dl style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,120px),1fr))", gap: "18px 24px", margin: "0" }}>
+                    {(v.pfKpis || []).map(k => (
+                      <div key={k.label} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <dt style={{ fontSize: "13px", color: "#5a6474" }}>{k.label}</dt>
+                        <dd style={{ margin: "0", fontSize: "20px", fontWeight: "700", letterSpacing: "-0.4px", fontVariantNumeric: "tabular-nums" }}>{k.value}</dd>
+                        <dd style={{ margin: "0", fontSize: "13px", fontWeight: "600", color: k.c }}>{k.note}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : null}
+              </section>
+            ) : null}
             <section aria-labelledby={"cg-h"} style={{ background: "#ffffff", borderRadius: "0", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "20px" }}>
               <h2 id={"cg-h"} style={{ margin: "0", fontSize: "18px", fontWeight: "700" }}>{"Budget and goals"}</h2>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -697,9 +732,16 @@ export function ClientsView({ v }) {
                     {v.pfAskText}
                   </span>
                 </span>
-                <button onClick={v.pfAsk} style={{ height: "40px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", whiteSpace: "nowrap" }}>
-                  {v.pfAskCopied ? "Copied" : v.pfAskBtn}
-                </button>
+                <span style={{ display: "flex", gap: "4px" }}>
+                  {(v.pfAskAgain) ? (
+                    <button onClick={v.pfAskAgainDo} style={{ height: "40px", padding: "0 12px", border: "0", borderRadius: "0", background: "transparent", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#45505f", cursor: "pointer", whiteSpace: "nowrap" }} className="dcbbe0dc7">
+                      {"Send again"}
+                    </button>
+                  ) : null}
+                  <button onClick={v.pfAsk} style={{ height: "40px", padding: "0 14px", border: "1px solid #d3dbe6", borderRadius: "0", background: "#ffffff", font: "inherit", fontSize: "14px", fontWeight: "600", letterSpacing: "inherit", color: "#0b1626", cursor: "pointer", whiteSpace: "nowrap" }}>
+                    {v.pfAskCopied ? "Copied" : v.pfAskBtn}
+                  </button>
+                </span>
               </div>
               ) : null}
             </section>

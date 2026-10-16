@@ -54,8 +54,13 @@ export const clients = pgTable('clients', {
   industry: text('industry').notNull().default(''),
   tone: text('tone').notNull().default('Friendly'),
   schedule: text('schedule').notNull().default('Mondays, 8:00am'),
+  // Ask to connect: a private link the client opens to sign in to Google themselves. It works for 14 days after it
+  // was sent, and what they connect is linked to this client only.
+  connectToken: text('connect_token'),
+  connectSentTo: text('connect_sent_to'),
+  connectSentAt: timestamp('connect_sent_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, t => [index('clients_agency_idx').on(t.agencyId)]);
+}, t => [index('clients_agency_idx').on(t.agencyId), uniqueIndex('clients_connect_token_idx').on(t.connectToken)]);
 
 // One login to a platform. Google allows several per agency (each Google user sees different properties).
 // Tokens are encrypted with TOKEN_ENCRYPTION_KEY before they are stored.
@@ -70,6 +75,8 @@ export const connections = pgTable('connections', {
   provider: providerEnum('provider').notNull(),
   login: text('login').notNull(),
   connectedBy: uuid('connected_by').references(() => users.id, { onDelete: 'set null' }),
+  // Set when the client connected it from their ask-to-connect link: its accounts belong to that client only.
+  forClientId: uuid('for_client_id').references(() => clients.id, { onDelete: 'set null' }),
   refreshToken: text('refresh_token'),
   accessToken: text('access_token'),
   accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),

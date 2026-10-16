@@ -180,7 +180,7 @@ class Logic extends React.Component {
       toggle: () => moveTask(i, t.status === 'done' ? 'todo' : 'done') }));
     const p = pages[v] || pages.an;
     const atRisk = clients.filter(c => c.risky);
-    const ctx = { live, SL, refresh: () => this.props.refresh?.(), S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE: P, meKey, tk, tkSrc, moveTask, tasksAll };
+    const ctx = { live, SL, metrics: live && live.metrics && live.metrics.through ? this._metrics : null, refresh: () => this.props.refresh?.(), S, v, go, ST, L, C, clients, inDash, rkCount, atRisk, defTasks, TCOLS, PEOPLE: P, meKey, tk, tkSrc, moveTask, tasksAll };
     return {
       pageO: S.pageO, modules: modules.map(m => ({ ...m, badgePill: m.hasBadge && !S.navC, badgeDot: m.hasBadge && !!S.navC, title: m.hasBadge ? m.label + ' (' + m.badge + ' need attention)' : m.label, rowsN: S.navC ? '0fr' : m.rows, multi: m.multi && !S.navC })),
       navOpen: !S.navC, swH: S.navC ? '50px' : '60px', swPadL: S.navC ? '2.5px' : '8px', swAv: S.navC ? '42px' : '42px', swR: S.navC ? '14px' : '16px', navW: S.navC ? '74px' : '264px', navTxt: S.navC ? 'none' : 'inline', navTxtFlex: S.navC ? 'none' : 'flex', navTxtGrid: S.navC ? 'none' : 'grid', navDot: S.navC ? 'block' : 'none', navJust: 'flex-start', navTopDir: S.navC ? 'column' : 'row', navAlign: S.navC ? 'flex-start' : 'center', navPad: '10px', navSwPad: S.navC ? '0' : '12px', navSetW: S.navC ? '36px' : '44px',

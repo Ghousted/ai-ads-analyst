@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: 'AI Ads Analyst' };
 export const maxDuration = 60;
 
 const cap = (r: string) => r[0].toUpperCase() + r.slice(1);
+const base = (process.env.APP_URL || '').replace(/\/$/, '');
 
 export default async function Page() {
   const { user, agency, role } = await requireAgency();
@@ -48,7 +49,9 @@ export default async function Page() {
         week: wk ? { leads: wk.leads, sessions: wk.sessions, spend: wk.spend, metaLeads: wk.metaLeads, source: r.leadSource } : null, dismissed: !!r.keys && f?.dismissedKeys === r.keys, analysis: f?.analysis && f.signature === r.signature ? f.analysis : null }];
     }));
     return {
-      clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email, contactName: c.contactName, schedule: c.schedule, tone: c.tone, industry: c.industry, createdAt: c.createdAt.toISOString() })),
+      clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email, contactName: c.contactName, schedule: c.schedule, tone: c.tone, industry: c.industry, createdAt: c.createdAt.toISOString(),
+        // The ask-to-connect link, while it still works (14 days after it was sent).
+        connect: c.connectToken && c.connectSentAt && Date.now() - c.connectSentAt.getTime() < 14 * 864e5 ? { to: c.connectSentTo, url: base + '/connect/' + c.connectToken } : null })),
       conns, metrics, risk,
       goals: goals.map(g => ({ clientId: g.clientId, type: g.type, target: g.target })),
       tasks: tasks.map(t => ({ id: t.id, clientId: t.clientId, title: t.title, desc: t.description, status: t.status, dueDay: t.due, who: t.assignees, items: t.items,
