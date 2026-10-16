@@ -4,17 +4,30 @@ import { fmtDay, fmtNum, pct } from '../../metrics';
 const rate = (a, b) => (b ? (a / b) * 100 : 0);
 const ptsChange = (a, b) => { const d = Math.round((a - b) * 10) / 10; return (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d) + ' pts'; };
 export const tint = note => (String(note).startsWith('+') ? '#1d6b3a' : String(note).startsWith('−') ? '#a3330c' : '#5a6474');
+// Costs read the other way round: falling is good. Spend is neither.
+const tintFor = (label, note) => (/^cost/i.test(label) ? tint(String(note).replace(/^[+−]/, m => (m === '+' ? '−' : '+'))) : /spend/i.test(label) ? '#5a6474' : tint(note));
+const money = (v, cents) => '$' + (cents && v < 100 ? v.toFixed(2) : Math.round(v).toLocaleString());
+// Whether the report has GA4 numbers, and Meta numbers. Reports saved before Meta have no meta* fields.
+const hasGa4 = f => !f.properties || f.properties.length > 0;
+const hasMeta = f => !!(f.totals.metaSpend || f.prev.metaSpend);
 const METRIC = { sessions: ['Sessions per day', 'sessions'], leads: ['Leads per day', 'leads'], engaged: ['Engaged sessions per day', 'engaged'], pageViews: ['Page views per day', 'pageViews'] };
 
 export function kpis(f) {
-  const t = f.totals, p = f.prev, n = f.periodDays;
-  return [
+  const t = f.totals, p = f.prev, n = f.periodDays, ga4 = hasGa4(f), meta = hasMeta(f);
+  const cpl = x => (x.metaLeads ? x.metaSpend / x.metaLeads : 0);
+  // With GA4, leads are the site's; Meta's own lead count sits beside it, labelled. Without GA4, Meta's leads are the leads.
+  return (ga4 ? [
     ['Leads', fmtNum(t.leads), pct(t.leads, p.leads)],
     ['Sessions', fmtNum(t.sessions), pct(t.sessions, p.sessions)],
     ['Conversion rate', rate(t.leads, t.sessions).toFixed(1) + '%', ptsChange(rate(t.leads, t.sessions), rate(p.leads, p.sessions))],
-    ['Engagement rate', Math.round(rate(t.engagedSessions, t.sessions)) + '%', ptsChange(rate(t.engagedSessions, t.sessions), rate(p.engagedSessions, p.sessions))],
-  ].concat(t.adCost ? [['Google Ads spend', '$' + Math.round(t.adCost).toLocaleString(), pct(t.adCost, p.adCost)]] : [])
-    .map(([label, value, note]) => ({ label, value, note: note + ' vs previous ' + n + ' days', c: tint(note) }));
+  ].concat(meta ? [] : [['Engagement rate', Math.round(rate(t.engagedSessions, t.sessions)) + '%', ptsChange(rate(t.engagedSessions, t.sessions), rate(p.engagedSessions, p.sessions))]]) : [])
+    .concat(meta ? [
+      ['Meta spend', money(t.metaSpend), pct(t.metaSpend, p.metaSpend)],
+      [ga4 ? 'Leads Meta reports' : 'Leads', fmtNum(t.metaLeads), pct(t.metaLeads, p.metaLeads)],
+      ['Cost per lead' + (ga4 ? ', Meta' : ''), t.metaLeads ? money(cpl(t), true) : 'No leads', t.metaLeads && p.metaLeads ? pct(cpl(t), cpl(p)) : '0%'],
+    ].concat(ga4 ? [] : [['Clicks', fmtNum(t.metaClicks), pct(t.metaClicks, p.metaClicks)]]) : [])
+    .concat(t.adCost ? [['Google Ads spend', money(t.adCost), pct(t.adCost, p.adCost)]] : [])
+    .map(([label, value, note]) => ({ label, value, note: note + ' vs previous ' + n + ' days', c: tintFor(label, note) }));
 }
 
 export function chart(f, a) {
@@ -35,26 +48,27 @@ export function breakdown(f, a, color) {
 
 export function table(f, a) {
   if (a.source === 'pages') return { caption: 'Top landing pages', cols: ['Page', 'Sessions', 'Leads'], rows: f.pages.map(x => [x.name, fmtNum(x.sessions), fmtNum(x.leads)]) };
+  if (a.source === 'metaCampaigns') return { caption: 'Meta campaigns', cols: ['Campaign', 'Spend', 'Clicks', 'Leads', 'Cost per lead'], rows: (f.metaCampaigns || []).map(x => [x.name, money(x.spend), fmtNum(x.clicks), fmtNum(x.leads), x.leads ? money(x.spend / x.leads, true) : '–']) };
   if (a.source === 'campaigns') return { caption: 'Google Ads campaigns', cols: ['Campaign', 'Cost', 'Clicks'], rows: (f.campaigns || []).map(x => [x.name, '$' + Math.round(x.cost).toLocaleString(), fmtNum(x.clicks)]) };
   return { caption: 'Where visitors came from', cols: ['Channel', 'Sessions', 'Change', 'Leads'], rows: f.channels.map(x => [x.name, fmtNum(x.sessions), pct(x.sessions, x.prevSessions), fmtNum(x.leads)]), changeCol: 2 };
 }
 
-// The charts and tables the Insert tab offers, from the tools this client has. Meta joins when Meta is connected.
+// The charts and tables the Insert tab offers, from the tools this client has.
 export function catalog(f) {
-  return [
-    ['kpis', 'Key numbers', { kind: 'kpis', w: 1 }],
+  return [['kpis', 'Key numbers', { kind: 'kpis', w: 1 }]].concat(hasGa4(f) ? [
     ['chart', 'Trend chart', { kind: 'chart', w: 1, h: 180, metric: 'sessions' }],
     ['channels', 'Channel breakdown', { kind: 'breakdown', w: 0.5, h: 220, dim: 'channel', metric: 'sessions', style: 'donut' }],
     ['devices', 'Device breakdown', { kind: 'breakdown', w: 0.5, h: 220, dim: 'device', metric: 'sessions', style: 'bars' }],
     ['tchannels', 'Channels table', { kind: 'table', w: 1, source: 'channels' }],
     ['tpages', 'Landing pages', { kind: 'table', w: 1, source: 'pages' }],
-  ].concat(f.totals.adCost ? [['tcamps', 'Ads campaigns', { kind: 'table', w: 1, source: 'campaigns' }]] : []);
+  ] : [], hasMeta(f) ? [['tmeta', 'Meta campaigns', { kind: 'table', w: 1, source: 'metaCampaigns' }]] : [],
+  f.totals.adCost ? [['tcamps', 'Google Ads campaigns', { kind: 'table', w: 1, source: 'campaigns' }]] : []);
 }
 
 // Options the Layout tab shows for a chart or table.
 export function options(f, a) {
   if (a.kind === 'chart') return [['metric', 'Metric', [['sessions', 'Sessions'], ['leads', 'Leads'], ['engaged', 'Engaged sessions'], ['pageViews', 'Page views']]]];
   if (a.kind === 'breakdown') return [['dim', 'Breakdown', [['channel', 'By channel'], ['device', 'By device']]], ['metric', 'Metric', [['sessions', 'Sessions'], ['leads', 'Leads']]], ['style', 'Style', [['donut', 'Donut'], ['bars', 'Bars']]]];
-  if (a.kind === 'table') return [['source', 'Table', [['channels', 'Channels'], ['pages', 'Landing pages']].concat(f.totals.adCost ? [['campaigns', 'Google Ads campaigns']] : [])]];
+  if (a.kind === 'table') return [['source', 'Table', (hasGa4(f) ? [['channels', 'Channels'], ['pages', 'Landing pages']] : []).concat(hasMeta(f) ? [['metaCampaigns', 'Meta campaigns']] : [], f.totals.adCost ? [['campaigns', 'Google Ads campaigns']] : [])]];
   return [];
 }

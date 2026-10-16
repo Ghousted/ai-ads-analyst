@@ -15,7 +15,7 @@ export const Block = z.discriminatedUnion('t', [
   z.object({ id: Id, t: z.literal('kpis'), w: W }),
   z.object({ id: Id, t: z.literal('chart'), w: W, h: H, metric: z.enum(['sessions', 'leads', 'engaged', 'pageViews']) }),
   z.object({ id: Id, t: z.literal('breakdown'), w: W, h: H, dim: z.enum(['channel', 'device']), metric: z.enum(['sessions', 'leads']), style: z.enum(['bars', 'donut']) }),
-  z.object({ id: Id, t: z.literal('table'), w: W, source: z.enum(['channels', 'pages', 'campaigns']) }),
+  z.object({ id: Id, t: z.literal('table'), w: W, source: z.enum(['channels', 'pages', 'campaigns', 'metaCampaigns']) }),
 ]);
 export type Block = z.infer<typeof Block>;
 // What a report stores: a Tiptap (ProseMirror) document. Charts and tables are "dataBlock" nodes inside it.
@@ -31,7 +31,7 @@ export type Written = { headline: string; summary: string; sections: { heading: 
 let seq = 0;
 export const newId = () => 'b' + Date.now().toString(36) + (seq++).toString(36);
 
-type FactsLike = { totals?: { adCost?: number } } | null | undefined;
+type FactsLike = { totals?: { adCost?: number; metaSpend?: number }; properties?: string[] } | null | undefined;
 
 export const TEMPLATES = [
   { id: 'weekly', label: 'Weekly update', desc: 'Summary, key numbers, the trend and next steps.', focus: '' },
@@ -50,13 +50,15 @@ export function templateBlocks(tpl: TemplateId, wr: Written, facts: FactsLike): 
   const words = [b({ t: 'title', text: wr.headline }), b({ t: 'text', text: wr.summary })];
   const sections = wr.sections.flatMap(s => [b({ t: 'heading', text: s.heading }), b({ t: 'text', text: s.body })]);
   const steps = [b({ t: 'heading', text: 'Next steps' }), b({ t: 'list', items: wr.nextSteps })];
-  const ads = facts?.totals?.adCost ? [b({ t: 'table', w: 1, source: 'campaigns' })] : [];
+  const ads = [...(facts?.totals?.metaSpend ? [b({ t: 'table', w: 1, source: 'metaCampaigns' })] : []), ...(facts?.totals?.adCost ? [b({ t: 'table', w: 1, source: 'campaigns' })] : [])];
+  // A client with only Meta linked has no site numbers to chart: key numbers and campaigns carry the report.
+  if (facts?.properties && !facts.properties.length) return [...words, b({ t: 'kpis', w: 1 }), ...sections, ...ads, ...steps];
   const blocks: Block[] =
     tpl === 'traffic' ? [...words, b({ t: 'kpis', w: 1 }), b({ t: 'chart', w: 1, h: 180, metric: 'sessions' }),
       b({ t: 'breakdown', w: 1 / 2, h: 220, dim: 'channel', metric: 'sessions', style: 'donut' }), b({ t: 'breakdown', w: 1 / 2, h: 220, dim: 'device', metric: 'sessions', style: 'bars' }),
       ...sections, b({ t: 'table', w: 1, source: 'pages' }), ...ads, ...steps]
     : tpl === 'leads' ? [...words, b({ t: 'kpis', w: 1 }), b({ t: 'chart', w: 1, h: 180, metric: 'leads' }),
-      b({ t: 'breakdown', w: 1, h: 220, dim: 'channel', metric: 'leads', style: 'bars' }), b({ t: 'table', w: 1, source: 'channels' }), ...sections, ...steps]
+      b({ t: 'breakdown', w: 1, h: 220, dim: 'channel', metric: 'leads', style: 'bars' }), b({ t: 'table', w: 1, source: 'channels' }), ...sections, ...ads, ...steps]
     : [...words, b({ t: 'kpis', w: 1 }), b({ t: 'chart', w: 1, h: 180, metric: 'sessions' }), ...sections, b({ t: 'table', w: 1, source: 'channels' }), ...ads, ...steps];
   return blocks;
 }
