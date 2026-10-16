@@ -49,3 +49,37 @@ export async function signOutAction() {
   await neonAuth().signOut();
   redirect('/login');
 }
+
+// "Chrome on Mac" from a browser's user agent.
+function device(ua: string | null | undefined) {
+  const u = ua || '';
+  const browser = /Edg\//.test(u) ? 'Edge' : /OPR\//.test(u) ? 'Opera' : /Firefox\//.test(u) ? 'Firefox' : /Chrome\//.test(u) ? 'Chrome' : /Safari\//.test(u) ? 'Safari' : 'A browser';
+  const os = /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Mac OS X|Macintosh/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : /Linux/.test(u) ? 'Linux' : '';
+  return os ? browser + ' on ' + os : browser;
+}
+
+type AuthSession = { id: string; token: string; userAgent?: string | null; updatedAt: string | Date; expiresAt: string | Date };
+
+async function sessions() {
+  const auth = neonAuth();
+  const [cur, list] = await Promise.all([auth.getSession({ query: { disableCookieCache: 'true' } }), auth.listSessions()]);
+  const me = (cur.data as { session?: { id?: string } } | null)?.session?.id;
+  if (!me || list.error || !Array.isArray(list.data)) return null;
+  return { me, all: (list.data as AuthSession[]).filter(s => new Date(s.expiresAt).getTime() > Date.now()) };
+}
+
+// Where the signed-in person is signed in (Settings › Security).
+export async function listSessionsAction() {
+  const s = await sessions();
+  if (!s) return { error: 'Your devices couldn’t be loaded. Try again.' };
+  return { ok: true, devices: s.all.sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt)).map(x => ({ name: device(x.userAgent), current: x.id === s.me, lastActive: new Date(x.updatedAt).toISOString() })) };
+}
+
+// Signs the person out everywhere except this browser.
+export async function signOutOthersAction() {
+  const s = await sessions();
+  if (!s) return { error: 'Your devices couldn’t be loaded. Try again.' };
+  const others = s.all.filter(x => x.id !== s.me);
+  for (const x of others) await neonAuth().revokeSession({ token: x.token });
+  return { ok: true, count: others.length };
+}
