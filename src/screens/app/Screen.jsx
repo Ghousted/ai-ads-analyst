@@ -16,7 +16,7 @@ class Logic extends React.Component {
   static defaultProps = {};
 
   // The signed-in person, their agency and team arrive as props from the server page.
-  state = { me: this.props.me, agName: this.props.agency?.name, brandLogo: this.props.agency?.brandLogo || null, brandColor: this.props.agency?.brandColor || '#1f6be2', timeZone: this.props.agency?.timeZone || 'America/New_York', members: this.props.team, view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
+  state = { me: this.props.me, agName: this.props.agency?.name, brandLogo: this.props.agency?.brandLogo || null, brandColor: this.props.agency?.brandColor || '#1f6be2', timeZone: this.props.agency?.timeZone || 'America/New_York', prefs: this.props.prefs || {}, members: this.props.team, view: 'an', sel: null, swOpen: false, cid: 0, tab: 0, open: { reporting: false, monitoring: true, risk: false, workflow: false, ai: false }, sent: {}, toggles: { a0: true, a1: true, a2: false, a3: true, b0: true }, tasks: null, newTask: '', prompt: '', outline: false, gen: false, tpl: 'Reassuring', pageO: 1 };
   // Confirmation dialog: confirm({ title, body, confirm, onConfirm, tone: 'danger', alt, onAlt, cancel }).
   // onConfirm may return a promise; the dialog stays open (busy) until it settles, and closes unless it resolves false.
   confirm(o) { this.setState({ cf: o, cfBusy: false }); }
@@ -246,6 +246,8 @@ class Logic extends React.Component {
       mainPad: v === 'lrep' ? '0 0 64px' : '32px clamp(20px,4vw,48px) 64px', mainMax: v === 'lrep' ? 'none' : '1100px', mainGap: v === 'lrep' ? '0' : '24px', canConnect: S.me?.role !== 'Member', connectMeta: () => this.setState({ view: 'settings', stgTab: 'conn', dlg: { kind: 'metaToken' }, dlgErr: null }),
       goSettings: go('settings'), goReports: go('reports'), goHistory: go('reports'), histCount: '', goTemplates: go('templates'), viewRef: this.viewRef, setAria: v === 'settings' ? 'page' : undefined, setBg: v === 'settings' ? '#eef3fd' : 'transparent', setC: v === 'settings' ? '#1f6be2' : '#45505f',
       ...FEATURES.reduce((o, f) => Object.assign(o, f.vals(this, ctx)), {}),
+      // "In Ask Analyst" off: flagged clients don't show in the chat or on its button.
+      ...(live && ((S.stg || {}).n0 ?? (S.prefs || {}).n0) === false ? { rkList: [], chatBadge: false } : {}),
     };
   }
 }

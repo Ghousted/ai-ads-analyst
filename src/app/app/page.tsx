@@ -7,6 +7,7 @@ import { listIntegrations } from '@/lib/integrations';
 import { loadMetrics } from '@/lib/metrics';
 import { scoreClients } from '@/lib/risk';
 import { normalizeContent } from '@/lib/report-blocks';
+import { prefsFor } from '@/lib/prefs';
 
 export const metadata: Metadata = { title: 'AI Ads Analyst' };
 // Sending a report can print its PDF first, which takes a few seconds.
@@ -17,13 +18,14 @@ const base = (process.env.APP_URL || '').replace(/\/$/, '');
 
 export default async function Page() {
   const { user, agency, role } = await requireAgency();
-  const [members, invites] = await Promise.all([
+  const [members, invites, [saved]] = await Promise.all([
     db.select({ id: schema.users.id, name: schema.users.name, email: schema.users.email, role: schema.agencyMembers.role })
       .from(schema.agencyMembers).innerJoin(schema.users, eq(schema.users.id, schema.agencyMembers.userId))
       .where(eq(schema.agencyMembers.agencyId, agency.id)).orderBy(asc(schema.agencyMembers.createdAt)),
     db.select({ email: schema.invitations.email, role: schema.invitations.role })
       .from(schema.invitations).where(and(eq(schema.invitations.agencyId, agency.id), isNull(schema.invitations.acceptedAt)))
       .orderBy(asc(schema.invitations.createdAt)),
+    db.select({ prefs: schema.notificationPrefs.prefs }).from(schema.notificationPrefs).where(and(eq(schema.notificationPrefs.userId, user.id), eq(schema.notificationPrefs.agencyId, agency.id))),
   ]);
   // Out of sample mode, the app works on the agency's own clients and connections.
   const live = agency.sampleMode ? null : await (async () => {
@@ -65,6 +67,7 @@ export default async function Page() {
   return (
     <AppScreen
       me={{ id: user.id, name: user.name || user.email.split('@')[0], email: user.email, role: cap(role) }}
+      prefs={prefsFor(saved?.prefs, role)}
       agency={{ name: agency.name, sampleMode: agency.sampleMode, timeZone: agency.timeZone, reportFreq: agency.reportFreq, reportTone: agency.reportTone, brandLogo: agency.brandLogo, brandColor: agency.brandColor }}
       team={team}
       live={live}
