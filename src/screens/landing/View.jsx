@@ -38,6 +38,7 @@ export default function View({ v }) {
           </div>
         </>) : null}
         <header style={{ position: "sticky", top: "0", zIndex: "20", background: "#ffffff", borderBottom: "1px solid #eef1f6" }}>
+          <div ref={v.progRef} aria-hidden={"true"} style={{ position: "absolute", left: "0", right: "0", bottom: "-1px", height: "2px", background: "#1f6be2", transform: "scaleX(0)", transformOrigin: "0 50%", pointerEvents: "none" }}></div>
           {" "}
           <div style={{ maxWidth: "1200px", margin: "0 auto", minHeight: "72px", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "24px" }}>
             {" "}

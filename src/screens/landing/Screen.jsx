@@ -36,6 +36,7 @@ class Logic extends React.Component {
       const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const deck = this.props.pageScroll !== false && !reduce && window.innerWidth >= 960 && window.innerHeight >= 700;
       const sticky = !deck && this.props.stickyHow !== false && !reduce && window.innerWidth >= 960 && window.innerHeight >= 640;
+      this.setProgress(deck);
       let step = this.state.howStep || 0, page = this.state.page || 0;
       const sec = document.getElementById('how');
       if (deck) {
@@ -91,6 +92,17 @@ class Logic extends React.Component {
     if (open === !!this.state.mnav) return;
     document.body.style.overflow = open ? 'hidden' : '';
     this.setState({ mnav: open, mnavSec: null });
+  }
+  // The line under the header fills as the visitor scrolls: through the pinned stage in page mode, else down the
+  // whole page. Set on the element directly so scrolling doesn't re-render the page.
+  progRef = React.createRef();
+  setProgress(deck) {
+    const bar = this.progRef.current, main = document.querySelector('main');
+    if (!bar) return;
+    let p;
+    if (deck && main) p = (72 - main.getBoundingClientRect().top) / Math.max(1, main.offsetHeight - (window.innerHeight - 72));
+    else p = window.scrollY / Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    bar.style.transform = 'scaleX(' + Math.min(1, Math.max(0, p)).toFixed(4) + ')';
   }
   // Scroll progress through the pinned stage, as a page index.
   pageAt() {
@@ -248,6 +260,7 @@ class Logic extends React.Component {
     v.closeMenu = () => this.setState({ menu: null });
     v.mnavOpen = !!this.state.mnav;
     v.mnavBtnRef = this.mnavBtn;
+    v.progRef = this.progRef;
     v.mnavToggle = () => this.setMnav(!this.state.mnav);
     v.mnavClose = () => this.setMnav(false);
     v.mnavGroups = MNAV.map(([label, links]) => ({ label, links, open: this.state.mnavSec === label, toggle: () => this.setState(s => ({ mnavSec: s.mnavSec === label ? null : label })) }));
