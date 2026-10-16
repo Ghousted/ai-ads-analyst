@@ -22,15 +22,16 @@ export async function askAnalystAction(input: z.input<typeof Input>) {
   const p = Input.safeParse(input);
   if (!p.success) return { error: 'That message couldn’t be sent. Try a shorter one.' };
   if (!(await takeAiQuota(agency.id, 'chat'))) return { error: 'You’ve reached today’s limit for Ask Analyst. It resets within 24 hours.' };
-  const [clients, metrics, reports] = await Promise.all([
+  const [clients, metrics, reports, goals] = await Promise.all([
     db.select().from(schema.clients).where(eq(schema.clients.agencyId, agency.id)),
     loadMetrics(agency.id),
     db.select({ clientId: schema.reports.clientId, title: schema.reports.title, status: schema.reports.status, createdAt: schema.reports.createdAt, sentAt: schema.reports.sentAt })
       .from(schema.reports).where(eq(schema.reports.agencyId, agency.id)).orderBy(desc(schema.reports.createdAt)).limit(100),
+    db.select().from(schema.clientGoals).where(eq(schema.clientGoals.agencyId, agency.id)),
   ]);
   const focus = clients.find(c => c.id === p.data.clientId) || null;
   try {
-    const context = agencyContext({ agency: agency.name, today: new Date().toISOString().slice(0, 10), clients, metrics, risk: scoreClients(metrics, clients, reports), reports, focusId: focus ? focus.id : null, extra: { goals: p.data.goals, tasks: p.data.tasks } });
+    const context = agencyContext({ agency: agency.name, today: new Date().toISOString().slice(0, 10), clients, metrics, risk: scoreClients(metrics, clients, reports, goals), reports, focusId: focus ? focus.id : null, extra: { goals: p.data.goals, tasks: p.data.tasks } });
     const { reply, actions, usage } = await askAnalyst(context, focus ? focus.name : null, p.data.messages);
     await recordAiUsage(agency.id, 'chat', usage);
     return { ok: true, reply, actions };
