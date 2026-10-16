@@ -218,3 +218,20 @@ export const taskComments = pgTable('task_comments', {
   body: text('body').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [index('task_comments_task_idx').on(t.taskId, t.createdAt)]);
+
+// A person's notification choices in one agency (Settings › Notifications). Missing keys use the defaults in
+// lib/prefs.ts.
+export const notificationPrefs = pgTable('notification_prefs', {
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  agencyId: uuid('agency_id').notNull().references(() => agencies.id, { onDelete: 'cascade' }),
+  prefs: jsonb('prefs').$type<Record<string, boolean>>().notNull().default({}),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.userId, t.agencyId] })]);
+
+// Alerts already emailed, so each one goes out once. key is e.g. "sig:<client>:leads-drop", "risk:<client>",
+// "conn:<connection>" or "weekly:2026-10-19". An alert whose cause clears is removed, so it can fire again later.
+export const alertLog = pgTable('alert_log', {
+  agencyId: uuid('agency_id').notNull().references(() => agencies.id, { onDelete: 'cascade' }),
+  key: text('key').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.agencyId, t.key] })]);

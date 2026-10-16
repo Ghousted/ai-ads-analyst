@@ -1,6 +1,6 @@
 // Settings, including integrations.
 import { assignAccountAction, connectMetaAction, disconnectAction, refreshAccountsAction } from '@/app/actions/integrations';
-import { renameMeAction, renameAgencyAction, inviteAction, setRoleAction, updateBrandAction, setTimeZoneAction } from '@/app/actions/agency';
+import { renameMeAction, renameAgencyAction, inviteAction, setRoleAction, updateBrandAction, setTimeZoneAction, savePrefsAction } from '@/app/actions/agency';
 import { TIME_ZONES } from '@/lib/schedule';
 import { signOutAction, forgotAction } from '@/app/actions/auth';
 import { connList, nextConn, toolAccts, acctFor, acctKey, clSplit, LOGOS, TOOL_NAMES, MULTI } from '../../data';
@@ -28,19 +28,26 @@ export function settingsVals(app, ctx) {
         const ic = { profile: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', general: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0', conn: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1', agency: 'M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6', members: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8', security: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4', billing: 'M3 6h18v12H3zM3 10h18' };
         const NAV = [['Account', [['profile', 'My profile'], ['general', 'Notifications']]], ['Workspace', [['agency', 'Agency and branding'], ['conn', 'Integrations'], ['members', 'Team members'], ['security', 'Security'], ['billing', 'Plan and billing']]]];
         const lab = Object.fromEntries(NAV.flatMap(g => g[1]));
-        const tg = (k, t, d, def) => { const v2 = k in on ? on[k] : def; return { t, d, isToggle: true, on: v2, tBg: v2 ? '#1f6be2' : '#d3dbe6', tX: v2 ? 18 : 0, toggle: () => app.setState(s => ({ stg: { ...(s.stg || {}), [k]: !v2 } })) }; };
+        // Live: notification choices are saved for the signed-in person (the server's copy arrives as S.prefs).
+        const PREFS = ['a0', 'a1', 'a2', 'a3', 'a4', 'n0', 'n1', 'n2', 'n4'];
+        const cur = (k, def) => k in on ? on[k] : live && PREFS.includes(k) && S.prefs && k in S.prefs ? S.prefs[k] : def;
+        const flip = (k, v2) => { app.setState(s => ({ stg: { ...(s.stg || {}), [k]: !v2 } }));
+          if (live && PREFS.includes(k)) savePrefsAction({ [k]: !v2 }).then(r => { if (r.error) { toast(r.error); app.setState(s => ({ stg: { ...(s.stg || {}), [k]: v2 } })); } }); };
+        const tg = (k, t, d, def) => { const v2 = cur(k, def); return { t, d, isToggle: true, on: v2, tBg: v2 ? '#1f6be2' : '#d3dbe6', tX: v2 ? 18 : 0, toggle: () => flip(k, v2) }; };
         const sl = (k, t, d, opts) => ({ t, d, isSelect: true, opts, val: sel[k] || opts[0], set: e => { const x = e.target.value; app.setState(s => ({ stgSel: { ...(s.stgSel || {}), [k]: x } })); } });
         const bt = (t, d, btnLabel, act, primary) => ({ t, d, isBtn: !primary, isPrimary: !!primary, btnLabel, btn: typeof act === 'function' ? act : () => toast(act) });
         const dlg = o => () => app.setState({ dlg: o, dlgErr: null });
         const me = S.me, agency = S.agName, members = S.members || [], plan = S.plan || 'Agency', manager = me.role !== 'Member';
         const conns = connList(S);
-        const ck = (k, label, def) => { const v2 = k in on ? on[k] : def; return { label, on: v2, bg: v2 ? '#1f6be2' : '#ffffff', bd: v2 ? '#1f6be2' : '#97a2b2', o: v2 ? 1 : 0, toggle: () => app.setState(s => ({ stg: { ...(s.stg || {}), [k]: !v2 } })) }; };
+        const ck = (k, label, def) => { const v2 = cur(k, def); return { label, on: v2, bg: v2 ? '#1f6be2' : '#ffffff', bd: v2 ? '#1f6be2' : '#97a2b2', o: v2 ? 1 : 0, toggle: () => flip(k, v2) }; };
         const G = {
           profile: [{ title: 'My profile', rows: [bt(me.name, me.role + ' at ' + agency, 'Edit name', dlg({ kind: 'name', val: me.name })), { t: 'Email', d: me.email },
             bt('Password', 'We email you a link to choose a new one.', 'Reset password', () => forgotAction(me.email).then(() => toast('We emailed a reset link to ' + me.email))),
             bt('Sign out', 'Sign out of AI Ads Analyst on this device.', 'Sign out', () => signOutAction())] }],
           general: [{ title: 'My notifications', checkTitle: 'Tell me when…', checks: [ck('a0', 'A client gets 20% fewer leads than usual', true), ck('a1', 'Cost per lead goes over a goal', true), ck('a2', 'Spend is 15% ahead or behind budget', true), ck('a3', 'An account disconnects and data stops', true), ck('a4', 'Analyst flags a client as at risk', true)],
-              rows: [tg('n0', 'In Ask Analyst', 'Analyst messages you in the chat with what happened and what to do.', true), tg('n1', 'By email', 'Alerts go to ' + me.email + ' as they happen.', true), tg('n2', 'Weekly summary email', 'A Monday morning email with every client\'s results.', true), tg('n3', 'Slack direct messages', S.slack ? 'Also DM me in Slack. The team channel is set in Integrations.' : 'Connect Slack in Integrations first. Alerts then post to a team channel, and Analyst can DM you too.', false)] },
+              rows: [tg('n0', 'In Ask Analyst', 'Analyst messages you in the chat with what happened and what to do.', true), tg('n1', 'By email', live ? 'Alerts go to ' + me.email + ' once a day\u2019s numbers are in, between 7am and 8pm.' : 'Alerts go to ' + me.email + ' as they happen.', true), tg('n2', 'Weekly summary email', 'A Monday morning email with every client\'s results.', true)]
+                .concat(live ? [tg('n4', 'Reports ready to review', 'An email when Analyst drafts a scheduled report, so you can approve it before it goes out.', me.role !== 'Member')]
+                  : [tg('n3', 'Slack direct messages', S.slack ? 'Also DM me in Slack. The team channel is set in Integrations.' : 'Connect Slack in Integrations first. Alerts then post to a team channel, and Analyst can DM you too.', false)]) },
             { title: 'My preferences', rows: [sl('lang', 'Language', 'Used across the app and in AI replies.', ['English', 'Español', 'Français']), sl('tz', 'Time zone', 'Report schedules and alerts follow this time.', ['Eastern time (New York)', 'Central time (Chicago)', 'Pacific time (Los Angeles)']), sl('cur', 'Currency', 'Shown on spend, budgets and cost per lead.', ['USD ($)', 'EUR (€)', 'GBP (£)'])] }],
           conn: TOOLS.map(t => t[0]).filter(t => conns.some(c => c.tool === t)).map(tool => {
             const mine = conns.filter(c => c.tool === tool), all = toolAccts(S, tool), open = !!(S.stgOpen || {})[tool], many = mine.length > 1, pend = S.connPend || {};
@@ -137,7 +144,7 @@ function dialogVals(app, S, { toast, me, agency, members, conns, C, live, refres
     if (k === 'name') { if (!val) return app.setState({ dlgErr: 'Enter your name.' }); return renameMeAction(val).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); app.setState({ me: { ...me, name: val } }); close(); toast('Name updated'); }); }
     if (k === 'email') { if (!emailOk(val)) return app.setState({ dlgErr: 'Enter a valid email, like name@agency.com.' }); close(); return toast('Confirmation link sent to ' + val); }
     if (k === 'agency') { if (!val) return app.setState({ dlgErr: 'Enter your agency name.' }); return renameAgencyAction(val).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); app.setState({ agName: val }); close(); toast('Agency name updated'); }); }
-    if (k === 'invite') { if (!emailOk(val)) return app.setState({ dlgErr: 'Enter a valid email, like name@agency.com.' }); const em = val.toLowerCase(); if (members.some(m => m.email === em)) return app.setState({ dlgErr: 'That person is already on your team.' }); return inviteAction({ email: em, role: D.role || 'Member' }).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); app.setState({ members: [...members, { id: '', name: em, email: em, role: D.role || 'Member', pending: true }] }); close(); toast(em + ' can now join by signing up with that email'); }); }
+    if (k === 'invite') { if (!emailOk(val)) return app.setState({ dlgErr: 'Enter a valid email, like name@agency.com.' }); const em = val.toLowerCase(); if (members.some(m => m.email === em)) return app.setState({ dlgErr: 'That person is already on your team.' }); return inviteAction({ email: em, role: D.role || 'Member' }).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); app.setState({ members: [...members, { id: '', name: em, email: em, role: D.role || 'Member', pending: true }] }); close(); toast(r.emailed ? 'Invite sent to ' + em + '. They join when they sign up with that email.' : em + ' can now join by signing up with that email'); }); }
     if (k === 'disconnect' && cn.live) return disconnectAction(D.id).then(r => { if (r.error) return app.setState({ dlgErr: r.error }); close(); toast(tn + ' disconnected from ' + cn.who); refresh(); });
     if (k === 'disconnect') { app.setState(s => ({ connOff: { ...(s.connOff || {}), [D.id]: true }, connOn: { ...(s.connOn || {}), [D.id]: false }, connPend: { ...(s.connPend || {}), [D.id]: null } })); close(); return toast(tn + ' disconnected from ' + cn.who); }
     if (k === 'connect') {

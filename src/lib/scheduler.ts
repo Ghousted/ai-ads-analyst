@@ -1,6 +1,7 @@
 import 'server-only';
-import { and, eq, gt, inArray, isNotNull, isNull, lte } from 'drizzle-orm';
+import { and, eq, gt, isNotNull, isNull, lte } from 'drizzle-orm';
 import { db, schema } from '@/db';
+import { draftRecipients } from './alerts';
 import { emailConfigured, sendEmail } from './email';
 import { noticeEmail } from './notice-email';
 import { createReport } from './report-create';
@@ -14,13 +15,8 @@ const AHEAD_MS = 24 * 3600_000;
 const RETRY_MS = 48 * 3600_000;
 const appUrl = () => (process.env.APP_URL || '').replace(/\/$/, '');
 
-// Who hears about new drafts: the owner and admins. notify, when given, can narrow that (notification settings).
-export type Recipients = (agencyId: string, kind: 'drafts') => Promise<{ email: string; name: string }[]>;
-export const managers: Recipients = async agencyId => db.select({ email: schema.users.email, name: schema.users.name }).from(schema.agencyMembers)
-  .innerJoin(schema.users, eq(schema.users.id, schema.agencyMembers.userId))
-  .where(and(eq(schema.agencyMembers.agencyId, agencyId), inArray(schema.agencyMembers.role, ['owner', 'admin'])));
-
-export async function draftScheduled(deadline: number, now = new Date(), recipients: Recipients = managers) {
+// Who hears about new drafts: teammates with "Reports ready to review" on (the owner and admins by default).
+export async function draftScheduled(deadline: number, now = new Date()) {
   const rows = await db.select({ client: schema.clients, agency: schema.agencies }).from(schema.clients)
     .innerJoin(schema.agencies, eq(schema.agencies.id, schema.clients.agencyId)).where(eq(schema.agencies.sampleMode, false));
   const made: { agency: typeof schema.agencies.$inferSelect; client: string; id: string; title: string; at: Date }[] = [];
@@ -45,13 +41,13 @@ export async function draftScheduled(deadline: number, now = new Date(), recipie
   // One email per agency for everything written in this run.
   if (emailConfigured()) for (const agencyId of new Set(made.map(m => m.agency.id))) {
     const mine = made.filter(m => m.agency.id === agencyId), agency = mine[0].agency;
-    const to = (await recipients(agencyId, 'drafts')).map(u => u.email);
+    const to = (await draftRecipients(agencyId)).map(u => u.email);
     if (!to.length) continue;
     const { html, text } = noticeEmail({
       agency: agency.name, heading: mine.length === 1 ? mine[0].client + '’s report is ready to review' : mine.length + ' reports are ready to review',
       intro: 'Analyst wrote ' + (mine.length === 1 ? 'this report' : 'these reports') + ' from the latest numbers. Read ' + (mine.length === 1 ? 'it' : 'each one') + ', edit anything you like, then approve it. Approved reports go to the client at the time below. Nothing is sent until you approve.',
       items: mine.map(m => ({ title: m.client, detail: m.title, note: 'Goes out ' + sendLabel(m.at, agency.timeZone) + ' once approved', link: appUrl() + '/app?open=' + m.id, linkLabel: 'Review and approve' })),
-      footer: 'You get this because you’re an owner or admin of ' + agency.name + ' on AI Ads Analyst.',
+      footer: 'You get this because “Reports ready to review” is on in your AI Ads Analyst notification settings.',
     });
     try { await sendEmail({ fromName: 'AI Ads Analyst', to, subject: mine.length === 1 ? mine[0].client + '’s report is ready to review' : mine.length + ' client reports are ready to review', html, text, tag: 'drafts' }); }
     catch (e) { console.error('[drafts email]', e); }

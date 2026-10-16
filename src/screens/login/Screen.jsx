@@ -7,7 +7,8 @@ import { signInAction, signUpAction, googleAction, forgotAction, resetAction } f
 class Logic extends React.Component {
   static defaultProps = {"startMode":"Log in"};
 
-  state = { mode: null, name: '', email: '', password: '', showPw: false, remember: true, touched: false, loading: false, done: false };
+  // An invite link fills in the invited email.
+  state = { mode: null, name: '', email: this.props.startEmail || '', password: '', showPw: false, remember: true, touched: false, loading: false, done: false };
   componentDidMount() {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!reduce) this.sh = setInterval(() => { if (!this.state.paused) this.go(); }, 3200);
