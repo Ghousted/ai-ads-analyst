@@ -25,7 +25,8 @@ export async function askAnalystAction(input: z.input<typeof Input>) {
   const [clients, metrics, reports, goals] = await Promise.all([
     db.select().from(schema.clients).where(eq(schema.clients.agencyId, agency.id)),
     loadMetrics(agency.id),
-    db.select({ clientId: schema.reports.clientId, title: schema.reports.title, status: schema.reports.status, createdAt: schema.reports.createdAt, sentAt: schema.reports.sentAt })
+    db.select({ clientId: schema.reports.clientId, title: schema.reports.title, status: schema.reports.status, createdAt: schema.reports.createdAt, sentAt: schema.reports.sentAt,
+      shareToken: schema.reports.shareToken, firstViewedAt: schema.reports.firstViewedAt, viewCount: schema.reports.viewCount })
       .from(schema.reports).where(eq(schema.reports.agencyId, agency.id)).orderBy(desc(schema.reports.createdAt)).limit(100),
     db.select().from(schema.clientGoals).where(eq(schema.clientGoals.agencyId, agency.id)),
   ]);

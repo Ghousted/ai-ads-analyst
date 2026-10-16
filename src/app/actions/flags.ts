@@ -16,7 +16,7 @@ async function riskFor(agencyId: string, clientId: string) {
   if (!client) return null;
   const [metrics, reports, goals] = await Promise.all([
     loadMetrics(agencyId),
-    db.select({ clientId: schema.reports.clientId, createdAt: schema.reports.createdAt, status: schema.reports.status, sentAt: schema.reports.sentAt }).from(schema.reports).where(eq(schema.reports.clientId, client.id)),
+    db.select({ clientId: schema.reports.clientId, createdAt: schema.reports.createdAt, status: schema.reports.status, sentAt: schema.reports.sentAt, shareToken: schema.reports.shareToken, firstViewedAt: schema.reports.firstViewedAt }).from(schema.reports).where(eq(schema.reports.clientId, client.id)),
     db.select().from(schema.clientGoals).where(eq(schema.clientGoals.clientId, client.id)),
   ]);
   return { client, metrics, risk: scoreClients(metrics, [client], reports, goals)[client.id] };

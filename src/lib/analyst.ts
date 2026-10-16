@@ -9,7 +9,7 @@ import type { Risk } from './risk';
 
 type Metrics = Awaited<ReturnType<typeof loadMetrics>>;
 type Client = { id: string; name: string; contactName: string; tone: string; createdAt: Date };
-type Report = { clientId: string; title: string; status: string; createdAt: Date };
+type Report = { clientId: string; title: string; status: string; createdAt: Date; sentAt: Date | null; shareToken: string | null; viewCount: number };
 export type Extra = { goals: { client: string; goal: string; target: number }[]; tasks: { client: string; title: string; status: string }[] };
 
 // Ask Analyst: Claude answers the agency's question from its own data, and can suggest actions the agency then takes
@@ -52,7 +52,9 @@ export function agencyContext(o: { agency: string; today: string; clients: Clien
         accounts: r ? r.accounts : [], dataThrough: r ? r.through : null, leadSource: r ? r.leadSource : null,
         weeks: r ? r.weeks.map(w => ({ end: w.end, leads: w.leads, sessions: Math.round(w.sessions), metaSpend: r2(w.spend), metaLeads: Math.round(w.metaLeads) })) : [],
         metaCostPerLead: r && r.cpl ? { last14Days: r2(r.cpl.now), previous14Days: r2(r.cpl.before) } : null,
-        reports: o.reports.filter(x => x.clientId === c.id).slice(0, 5).map(x => ({ title: x.title, status: x.status, written: x.createdAt.toISOString().slice(0, 10) })),
+        // timesOpened is how often the client opened the report's link; null when it was never sent with one.
+        reports: o.reports.filter(x => x.clientId === c.id).slice(0, 5).map(x => ({ title: x.title, status: x.status, written: x.createdAt.toISOString().slice(0, 10),
+          sent: x.status === 'sent' && x.sentAt ? x.sentAt.toISOString().slice(0, 10) : null, timesOpened: x.status === 'sent' && x.shareToken ? x.viewCount : null })),
         goals: o.extra.goals.filter(g => g.client === c.name),
         openTasks: o.extra.tasks.filter(t => t.client === c.name && t.status !== 'done').map(t => t.title),
         // The client the agency is looking at gets the channel and campaign breakdowns too.

@@ -2,13 +2,14 @@ import 'server-only';
 import type { loadMetrics } from './metrics';
 import { addDays } from './metric-store';
 
-// Rule-based risk for each client, from their stored numbers, goals and report history. A client is flagged when one of
-// the signals below fires: "At risk" (r) for a severe signal or two at once, "Needs attention" (n) for one.
+// Rule-based risk for each client, from their stored numbers, goals, report history and whether they open their
+// reports. A client is flagged when one of the signals below fires: "At risk" (r) for a severe signal or two at once,
+// "Needs attention" (n) for one.
 // Claude explains a flag and suggests what to do (see flag-writer.ts); the rules alone decide who is flagged.
 
 type Metrics = Awaited<ReturnType<typeof loadMetrics>>;
 type Client = { id: string; name: string; createdAt: Date };
-type Report = { clientId: string; createdAt: Date; status: string; sentAt: Date | null };
+type Report = { clientId: string; createdAt: Date; status: string; sentAt: Date | null; shareToken?: string | null; firstViewedAt?: Date | null };
 type Goal = { clientId: string; type: string; target: number };
 
 export type Signal = { key: string; label: string; detail: string; say: string; act: string; severe?: boolean };
@@ -23,7 +24,8 @@ export type Risk = {
   cpl: { now: number; before: number } | null;
   // now is this week's number, or this month's spend for the budget.
   goals: { type: string; target: number; now: number | null }[];
-  lastReport: { day: string; status: string } | null;
+  // opened is null for a draft or a report sent without a link.
+  lastReport: { day: string; status: string; opened: boolean | null } | null;
   accounts: { tool: string; name: string; error: string | null }[];
 };
 
@@ -146,11 +148,29 @@ export function scoreClients(metrics: Metrics, clients: Client[], reports: Repor
       say: 'The numbers haven’t updated since ' + fmtDay(through) + '.', act: 'check the connection in Integrations' });
 
     // A client with numbers who hasn't had a report in two weeks.
-    const mine = reports.filter(r => r.clientId === c.id).sort((a, b) => +b.createdAt - +a.createdAt)[0];
-    const lastReport = mine ? { day: (mine.sentAt || mine.createdAt).toISOString().slice(0, 10), status: mine.status } : null;
+    const theirs = reports.filter(r => r.clientId === c.id).sort((a, b) => +b.createdAt - +a.createdAt), mine = theirs[0];
+    const linked = (r: Report) => r.status === 'sent' && !!r.sentAt && !!r.shareToken;
+    const lastReport = mine ? { day: (mine.sentAt || mine.createdAt).toISOString().slice(0, 10), status: mine.status, opened: linked(mine) ? !!mine.firstViewedAt : null } : null;
     const since = lastReport ? lastReport.day : c.createdAt.toISOString().slice(0, 10);
     if (through && daysBetween(since, today) > 14) signals.push({ key: 'no-report', label: lastReport ? 'No recent report' : 'No report yet', detail: daysBetween(since, today) + ' days',
       say: lastReport ? 'Their last report was ' + daysBetween(since, today) + ' days ago, on ' + fmtDay(since) + '.' : 'They haven’t had a report in the ' + daysBetween(since, today) + ' days since they were added.', act: 'send them a report this week' });
+
+    // Sent reports the client never opened. A report gets 3 days before it counts as unread, and a recent report they
+    // did open means they're still reading.
+    const sent = theirs.filter(linked).sort((a, b) => +b.sentAt! - +a.sentAt!), sentDay = (r: Report) => r.sentAt!.toISOString().slice(0, 10);
+    if (!sent.some(r => r.firstViewedAt && daysBetween(sentDay(r), today) < 3)) {
+      const judged = sent.filter(r => daysBetween(sentDay(r), today) >= 3), unread = judged.findIndex(r => r.firstViewedAt);
+      const run = unread < 0 ? judged.length : unread;
+      if (run >= 2) {
+        const last = sentDay(judged[0]);
+        signals.push({ key: 'reports-unread', label: 'Reports not opened', detail: 'Last ' + run + ' unopened', severe: run >= 3,
+          say: 'They haven’t opened their last ' + run + ' reports, the latest sent on ' + fmtDay(last) + '.', act: 'call them to check the reports reach the right person and still answer what they want to know' });
+      } else if (run === 1 && daysBetween(sentDay(judged[0]), today) >= 7) {
+        const last = sentDay(judged[0]);
+        signals.push({ key: 'report-unread', label: 'Report not opened', detail: 'Sent ' + fmtDay(last),
+          say: 'They haven’t opened the report sent on ' + fmtDay(last) + ', ' + daysBetween(last, today) + ' days ago.', act: 'check it went to the right email, then send a short note with the main result' });
+      }
+    }
 
     // Broken data first: until it's fixed, nothing else can be trusted.
     signals.sort((a, b) => +/sync-error|stale/.test(b.key) - +/sync-error|stale/.test(a.key));
