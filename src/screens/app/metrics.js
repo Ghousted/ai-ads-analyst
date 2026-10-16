@@ -23,6 +23,10 @@ export function makeMetrics(m) {
     series(accts, metric, n) { return days(n).map(day => accts.reduce((t, a) => t + (((total[a] || {})[metric] || {})[day] || 0), 0)); },
     // Sum of a total metric over [end - n + 1, end], where end is `back` periods before `through`.
     sum(accts, metric, n, back = 0) { const to = addDays(through, -n * back), from = addDays(to, -n + 1); return accts.reduce((t, a) => t + sumDays((total[a] || {})[metric], from, to), 0); },
+    // Daily values of a broken-down metric, summed over every value of the dimension (Google Ads cost is only stored
+    // by campaign).
+    dimSeries(accts, dim, metric, n) { return days(n).map(day => accts.reduce((t, a) => t + Object.values((((dims[a] || {})[dim] || {})[metric]) || {}).reduce((u, map) => u + (map[day] || 0), 0), 0)); },
+    dimSum(accts, dim, metric, n, back = 0) { const to = addDays(through, -n * back), from = addDays(to, -n + 1); return accts.reduce((t, a) => t + Object.values((((dims[a] || {})[dim] || {})[metric]) || {}).reduce((u, map) => u + sumDays(map, from, to), 0), 0); },
     // A breakdown over the last n days: [[value, amount], ...] sorted largest first.
     breakdown(accts, dim, metric, n) {
       const from = addDays(through, -n + 1), out = {};

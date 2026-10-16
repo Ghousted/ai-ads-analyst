@@ -75,27 +75,41 @@ export function dashboardVals(app, ctx) {
         // Live agencies: empty states until numbers are stored, then views built from them.
         let LV = null;
         if (live) {
-          const props = live.conns.flatMap(c => c.accounts), linked = props.filter(x => x.clientId).length;
+          const props = live.conns.flatMap(c => c.accounts);
           const M = app._metricsFor === live.metrics ? app._metrics : (app._metricsFor = live.metrics, app._metrics = makeMetrics(live.metrics));
-          const selC = S.sel != null && C[S.sel] ? C[S.sel] : null, accts = M.accountsFor(selC && selC.extra ? selC.extra.id : null);
-          const st = !live.conns.length ? 'none' : !props.length ? 'empty' : !linked ? 'unlinked' : selC && !accts.length ? 'client' : !M.has ? 'waiting' : 'ready';
+          const selC = S.sel != null && C[S.sel] ? C[S.sel] : null, MA = (live.metrics && live.metrics.accounts) || [];
+          const ofTool = (tool, ids) => ids.filter(i => MA[i].tool === tool);
+          // One tab per connected platform. All sources only makes sense once two or more are connected (two Google
+          // logins are one platform).
+          const providers = new Set(live.conns.map(c => c.provider)), showAll = providers.size >= 2;
+          const keys = (showAll ? ['an-all'] : []).concat(providers.has('google') || !providers.size ? ['an-ga4'] : [], providers.has('meta') ? ['an-meta'] : []);
+          const curKey = keys.includes(av) ? av : keys[0];
+          const liveTools = keys.map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === curKey, bg: key === curKey ? '#ffffff' : 'transparent', fw: key === curKey ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
+          // What the tab can show: every linked account in All sources, else that platform's.
+          const tool = curKey === 'an-meta' ? 'meta' : curKey === 'an-ga4' ? 'ga4' : null;
+          const mine = ids => tool ? ofTool(tool, ids) : ids;
+          const tprops = props.filter(x => !tool || x.tool === tool), linked = tprops.filter(x => x.clientId).length;
+          const accts = mine(M.accountsFor(selC && selC.extra ? selC.extra.id : null));
+          const conns = live.conns.filter(c => !tool || c.provider === (tool === 'meta' ? 'meta' : 'google'));
+          const has = mine(M.accountsFor(null)).some(i => MA[i].through);
+          const st = !conns.length ? 'none' : !tprops.length ? 'empty' : !linked ? 'unlinked' : selC && !accts.length ? 'client' : !has ? 'waiting' : 'ready';
+          const meta = tool === 'meta', thing = meta ? 'ad account' : 'GA4 property', things = meta ? 'ad accounts' : 'GA4 properties', src = meta ? 'Meta' : 'Google Analytics';
           const T = {
-            none: ['Connect Google Analytics to see results', 'Sign in with Google. Every GA4 property that login can see shows up in Integrations.', 'Connect Google Analytics', () => { window.location.href = '/api/integrations/google/start'; }],
-            empty: ['No GA4 properties found', 'The Google login you connected can\'t see any GA4 properties. Connect a login that has access, or ask the client to add it.', 'Open integrations', null],
-            unlinked: [props.length + (props.length === 1 ? ' GA4 property found' : ' GA4 properties found'), 'Link each property to the client it belongs to. Results start once a property is linked.', 'Link properties', null],
-            client: ['No GA4 property is linked to ' + (selC ? selC.name : ''), 'Link their property in Integrations and their results show up here.', 'Link a property', null],
-            waiting: ['Your numbers are on the way', linked + (linked === 1 ? ' property is' : ' properties are') + ' linked to clients. Results appear here after the first data pull from Google Analytics.', 'Open integrations', null],
+            none: meta ? ['Connect Meta to see ad results', 'Add a Meta system user token in Integrations. Every ad account it can see shows up there.', 'Connect Meta', null]
+              : ['Connect Google Analytics to see results', 'Sign in with Google. Every GA4 property that login can see shows up in Integrations.', 'Connect Google Analytics', () => { window.location.href = '/api/integrations/google/start'; }],
+            empty: meta ? ['No ad accounts found', 'The Meta login you connected can\'t see any ad accounts. Give it access in Business Manager, then look again in Integrations.', 'Open integrations', null]
+              : ['No GA4 properties found', 'The Google login you connected can\'t see any GA4 properties. Connect a login that has access, or ask the client to add it.', 'Open integrations', null],
+            unlinked: [tprops.length + ' ' + (tprops.length === 1 ? thing : things) + ' found', 'Link each ' + (meta ? 'ad account' : 'property') + ' to the client it belongs to. Results start once one is linked.', meta ? 'Link ad accounts' : 'Link properties', null],
+            client: ['No ' + thing + ' is linked to ' + (selC ? selC.name : ''), 'Link their ' + (meta ? 'ad account' : 'property') + ' in Integrations and their results show up here.', meta ? 'Link an ad account' : 'Link a property', null],
+            waiting: ['Your numbers are on the way', linked + ' ' + (linked === 1 ? thing + ' is' : things + ' are') + ' linked to clients. Results appear here after the first data pull from ' + src + '.', 'Open integrations', null],
           }[st];
-          // All sources only makes sense once two or more platforms are connected (two Google logins are one platform).
-          const showAll = new Set(live.conns.map(c => c.provider)).size >= 2, curKey = showAll && av !== 'an-ga4' ? 'an-all' : 'an-ga4';
-          const liveTools = (showAll ? ['an-all', 'an-ga4'] : ['an-ga4']).map(key => ({ label: AN[key].name, logo: AN[key].logo, on: key === curKey, bg: key === curKey ? '#ffffff' : 'transparent', fw: key === curKey ? 700 : 500, tipO: S.anTip === key ? 1 : 0, tipY: S.anTip === key ? '0px' : '-4px', tipOn: () => app.setState({ anTip: key }), tipOff: () => app.setState(s => s.anTip === key ? { anTip: null } : null), pick: () => app.setState({ anTool: key, anMetric: 0, takeOpen: false }) }));
-          if (T) return { ...blank, anTools: liveTools, anEmpty: true, anEmptyLive: true, anEmptyLogo: L.ga4, anEmptyTool: 'Google Analytics 4', anEmptyTitle: T[0], anEmptyLiveText: T[1], anEmptyBtn: T[2],
-            anEmptyGo: T[3] || (() => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), ga4: true } }))) };
+          if (T) return { ...blank, anTools: liveTools, anEmpty: true, anEmptyLive: true, anEmptyLogo: meta ? L.meta : L.ga4, anEmptyTool: meta ? 'Meta' : 'Google Analytics 4', anEmptyTitle: T[0], anEmptyLiveText: T[1], anEmptyBtn: T[2],
+            anEmptyGo: T[3] || (() => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), [meta ? 'meta' : 'ga4']: true } }))) };
           // Viewing all clients: tables say which client each row belongs to.
-          const per = selC ? null : live.clients.map(c => ({ name: c.name, accts: M.accountsFor(c.id) })).filter(c => c.accts.length);
-          LV = { M, accts, per: per && per.length > 1 ? per : null, tools: liveTools, key: curKey };
+          const per = selC ? null : live.clients.map(c => ({ name: c.name, accts: mine(M.accountsFor(c.id)) })).filter(c => c.accts.length);
+          LV = { M, accts, per: per && per.length > 1 ? per : null, tools: liveTools, key: curKey, ga4: ofTool('ga4', accts), meta: ofTool('meta', accts) };
         }
-        const A = LV ? liveView(LV, S, { '7 days': 7, '14 days': 14, '30 days': 30 }[S.range || '14 days']) : A0;
+        const A = LV ? (LV.key === 'an-meta' ? metaView : liveView)(LV, S, { '7 days': 7, '14 days': 14, '30 days': 30 }[S.range || '14 days']) : A0;
         if (LV) av = LV.key;
         const toolKey = ({ 'an-meta': 'meta', 'an-ga4': 'ga4', 'an-gads': 'gads', 'an-tt': 'tt' })[av];
         // The agency may already be connected and only the client's account is unlinked. Then the fix is linking, not connecting.
@@ -103,7 +117,8 @@ export function dashboardVals(app, ctx) {
         const agencyHas = !!toolKey && connList(S).some(c => c.tool === toolKey);
         if (!LV && S.sel != null && toolKey && !C[S.sel].logos.includes(toolKey)) return { ...blank, anTools, anEmpty: true, anEmptyLink: agencyHas, anEmptyLogo: A.logo, anEmptyTool: A.name, anEmptyTitle: agencyHas ? 'No ' + A.name + ' account is linked to ' + C[S.sel].name : C[S.sel].name + ' is not connected to ' + A.name, anEmptyBtn: agencyHas ? 'Link an account' : 'Connect ' + A.name, anEmptyGo: () => app.setState(s => ({ view: 'settings', stgTab: 'conn', stgOpen: { ...(s.stgOpen || {}), [toolKey]: true } })) };
         const mi = Math.min(S.anMetric || 0, A.m.length - 1);
-        const good = (label, note) => note.startsWith('+') ? '#1d6b3a' : note.startsWith('−') ? '#a3330c' : '#5a6474';
+        // Up is good, except for costs. Spend going up is neither.
+        const good = (label, note) => { if (/^spend$/i.test(label)) return '#5a6474'; const up = note.startsWith('+'), down = note.startsWith('−'); if (/cost/i.test(label)) return up ? '#a3330c' : down ? '#1d6b3a' : '#5a6474'; return up ? '#1d6b3a' : down ? '#a3330c' : '#5a6474'; };
         const TOTAL = 90, rngDays = { '7 days': 7, '14 days': 14, '30 days': 30 }[S.range || '14 days'];
         const pts = A.series ? A.series[mi] : Array.from({ length: TOTAL }, (_, k) => A.s[k % A.s.length] * (0.72 + 0.28 * k / (TOTAL - 1)) * (1 + 0.12 * Math.sin(k * 0.9 + mi * 1.7)));
         const n = pts.length, mx = Math.max(1, ...pts) * 1.15, W = (n - 1) * 10;
@@ -115,7 +130,8 @@ export function dashboardVals(app, ctx) {
         // Previous period: the same metric rngDays earlier, drawn where that data exists.
         const line = path(pts), prev = A.series ? pts.slice(0, n - rngDays).map((p, i) => 'ML'[i ? 1 : 0] + ((i + rngDays) * 10) + ' ' + Math.round(180 - (p / mx) * 170)).join(' ') : path(pts.map((p, i) => p * 0.88 + (i % 3) * 2));
         const num = s => parseFloat(String(s).replace(/[^0-9.]/g, '')) || 0;
-        const anSections = A.sec.map(([title, d, full]) => {
+        // A breakdown with no rows (say, no device numbers yet) is left out rather than drawn empty.
+        const anSections = A.sec.filter(([, d]) => d.rows.length).map(([title, d, full]) => {
           const o = { title, span: full ? '1 / -1' : 'auto', isBars: d.type === 'bars', isFunnel: d.type === 'funnel', isTable: d.type === 'table', cols: [], rows: [] };
           if (d.type === 'bars') { const m = Math.max(...d.rows.map(r => num(r[1]))), tot = d.rows.reduce((t, r) => t + num(r[1]), 0); o.aria = title + ': ' + d.rows.map(r => r[0] + ' ' + r[1]).join(', '); o.rows = d.rows.map(([label, value], ri) => ({ label, value, logo: PLOGO[label] || '', hasLogo: !!PLOGO[label], icon: PICON[label] || '', hasIcon: !PLOGO[label] && !!PICON[label], noLogo: !PLOGO[label] && !PICON[label], pct: (num(value) / tot * 100).toFixed(1) + '%', pctLabel: Math.round(num(value) / tot * 100) + '%', col: (av === 'an-all' && PLAT[label]) || PAL[av].pal[ri % PAL[av].pal.length], w: Math.max(3, Math.round(num(value) / m * 100)) + '%' })); const CIRC = 2 * Math.PI * 40; let acc = 0; o.rows.forEach(r => { const len = num(r.pct) / 100 * CIRC; r.dash = Math.max(len - 1, 0.5).toFixed(2) + ' ' + CIRC.toFixed(2); r.off = (-acc).toFixed(2); acc += len; }); const top = o.rows.reduce((b, r) => num(r.pct) > num(b.pct) ? r : b, o.rows[0]); o.topPct = top.pctLabel; o.topLabel = top.label; }
           if (d.type === 'funnel') { const top = d.rows[0][1]; o.rows = d.rows.map(([label, val], i) => ({ label, col: PAL[av].pal[i % PAL[av].pal.length], value: val >= 10000 ? (val / 1000).toFixed(val >= 100000 ? 0 : 1) + 'k' : val.toLocaleString(), w: Math.max(2, Math.round(Math.sqrt(val / top) * 100)) + '%', drop: i ? Math.round(val / d.rows[i - 1][1] * 100) + '% of previous step' : 'Starting point', dc: i && val / d.rows[i - 1][1] < 0.5 ? '#a3330c' : '#5a6474' })); }
@@ -145,6 +161,44 @@ export function dashboardVals(app, ctx) {
   };
 }
 
+const money = (v, cents) => '$' + (cents && v < 100 ? v.toFixed(2) : Math.round(v).toLocaleString());
+
+// The Meta view, from stored Meta numbers. Leads are the ones Meta reports for its own ads.
+function metaView(LV, S, rng) {
+  const { M, accts } = LV;
+  const sum = (m, back = 0) => M.sum(accts, m, rng, back);
+  const s = { spend: sum('spend'), imp: sum('impressions'), clicks: sum('clicks'), leads: sum('leads') };
+  const p = { spend: sum('spend', 1), imp: sum('impressions', 1), clicks: sum('clicks', 1), leads: sum('leads', 1) };
+  const rate = (a, b) => (b ? (a / b) * 100 : 0), pts = (a, b) => { const d = Math.round((a - b) * 10) / 10; return (d > 0 ? '+' : d < 0 ? '\u2212' : '') + Math.abs(d) + ' pts'; };
+  const ser = m => M.series(accts, m, 90), ratio = (a, b, k = 1) => { const x = ser(a), y = ser(b); return x.map((v, i) => (y[i] ? (v / y[i]) * k : 0)); };
+  const cpl = (a, b) => (b ? a / b : 0);
+  const tiles = [
+    ['Spend', money(s.spend), pct(s.spend, p.spend), ser('spend')],
+    ['Impressions', fmtNum(s.imp), pct(s.imp, p.imp), ser('impressions')],
+    ['Clicks', fmtNum(s.clicks), pct(s.clicks, p.clicks), ser('clicks')],
+    ['Click-through rate', rate(s.clicks, s.imp).toFixed(1) + '%', pts(rate(s.clicks, s.imp), rate(p.clicks, p.imp)), ratio('clicks', 'impressions', 100)],
+    ['Leads', fmtNum(s.leads), pct(s.leads, p.leads), ser('leads')],
+    ['Cost per lead', s.leads ? money(cpl(s.spend, s.leads), true) : 'No leads', s.leads && p.leads ? pct(cpl(s.spend, s.leads), cpl(p.spend, p.leads)) : '0%', ratio('spend', 'leads')],
+  ];
+  const groups = LV.per || [{ name: '', accts }];
+  const camps = groups.flatMap(g => M.breakdown(g.accts, 'campaign', 'spend', rng).map(([c, v]) => {
+    const get = m => (M.breakdown(g.accts, 'campaign', m, rng).find(r => r[0] === c) || [0, 0])[1], l = get('leads');
+    return { v, l, c, row: [c].concat(LV.per ? [g.name] : [], [money(v), fmtNum(get('clicks')), fmtNum(l), l ? money(v / l, true) : '–']) };
+  })).sort((x, y) => y.v - x.v);
+  // Placement and age: by leads when there are any, else by spend.
+  const by = (dim, label) => { const m = M.breakdown(accts, dim, 'leads', rng).length ? 'leads' : 'spend', rows = M.breakdown(accts, dim, m, rng), tot = rows.reduce((t, r) => t + r[1], 0);
+    return rows.length ? [(m === 'leads' ? 'Leads by ' : 'Spend by ') + label, { type: 'bars', rows: rows.slice(0, 6).map(([k, v]) => [k.charAt(0).toUpperCase() + k.slice(1), Math.round(v / tot * 100) + '%']) }] : null; };
+  const sec = [];
+  if (camps.length) sec.push(['Campaigns', { type: 'table', cols: ['Campaign'].concat(LV.per ? ['Client'] : [], ['Spend', 'Clicks', 'Leads', 'Cost per lead']), rows: camps.slice(0, 8).map(x => x.row) }, true]);
+  for (const b of [by('placement', 'placement'), by('age', 'age')]) if (b) sec.push(b);
+  const best = camps.filter(x => x.l >= 3).sort((x, y) => x.v / x.l - y.v / y.l)[0];
+  const take = s.spend ? money(s.spend) + ' spent on Meta in the last ' + rng + ' days, ' + pct(s.spend, p.spend) + ' on the ' + rng + ' days before. '
+    + (s.leads ? fmtNum(s.leads) + (s.leads === 1 ? ' lead' : ' leads') + ' at ' + money(cpl(s.spend, s.leads), true) + ' each' + (p.leads ? ', ' + pct(cpl(s.spend, s.leads), cpl(p.spend, p.leads)) + ' on cost per lead.' : '.') + (best && camps.length > 1 ? ' ' + best.c + ' brings the cheapest leads, ' + money(best.v / best.l, true) + ' each.' : '')
+      : 'No leads reported, so check the lead form or the pixel\'s lead event.') : 'No Meta spend in the last ' + rng + ' days.';
+  return { name: 'Meta', logo: LOGOS.meta, color: '#0866FF', through: M.through, fresh: 'Data up to ' + fmtDay(M.through) + ' · Meta may still revise the last 3 days',
+    m: tiles.map(t => [t[0], t[1], t[2]]), series: tiles.map(t => t[3]), take, sec };
+}
+
 // A dashboard view (same shape as the sample AN entries) built from stored GA4 numbers for the chosen clients and range.
 function liveView(LV, S, rng) {
   const { M, accts } = LV, all = LV.key === 'an-all';
@@ -161,7 +215,17 @@ function liveView(LV, S, rng) {
     ['Engagement rate', Math.round(rate(s.engaged, s.sessions)) + '%', pts(rate(s.engaged, s.sessions), rate(p.engaged, p.sessions)), ratio('engagedSessions', 'sessions')],
     ['Page views', fmtNum(s.views), pct(s.views, p.views), ser('screenPageViews')],
   ];
-  if (all) { tiles[0] = ['Leads', fmtNum(s.leads), pct(s.leads, p.leads), ser('keyEvents')]; tiles[1] = ['Sessions', fmtNum(s.sessions), pct(s.sessions, p.sessions), ser('sessions')]; }
+  // Spend across platforms: Meta spend plus Google Ads cost from GA4. Cost per lead divides it by the sites' leads,
+  // since each platform counts leads it only helped with.
+  const metaSpend = (back = 0) => M.sum(LV.meta, 'spend', rng, back), gadsSpend = (back = 0) => M.dimSum(LV.ga4, 'campaign', 'adCost', rng, back);
+  const spendNow = metaSpend() + gadsSpend(), spendPrev = metaSpend(1) + gadsSpend(1);
+  const spendSer = () => { const a = M.series(LV.meta, 'spend', 90), b = M.dimSeries(LV.ga4, 'campaign', 'adCost', 90); return a.map((v, i) => v + b[i]); };
+  if (all) {
+    tiles.splice(0, 2, ['Leads', fmtNum(s.leads), pct(s.leads, p.leads), ser('keyEvents')], ['Sessions', fmtNum(s.sessions), pct(s.sessions, p.sessions), ser('sessions')]);
+    if (spendNow || spendPrev) { const sp = spendSer(), ld = ser('keyEvents');
+      tiles.splice(1, 0, ['Spend', money(spendNow), pct(spendNow, spendPrev), sp], ['Cost per lead', s.leads ? money(spendNow / s.leads, true) : 'No leads', p.leads && s.leads ? pct(spendNow / s.leads, spendPrev / p.leads) : '0%', sp.map((v, i) => (ld[i] ? v / ld[i] : 0))]);
+      tiles.splice(5); }
+  }
   const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
   const bars = (dim, metric, label = x => x) => M.breakdown(accts, dim, metric, rng).slice(0, 7).map(([k, v]) => [label(k), fmtNum(v)]);
   const chan = M.breakdown(accts, 'channel', 'sessions', rng), top = chan[0];
@@ -174,13 +238,17 @@ function liveView(LV, S, rng) {
   const sec = [];
   const leadsByChannel = bars('channel', 'keyEvents');
   if (all && leadsByChannel.length) sec.push(['Leads by channel, from Google Analytics 4', { type: 'bars', rows: leadsByChannel }]);
+  if (all && spendNow) sec.push(['Spend by platform', { type: 'bars', rows: [['Meta', metaSpend()], ['Google Ads', gadsSpend()]].filter(r => r[1] > 0).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, money(v)]) }]);
+  if (all && metaSpend()) { const ml = M.sum(LV.meta, 'leads', rng);
+    sec.push(['Leads each platform reports', { type: 'table', cols: ['Platform', 'Spend', 'Leads they report', 'Cost per lead they report'], rows: [['Meta', money(metaSpend()), fmtNum(ml), ml ? money(metaSpend() / ml, true) : '–']] }, true]); }
   sec.push(['Sessions by channel', { type: 'bars', rows: bars('channel', 'sessions') }]);
   sec.push(['Sessions by device', { type: 'bars', rows: bars('device', 'sessions', cap) }]);
   if (spend > 0) sec.push(['Google Ads campaigns, from Google Analytics 4', { type: 'table', cols: ['Campaign'].concat(LV.per ? ['Client'] : [], ['Cost', 'Clicks']),
     rows: groups.flatMap(g => M.breakdown(g.accts, 'campaign', 'adCost', rng).map(([c, v]) => { const cl = M.breakdown(g.accts, 'campaign', 'adClicks', rng).find(r => r[0] === c); return { v, row: [c].concat(LV.per ? [g.name] : [], ['$' + Math.round(v).toLocaleString(), fmtNum(cl ? cl[1] : 0)]) }; }))
       .sort((x, y) => y.v - x.v).slice(0, 8).map(x => x.row) }, true]);
   if (pages.length) sec.push(['Top landing pages', { type: 'table', cols: ['Page'].concat(LV.per ? ['Client'] : [], ['Sessions', 'Engagement', 'Key events', 'Conv. rate']), rows: pages }, true]);
-  const take = s.sessions ? fmtNum(s.sessions) + ' sessions in the last ' + rng + ' days, ' + pct(s.sessions, p.sessions) + ' on the ' + rng + ' days before.' + (top ? ' ' + top[0] + ' brought the most, ' + Math.round((top[1] / s.sessions) * 100) + '%.' : '') + (s.leads ? ' ' + fmtNum(s.leads) + (s.leads === 1 ? ' key event' : ' key events') + ' recorded.' : ' No key events recorded, so check which GA4 events count as leads.') : '';
+  const spendNote = all && spendNow ? ' ' + money(spendNow) + ' spent on ads' + (s.leads ? ', ' + money(spendNow / s.leads, true) + ' per lead.' : '.') : '';
+  const take = s.sessions ? fmtNum(s.sessions) + ' sessions in the last ' + rng + ' days, ' + pct(s.sessions, p.sessions) + ' on the ' + rng + ' days before.' + (top ? ' ' + top[0] + ' brought the most, ' + Math.round((top[1] / s.sessions) * 100) + '%.' : '') + (s.leads ? ' ' + fmtNum(s.leads) + (s.leads === 1 ? ' key event' : ' key events') + ' recorded.' : ' No key events recorded, so check which GA4 events count as leads.') + spendNote : '';
   return { name: all ? 'All sources' : 'Google Analytics 4', logo: all ? '/assets/clario-mark-v2.png' : LOGOS.ga4, color: all ? '#1f6be2' : '#E37400', through: M.through,
     fresh: (all ? 'Leads from GA4 key events · ' : '') + 'Data up to ' + fmtDay(M.through) + ' · GA4 can take 2 days to finish processing',
     m: tiles.map(t => [t[0], t[1], t[2]]), series: tiles.map(t => t[3]), take, sec };
