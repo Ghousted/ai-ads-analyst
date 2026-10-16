@@ -1,9 +1,12 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
 import { requireAgency, requireUser, getMembership, canManage } from '@/lib/auth';
+import { TIME_ZONES } from '@/lib/schedule';
+import { emailConfigured, sendEmail } from '@/lib/email';
+import { noticeEmail } from '@/lib/notice-email';
 
 const Opt = z.string().trim().max(80).nullish();
 
@@ -60,8 +63,18 @@ export async function inviteAction(input: { email: string; role: string }) {
   if (already) return { error: 'That person is already on your team.' };
   await db.insert(schema.invitations).values({ agencyId: agency.id, email: p.data.email, role: p.data.role, invitedBy: user.id })
     .onConflictDoUpdate({ target: [schema.invitations.agencyId, schema.invitations.email], set: { role: p.data.role } });
+  // The invite email. They join when they sign up (or sign in) with this address, so the invite stands even if it fails.
+  let emailed = false;
+  if (emailConfigured()) {
+    const from = user.name || user.email, url = (process.env.APP_URL || '').replace(/\/$/, '') + '/login?mode=signup&email=' + encodeURIComponent(p.data.email);
+    const { html, text } = noticeEmail({ agency: agency.name, heading: from + ' invited you to ' + agency.name,
+      intro: 'Join ' + agency.name + ' on AI Ads Analyst as ' + (p.data.role === 'admin' ? 'an admin. You can manage clients, integrations and the team, and edit and send reports.' : 'a member. You can see every client, and edit and send their reports.') + ' Sign up with ' + p.data.email + ' and you’re in.',
+      button: { label: 'Join ' + agency.name, url }, footer: 'Sent by AI Ads Analyst for ' + agency.name + '. Not expecting this? You can ignore it.' });
+    try { await sendEmail({ fromName: agency.name, replyTo: user.email, to: [p.data.email], subject: from + ' invited you to ' + agency.name + ' on AI Ads Analyst', html, text, tag: 'invite' }); emailed = true; }
+    catch (e) { console.error('[invite email]', e); }
+  }
   revalidatePath('/app');
-  return { ok: true };
+  return { ok: true, emailed };
 }
 
 export async function setRoleAction(input: { userId?: string; email?: string; role: string }) {
@@ -84,6 +97,27 @@ export async function setRoleAction(input: { userId?: string; email?: string; ro
   return { ok: true };
 }
 
+// Defaults for new clients: their report schedule and tone.
+export async function saveWorkspaceAction(input: { reportFreq?: string; reportTone?: string }) {
+  const { agency, role } = await requireAgency();
+  if (!canManage(role)) return { error: 'Only the owner and admins can change these defaults.' };
+  const p = z.object({ reportFreq: z.string().trim().min(1).max(80).optional(), reportTone: z.string().trim().min(1).max(40).optional() }).safeParse(input);
+  if (!p.success) return { error: 'Pick a schedule and a tone from the lists.' };
+  await db.update(schema.agencies).set(p.data).where(eq(schema.agencies.id, agency.id));
+  revalidatePath('/app');
+  return { ok: true };
+}
+
+// The time zone report schedules and alerts follow.
+export async function setTimeZoneAction(tz: string) {
+  const { agency, role } = await requireAgency();
+  if (!canManage(role)) return { error: 'Only the owner and admins can change the time zone.' };
+  if (!TIME_ZONES.some(([id]) => id === tz)) return { error: 'Pick a time zone from the list.' };
+  await db.update(schema.agencies).set({ timeZone: tz }).where(eq(schema.agencies.id, agency.id));
+  revalidatePath('/app');
+  return { ok: true };
+}
+
 // Report branding: the agency's logo (a small image as a data URL) and brand colour, used on every report.
 const LOGO = /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/;
 export async function updateBrandAction(input: { logo?: string | null; color?: string }) {
@@ -92,6 +126,19 @@ export async function updateBrandAction(input: { logo?: string | null; color?: s
   const p = z.object({ logo: z.string().max(1_500_000).regex(LOGO).nullable().optional(), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional() }).safeParse(input);
   if (!p.success) return { error: 'Use a PNG, JPG, WebP or SVG logo under 1 MB.' };
   await db.update(schema.agencies).set({ ...(p.data.logo !== undefined ? { brandLogo: p.data.logo } : {}), ...(p.data.color ? { brandColor: p.data.color } : {}) }).where(eq(schema.agencies.id, agency.id));
+  revalidatePath('/app');
+  return { ok: true };
+}
+
+// The signed-in person's notification choices (Settings › Notifications).
+const PREF_KEYS = ['a0', 'a1', 'a2', 'a3', 'a4', 'n0', 'n1', 'n2', 'n4'] as const;
+export async function savePrefsAction(prefs: Record<string, boolean>) {
+  const { user, agency } = await requireAgency();
+  const p = z.object(Object.fromEntries(PREF_KEYS.map(k => [k, z.boolean().optional()]))).strict().safeParse(prefs);
+  if (!p.success) return { error: 'Those settings couldn’t be saved. Try again.' };
+  const clean = Object.fromEntries(Object.entries(p.data).filter(([, v]) => v !== undefined)) as Record<string, boolean>;
+  await db.insert(schema.notificationPrefs).values({ userId: user.id, agencyId: agency.id, prefs: clean })
+    .onConflictDoUpdate({ target: [schema.notificationPrefs.userId, schema.notificationPrefs.agencyId], set: { prefs: sql`${schema.notificationPrefs.prefs} || ${JSON.stringify(clean)}::jsonb`, updatedAt: new Date() } });
   revalidatePath('/app');
   return { ok: true };
 }

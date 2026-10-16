@@ -79,6 +79,7 @@ export function LiveReportsView({ v }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>{"Reports"}
           </button>
           <span style={{ padding: "3px 10px", background: "#eef1f6", color: "#45505f", fontSize: "13px", fontWeight: "600", whiteSpace: "nowrap" }}>{v.lrStatus}</span>
+          {v.lrScheduleNote && v.lrApproveShow ? <span style={{ fontSize: "13px", color: v.lrApproved ? "#1f5bc4" : "#7a5a00", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "360px" }} title={v.lrScheduleNote}>{v.lrScheduleNote}</span> : null}
           {v.lrSentNote ? <span style={{ fontSize: "13px", color: "#5a6474", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "360px" }} title={v.lrSentNote}>{v.lrSentNote}</span> : null}
           <span aria-hidden="true" style={{ width: "1px", height: "24px", margin: "0 6px", background: "#e6ebf2" }}></span>
         </>)}
@@ -89,7 +90,8 @@ export function LiveReportsView({ v }) {
           {v.lrDirty ? <button onClick={v.lrDiscard} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px" }} className="dce60d758">{"Discard edits"}</button> : null}
           <button onClick={v.lrSave} disabled={!v.lrDirty || v.lrSaving} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", opacity: v.lrDirty ? 1 : 0.5, cursor: v.lrDirty ? "pointer" : "default" }} className="dce60d758">{v.lrSaving ? "Saving\u2026" : v.lrDirty ? "Save changes" : "Saved"}</button>
           {v.lrClientLink ? <a href={v.lrClientLink} target="_blank" rel="noopener" style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", display: "inline-flex", alignItems: "center", textDecoration: "none" }} className="dce60d758">{"Client view"}</a> : null}
-          <button onClick={v.lrSend} disabled={v.lrSaving} style={{ ...primary, height: "40px", padding: "0 16px", fontSize: "14px" }} className="dc9482609">{v.lrSendLabel}</button>
+          {v.lrApproveShow ? <button onClick={v.lrApprove} disabled={v.lrApproveBusy} aria-busy={v.lrApproveBusy} style={v.lrApproved ? { ...btn, height: "40px", padding: "0 14px", fontSize: "14px" } : { ...primary, height: "40px", padding: "0 16px", fontSize: "14px" }} className={v.lrApproved ? "dce60d758" : "dc9482609"}>{v.lrApproveLabel}</button> : null}
+          <button onClick={v.lrSend} disabled={v.lrSaving} style={v.lrApproveShow && !v.lrApproved ? { ...btn, height: "40px", padding: "0 14px", fontSize: "14px" } : { ...primary, height: "40px", padding: "0 16px", fontSize: "14px" }} className={v.lrApproveShow && !v.lrApproved ? "dce60d758" : "dc9482609"}>{v.lrSendLabel}</button>
         </>)}
         header={(<>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", fontSize: "14px", color: "#5a6474" }}>
