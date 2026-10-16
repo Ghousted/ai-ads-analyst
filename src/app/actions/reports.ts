@@ -26,7 +26,7 @@ export async function generateReportAction(input: { clientId: string; days: numb
   const [client] = await db.select().from(schema.clients).where(and(eq(schema.clients.id, p.data.clientId), eq(schema.clients.agencyId, agency.id)));
   if (!client) return { error: 'That client no longer exists.' };
   const facts = await buildFacts(client.id, p.data.days);
-  if (!facts) return { error: client.name + ' has no Google Analytics numbers yet. Link their property in Integrations first.' };
+  if (!facts) return { error: client.name + ' has no Google Analytics or Meta numbers yet. Link their property or ad account in Integrations first.' };
   // The agency's name for the report, or one from the period.
   const title = p.data.title || (p.data.days === 30 ? 'Monthly' : p.data.days === 14 ? 'Two-week' : 'Weekly') + ' report · ' + label(facts.start) + ' – ' + label(facts.end);
   const save = async (content: Content, model: string | null) => {
