@@ -81,7 +81,7 @@ export async function listProperties(accessToken: string): Promise<GA4Property[]
 
 // A property's reporting time zone and currency, set in GA4's property settings.
 export async function propertySettings(accessToken: string, propertyId: string): Promise<{ timeZone?: string; currencyCode?: string }> {
-  const res = await fetch('https://analyticsadmin.googleapis.com/v1beta/properties/' + propertyId, { headers: { authorization: 'Bearer ' + accessToken } });
+  const res = await fetch('https://analyticsadmin.googleapis.com/v1beta/properties/' + propertyId, { headers: { authorization: 'Bearer ' + accessToken }, signal: AbortSignal.timeout(15_000) });
   const json = await res.json();
   if (!res.ok) throw new GoogleError(json?.error?.message || 'Could not read the property settings', json?.error?.status);
   return json;
