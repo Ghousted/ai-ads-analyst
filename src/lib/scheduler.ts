@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, eq, gt, isNotNull, isNull, lte } from 'drizzle-orm';
+import { and, eq, gt, isNotNull, isNull, lt, lte, or } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { draftRecipients } from './alerts';
 import { emailConfigured, sendEmail } from './email';
@@ -13,6 +13,9 @@ import { nextSend, parseSchedule, periodDays, sendLabel } from './schedule';
 const AHEAD_MS = 24 * 3600_000;
 // An approved report that couldn't go out (sending down, daily limit) is retried for this long, then left as a draft.
 const RETRY_MS = 48 * 3600_000;
+// Longer than any cron run (300 seconds), so a run still sending never loses its claim.
+const CLAIM_MS = 10 * 60_000;
+const unclaimed = (now: Date) => or(isNull(schema.reports.sentAt), lt(schema.reports.sentAt, new Date(now.getTime() - CLAIM_MS)));
 const appUrl = () => (process.env.APP_URL || '').replace(/\/$/, '');
 
 // Who hears about new drafts: teammates with "Reports ready to review" on (the owner and admins by default).
@@ -56,15 +59,16 @@ export async function draftScheduled(deadline: number, now = new Date()) {
 }
 
 // Sends approved drafts whose time has come. Each is claimed first (sentAt set while it is still a draft) so two runs
-// can't both send it; a failed send releases it for the next run.
+// can't both send it; a failed send releases it for the next run. A claim older than CLAIM_MS means the run that made
+// it was killed before it finished, so the next run takes the report over instead of leaving it stuck.
 export async function sendApproved(deadline: number, now = new Date()) {
   const due = await db.select({ id: schema.reports.id, agencyId: schema.reports.agencyId }).from(schema.reports)
-    .where(and(eq(schema.reports.status, 'draft'), isNotNull(schema.reports.approvedAt), isNull(schema.reports.sentAt),
+    .where(and(eq(schema.reports.status, 'draft'), isNotNull(schema.reports.approvedAt), unclaimed(now),
       lte(schema.reports.scheduledFor, now), gt(schema.reports.scheduledFor, new Date(now.getTime() - RETRY_MS))));
   const out: { id: string; ok: boolean; error?: string }[] = [];
   for (const d of due) {
     if (Date.now() > deadline) break;
-    const [claimed] = await db.update(schema.reports).set({ sentAt: new Date() }).where(and(eq(schema.reports.id, d.id), isNull(schema.reports.sentAt), eq(schema.reports.status, 'draft'))).returning({ id: schema.reports.id });
+    const [claimed] = await db.update(schema.reports).set({ sentAt: new Date() }).where(and(eq(schema.reports.id, d.id), unclaimed(new Date()), eq(schema.reports.status, 'draft'))).returning({ id: schema.reports.id });
     if (!claimed) continue;
     const [agency] = await db.select().from(schema.agencies).where(eq(schema.agencies.id, d.agencyId));
     const r = await reportFor(d.agencyId, d.id);
