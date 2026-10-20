@@ -10,13 +10,29 @@ const addDays = (day: string, n: number) => { const d = new Date(day + 'T00:00:0
 
 export type Facts = Awaited<ReturnType<typeof buildFacts>>;
 
+// An account this many days behind the client's newest numbers is left out of the report rather than counted as zero.
+const MAX_LAG_DAYS = 2;
+
+// Which of the client's accounts a report counts, the ones it leaves out, and the day its period ends.
+type Acct = { name: string; tool: string; dataThrough: string | null; syncError: string | null };
+export function pickAccounts<A extends Acct>(linked: A[]) {
+  const newest = linked.map(a => a.dataThrough).filter((d): d is string => !!d).sort().pop();
+  if (!newest) return null;
+  const accts = linked.filter(a => a.dataThrough && a.dataThrough >= addDays(newest, -MAX_LAG_DAYS));
+  const leftOut = linked.filter(a => !accts.includes(a)).map(a => ({ name: a.name, platform: a.tool === 'meta' ? 'Meta' : 'Google Analytics', numbersThrough: a.dataThrough, problem: a.syncError }));
+  return { accts, leftOut, end: accts.map(a => a.dataThrough!).sort()[0] };
+}
+
 // The numbers a report is written from: this period and the one before, for the client's linked GA4 properties and
-// Meta ad accounts.
+// Meta ad accounts. The period ends on the last day every included account has numbers for, so a pull that is a day
+// behind never reads as a drop. Accounts further behind (or never pulled) are left out of both periods and listed in
+// leftOut, so the report can say their numbers aren't in yet.
 export async function buildFacts(clientId: string, periodDays: number) {
-  const accts = await db.select().from(schema.accounts).where(and(eq(schema.accounts.clientId, clientId), inArray(schema.accounts.tool, ['ga4', 'meta'])));
-  const through = accts.map(a => a.dataThrough).filter((d): d is string => !!d).sort().pop();
-  if (!through) return null;
-  const end = through, start = addDays(end, -periodDays + 1), prevEnd = addDays(start, -1), prevStart = addDays(prevEnd, -periodDays + 1);
+  const linked = await db.select().from(schema.accounts).where(and(eq(schema.accounts.clientId, clientId), inArray(schema.accounts.tool, ['ga4', 'meta'])));
+  const picked = pickAccounts(linked);
+  if (!picked) return null;
+  const { accts, leftOut, end } = picked;
+  const start = addDays(end, -periodDays + 1), prevEnd = addDays(start, -1), prevStart = addDays(prevEnd, -periodDays + 1);
   const rows = await db.select().from(schema.metricRows)
     .where(and(inArray(schema.metricRows.accountId, accts.map(a => a.id)), gte(schema.metricRows.day, prevStart), lte(schema.metricRows.day, end)));
   const metaIds = new Set(accts.filter(a => a.tool === 'meta').map(a => a.id));
@@ -37,7 +53,7 @@ export async function buildFacts(clientId: string, periodDays: number) {
   const mSpend = by(mCur, 'campaign', 'spend'), mClicks = by(mCur, 'campaign', 'clicks'), mLeads = by(mCur, 'campaign', 'leads'), mPrevSpend = by(mPrev, 'campaign', 'spend');
   const r2 = (v: number) => Math.round(v * 100) / 100;
   return {
-    periodDays, start, end, prevStart, prevEnd, properties: accts.filter(a => a.tool === 'ga4').map(a => a.name), adAccounts: accts.filter(a => a.tool === 'meta').map(a => a.name),
+    periodDays, start, end, prevStart, prevEnd, properties: accts.filter(a => a.tool === 'ga4').map(a => a.name), adAccounts: accts.filter(a => a.tool === 'meta').map(a => a.name), leftOut,
     totals: totals(cur, mCur), prev: totals(prev, mPrev), daily,
     channels: top('channel', 6), devices: top('device', 3), pages: top('page', 5),
     campaigns: Object.entries(camps).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, cost]) => ({ name, cost: Math.round(cost * 100) / 100, clicks: clicks[name] || 0 })),
@@ -71,6 +87,7 @@ Rules:
 - Compare this period with the previous period of the same length. Say whether things went up or down and by how much.
 - "leads" are the client's Google Analytics key events (the actions they chose to count, such as form submissions). If leads are 0 in both periods and the client has a Google Analytics property, say that leads are not being tracked yet and suggest setting up key events, instead of calling it a drop.
 - The meta* numbers and metaCampaigns are from the client's Meta (Facebook and Instagram) ads: spend, impressions, clicks and the leads Meta reports. Meta counts leads its ads only helped with, so never add Meta leads to Google Analytics leads. When both exist, cost per lead is Meta spend divided by Meta leads, and say it is Meta's count. When the client has no Google Analytics property, Meta leads are their leads.
+- leftOut lists accounts whose numbers weren't up to date, so none of their numbers are in the data. If it isn't empty, say in one short sentence which ones aren't included yet and that they'll be in the next report. Never treat their absence as a drop.
 - Leave out any platform with no numbers. When the client has no Google Analytics property (properties is empty), don't mention Google Analytics, website traffic or tracking set-up at all; report on Meta alone.
 - When you explain why something changed, present it as a likely reason the data supports, not a fact.
 - Write for the client, as the agency ("we"). Plain English, short sentences, no marketing jargon, no emojis. Headings in sentence case.
