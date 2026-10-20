@@ -19,7 +19,7 @@ const REPORTS: Report[] = [
 
 async function runReport(token: string, propertyId: string, r: Report, start: string, end: string): Promise<Row[]> {
   const res = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
-    method: 'POST', headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' },
+    method: 'POST', headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' }, signal: AbortSignal.timeout(30_000),
     body: JSON.stringify({
       dateRanges: [{ startDate: start, endDate: end }],
       dimensions: [{ name: 'date' }, ...(r.dimension ? [{ name: r.dimension }] : [])],

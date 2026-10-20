@@ -19,7 +19,9 @@ let client: Anthropic | null | undefined;
 export function getClaude(): Anthropic | null {
   if (client !== undefined) return client;
   const c = config();
-  client = !c ? null : c.authToken ? new Anthropic({ baseURL: c.baseURL, authToken: c.authToken, apiKey: null }) : new Anthropic();
+  // A stuck call gives up well inside a function's 300 seconds, so the run can still record what happened.
+  const limits = { timeout: 200_000, maxRetries: 1 };
+  client = !c ? null : c.authToken ? new Anthropic({ baseURL: c.baseURL, authToken: c.authToken, apiKey: null, ...limits }) : new Anthropic(limits);
   return client;
 }
 export const aiModel = () => process.env.AI_MODEL || config()?.model || 'claude-sonnet-5-5';

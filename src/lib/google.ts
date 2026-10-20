@@ -22,7 +22,7 @@ type TokenResponse = { access_token: string; expires_in: number; refresh_token?:
 
 async function tokenRequest(body: Record<string, string>): Promise<TokenResponse> {
   const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, signal: AbortSignal.timeout(15_000),
     body: new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET!, ...body }),
   });
   const json = (await res.json()) as TokenResponse;
@@ -70,7 +70,7 @@ export async function listProperties(accessToken: string): Promise<GA4Property[]
     const u = new URL('https://analyticsadmin.googleapis.com/v1beta/accountSummaries');
     u.searchParams.set('pageSize', '200');
     if (pageToken) u.searchParams.set('pageToken', pageToken);
-    const res = await fetch(u, { headers: { authorization: 'Bearer ' + accessToken } });
+    const res = await fetch(u, { headers: { authorization: 'Bearer ' + accessToken }, signal: AbortSignal.timeout(20_000) });
     const json = await res.json();
     if (!res.ok) throw new GoogleError(json?.error?.message || 'Could not list Google Analytics properties', json?.error?.status);
     for (const a of json.accountSummaries ?? []) for (const p of a.propertySummaries ?? []) out.push({ id: String(p.property).replace('properties/', ''), name: p.displayName, account: a.displayName });
@@ -80,5 +80,5 @@ export async function listProperties(accessToken: string): Promise<GA4Property[]
 }
 
 export async function revokeToken(token: string) {
-  await fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(token), { method: 'POST' }).catch(() => {});
+  await fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(token), { method: 'POST', signal: AbortSignal.timeout(10_000) }).catch(() => {});
 }

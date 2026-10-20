@@ -12,7 +12,7 @@ export async function sendEmail(o: { fromName: string; replyTo?: string; to: str
   const name = o.fromName.replace(/["<>\\]/g, '').trim().slice(0, 80) || 'AI Ads Analyst';
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+    headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(20_000),
     body: JSON.stringify({ from: `"${name}" <${address}>`, to: o.to, reply_to: o.replyTo, subject: o.subject, html: o.html, text: o.text, tags: o.tag ? [{ name: 'kind', value: o.tag }] : undefined,
       attachments: o.attachments?.map(a => ({ filename: a.filename, content: a.content.toString('base64') })) }),
   });

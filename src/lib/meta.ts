@@ -27,7 +27,7 @@ export async function graph<T>(path: string, token: string, params: Record<strin
     const p = proof(token);
     if (p) u.searchParams.set('appsecret_proof', p);
   }
-  const res = await fetch(u, { cache: 'no-store' });
+  const res = await fetch(u, { cache: 'no-store', signal: AbortSignal.timeout(30_000) });
   const json = await res.json().catch(() => null);
   if (!res.ok || json?.error) {
     const e = json?.error;
