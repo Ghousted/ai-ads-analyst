@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { and, eq, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
-import { requireAgency } from '@/lib/auth';
+import { canManage, requireAgency } from '@/lib/auth';
 import { emailConfigured } from '@/lib/email';
 import { aiErrorMessage, recordAiUsage, takeAiQuota } from '@/lib/ai';
 import { rewritePart } from '@/lib/report-writer';
@@ -58,9 +58,14 @@ export async function rewritePartAction(input: { id: string; kind: string; text:
   }
 }
 
+// Members can delete drafts. A sent report is the client's copy (its link stops working), so only the owner and
+// admins can delete one.
 export async function deleteReportAction(id: string) {
-  const { agency } = await requireAgency();
+  const { agency, role } = await requireAgency();
   if (!Id.safeParse(id).success) return { error: 'Unknown report.' };
+  const [r] = await db.select({ status: schema.reports.status }).from(schema.reports).where(and(eq(schema.reports.id, id), eq(schema.reports.agencyId, agency.id)));
+  if (!r) return { error: 'That report was already deleted.' };
+  if (r.status === 'sent' && !canManage(role)) return { error: 'Only the owner and admins can delete a report that was sent.' };
   await db.delete(schema.reports).where(and(eq(schema.reports.id, id), eq(schema.reports.agencyId, agency.id)));
   revalidatePath('/app');
   return { ok: true };

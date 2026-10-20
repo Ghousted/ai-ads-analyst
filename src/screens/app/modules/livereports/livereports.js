@@ -158,5 +158,7 @@ export function liveReportsVals(app, ctx) {
     lrDelete: () => app.confirm({ title: 'Delete this report?', body: '\u201c' + D.title + '\u201d for ' + client.name + ' is deleted for good. This can\u2019t be undone.', confirm: 'Delete report', busy: 'Deleting\u2026', tone: 'danger',
       onConfirm: () => deleteReportAction(r.id).then(x => { if (x.error) { toast(x.error); return false; } app.setState({ view: 'templates', lrDraft: null, lrPendingId: null }); refresh(); return true; }) }),
     lrDeleteLabel: 'Delete',
+    // A sent report is the client's copy: only the owner and admins can delete it.
+    lrCanDelete: r.status !== 'sent' || S.me?.role !== 'Member',
   };
 }

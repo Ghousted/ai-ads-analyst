@@ -85,7 +85,7 @@ export function LiveReportsView({ v }) {
         </>)}
         actions={(<>
           {v.lrToast ? <span role="status" style={{ fontSize: "14px", fontWeight: "600", color: "#1d6b3a", whiteSpace: "nowrap" }}>{v.lrToastText}</span> : null}
-          <button onClick={v.lrDelete} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", color: "#a3330c" }} className="dce60d758">{v.lrDeleteLabel}</button>
+          {v.lrCanDelete ? <button onClick={v.lrDelete} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", color: "#a3330c" }} className="dce60d758">{v.lrDeleteLabel}</button> : null}
           <button onClick={v.lrPdf} disabled={v.lrPdfBusy} aria-busy={v.lrPdfBusy} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", opacity: v.lrPdfBusy ? 0.6 : 1 }} className="dce60d758">{v.lrPdfLabel}</button>
           {v.lrDirty ? <button onClick={v.lrDiscard} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px" }} className="dce60d758">{"Discard edits"}</button> : null}
           <button onClick={v.lrSave} disabled={!v.lrDirty || v.lrSaving} style={{ ...btn, height: "40px", padding: "0 14px", fontSize: "14px", opacity: v.lrDirty ? 1 : 0.5, cursor: v.lrDirty ? "pointer" : "default" }} className="dce60d758">{v.lrSaving ? "Saving\u2026" : v.lrDirty ? "Save changes" : "Saved"}</button>

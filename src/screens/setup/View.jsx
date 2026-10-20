@@ -166,6 +166,19 @@ export default function View({ v }) {
                 ))}
               </ol>
               {" "}
+              {(v.inviteOn) ? (
+                <div role={"note"} style={{ display: "flex", flexDirection: "column", gap: "12px", padding: "16px 18px", borderRadius: "14px", background: "#eef3fd" }}>
+                  <p style={{ margin: "0", fontSize: "16px", textWrap: "pretty" }}>
+                    <strong style={{ fontWeight: "700" }}>{v.inviteText}</strong>{" To join them, confirm it’s your email by continuing with Google. Or set up your own agency below."}
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                    <button type={"button"} onClick={v.inviteJoin} disabled={v.inviteBusy} className={"dc9482609"} style={{ minHeight: "44px", padding: "0 18px", border: "0", borderRadius: "999px", background: "#1f6be2", color: "#ffffff", font: "inherit", fontWeight: "600", cursor: v.inviteBusy ? "default" : "pointer", opacity: v.inviteBusy ? "0.7" : "1" }}>
+                      {v.inviteBusy ? "Opening Google…" : "Continue with Google"}
+                    </button>
+                    {(v.inviteErr) ? <span role={"alert"} style={{ fontSize: "14px", fontWeight: "600", color: "#a3330c" }}>{v.inviteErr}</span> : null}
+                  </div>
+                </div>
+              ) : null}
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {" "}
                 <span style={{ fontSize: "14px", fontWeight: "600", color: "#1f6be2" }}>

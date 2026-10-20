@@ -71,8 +71,8 @@ export function clientsVals(app, ctx) {
             app.setState({ pfSaving: true });
             updateClientAction({ id: ex.id, name: all.name, industry: all.industry, tone: all.tone, contactName: all.contact, email: all.email, schedule: all.schedule }).then(r => { app.setState({ pfSaving: false }); if (r.error) return cgToast(r.error); app.setState({ pfDraft: null, pfErr: {} }); cgToast(all.name + '\u2019s details saved'); refresh(); }); },
           pfSaveLabel: S.pfSaving ? 'Saving\u2026' : 'Save details',
-          // Removing a live client deletes their reports, goals and flags. Their accounts stay connected.
-          pfCanRemove: !!live && !!ex,
+          // Removing a live client deletes their reports, goals and flags. Their accounts stay connected. Owner and admins only.
+          pfCanRemove: !!live && !!ex && S.me?.role !== 'Member',
           pfRemove: () => app.confirm({ title: 'Remove ' + c.name + '?', body: 'Their reports, goals and flags are deleted. Their accounts stay connected, so you can link them to another client. Their tasks stay on the board with no client.', confirm: 'Remove client', busy: 'Removing\u2026', tone: 'danger',
             onConfirm: () => deleteClientAction(ex.id).then(r => { if (r.error) { cgToast(r.error); return false; } app.setState({ pfPanel: false, pfDraft: null, pfErr: {}, sel: null, cid: 0 }); app._pfDirty = false; cgToast(c.name + ' was removed'); refresh(); return true; }) }),
           pfInts: INT.map(([k, name, logo]) => { const A = connList(S).some(x => x.tool === k), mine = toolAccts(S, k).filter(x => x.client === c.name);

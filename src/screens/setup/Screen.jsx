@@ -4,6 +4,7 @@ import React from 'react';
 import View, { css } from './View';
 import { createAgencyAction } from '@/app/actions/agency';
 import { connectMetaAction } from '@/app/actions/integrations';
+import { googleAction } from '@/app/actions/auth';
 
 const CONNECT_STEP = 5;
 const GOOGLE_RESULT = { cancelled: 'Google sign-in was cancelled. Nothing changed.', noscope: 'Google didn\u2019t share Analytics access. Connect again and tick the Google Analytics box.', expired: 'That sign-in took too long. Try again.', forbidden: 'Only the owner and admins can connect tools.', unconfigured: 'Google sign-in isn\u2019t set up on this server yet.', apidisabled: 'The Google Analytics Admin API is turned off in the Google Cloud project. Turn it on and connect again.', failed: 'Google didn\u2019t finish connecting. Try again.' };
@@ -107,7 +108,11 @@ class Logic extends React.Component {
     const phaseO = S.phase === 'in' ? 1 : 0;
     const phaseY = S.phase === 'in' ? 0 : S.phase === 'out' ? -16 * (S.dir || 1) : 16 * (S.dir || 1);
     const connectedNames = P.filter(p => S.conn[p[0]] === 'done').map(p => p[1]);
+    // Invited, but the email isn't verified yet: signing in with Google proves it and joins that agency.
+    const inv = this.props.invite;
     return {
+      inviteOn: !!inv && S.step === 0 && !done, inviteText: inv ? inv.agency + ' invited ' + inv.email + ' to their team.' : '', inviteBusy: !!S.inviteBusy, inviteErr: S.inviteErr || '',
+      inviteJoin: () => { this.setState({ inviteBusy: true, inviteErr: null }); googleAction().then(r => { if (r.url) window.location.href = r.url; else this.setState({ inviteBusy: false, inviteErr: r.error }); }, () => this.setState({ inviteBusy: false, inviteErr: 'Something went wrong. Try again.' })); },
       q, inQuestions: !done, isDone: done,
       counter: `${Math.min(S.step + 1, total)} of ${total}`,
       progress: (done ? 100 : (S.step / total) * 100) + '%',

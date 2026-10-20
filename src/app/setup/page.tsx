@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import SetupScreen from '@/screens/setup/Screen';
 import { db, schema } from '@/db';
-import { requireUser, getMembership } from '@/lib/auth';
+import { requireUser, getMembership, waitingInvite } from '@/lib/auth';
 import { listIntegrations } from '@/lib/integrations';
 
 export const metadata: Metadata = { title: 'Set up AI Ads Analyst' };
@@ -13,7 +13,8 @@ export const metadata: Metadata = { title: 'Set up AI Ads Analyst' };
 export default async function Page({ searchParams }: { searchParams: Promise<{ integration?: string; result?: string; found?: string; login?: string }> }) {
   const user = await requireUser();
   const q = await searchParams, m = await getMembership(user.id);
-  if (!m) return <SetupScreen />;
+  // Invited, but the email isn't verified yet: setup says how to join that agency instead.
+  if (!m) { const invitedBy = await waitingInvite(user); return <SetupScreen invite={invitedBy ? { agency: invitedBy, email: user.email } : undefined} />; }
   if (q.integration !== 'google') redirect('/app');
   const conns = await listIntegrations(m.agency.id);
   const [first] = await db.select({ name: schema.clients.name }).from(schema.clients).where(eq(schema.clients.agencyId, m.agency.id)).limit(1);

@@ -5,7 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@/db';
-import { requireAgency } from '@/lib/auth';
+import { canManage, requireAgency } from '@/lib/auth';
 import { connectEmail } from '@/lib/connect-email';
 import { emailConfigured, sendEmail } from '@/lib/email';
 import { joinSchedule, scheduleParts } from '@/lib/schedule';
@@ -43,7 +43,8 @@ export async function updateClientAction(input: { id: string; name: string; indu
 // Removes a client with their reports, goals and flags. Their accounts stay connected and become free to link again;
 // their tasks stay on the board with no client.
 export async function deleteClientAction(id: string) {
-  const { agency } = await requireAgency();
+  const { agency, role } = await requireAgency();
+  if (!canManage(role)) return { error: 'Only the owner and admins can remove clients.' };
   if (!z.string().uuid().safeParse(id).success) return { error: 'Unknown client.' };
   const gone = await db.delete(schema.clients).where(and(eq(schema.clients.id, id), eq(schema.clients.agencyId, agency.id))).returning({ id: schema.clients.id });
   if (!gone.length) return { error: 'That client was already removed.' };
