@@ -107,6 +107,10 @@ export const accounts = pgTable('accounts', {
   dataThrough: date('data_through'),
   syncError: text('sync_error'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
+  // The account's own currency (ISO code, e.g. EUR) and time zone (e.g. America/New_York), read from the platform on
+  // the first pull. Money is shown in the currency, and "yesterday" is the account's yesterday.
+  currency: text('currency'),
+  timeZone: text('time_zone'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [uniqueIndex('accounts_connection_external_idx').on(t.connectionId, t.externalId), index('accounts_client_idx').on(t.clientId)]);
 

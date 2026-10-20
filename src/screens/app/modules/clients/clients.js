@@ -1,5 +1,6 @@
 // Clients: list, add-client wizard and profile panel.
 import { createClientAction, deleteClientAction, sendConnectLinkAction, updateClientAction } from '@/app/actions/clients';
+import { money } from '@/lib/money';
 import { connList, toolAccts, acctKey, clSplit, TOOL_NAMES, TOOL_ORDER } from '../../data';
 import { clientGoalVals } from './clientGoals';
 import { fmtDay, pct } from '../../metrics';
@@ -8,7 +9,6 @@ import { DAYS, TIMES, TIME_ZONES, joinSchedule, scheduleParts } from '@/lib/sche
 const tzName = tz => ((TIME_ZONES.find(t => t[0] === tz) || [])[1] || tz || 'Eastern time (New York)').replace(/ \(.*\)$/, '');
 
 export const TONES = ['Friendly', 'Professional', 'Short and direct', 'Reassuring', 'Detailed'];
-const money = v => '$' + v.toFixed(2), cash = v => '$' + Math.round(v).toLocaleString('en-US');
 const up = d => d.startsWith('+') && d !== '+0%' ? '#1d6b3a' : d.startsWith('−') ? '#a3330c' : '#5a6474';
 
 // A live client's numbers: leads this week (from the same source as their flags), Meta cost per lead, ad spend this
@@ -16,12 +16,12 @@ const up = d => d.startsWith('+') && d !== '+0%' ? '#1d6b3a' : d.startsWith('−
 export function liveKpis(M, c) {
   const a = M && c.extra ? M.accountsFor(c.extra.id) : [];
   if (!a.length) return null;
-  const w = c.week, day = Number(M.through.slice(8));
+  const w = c.week, day = Number(M.through.slice(8)), cur = M.currencyFor(a), cash = v => money(v, cur), cpl = v => money(v, cur, true);
   const spend = M.sum(a, 'spend', day) + M.dimSum(a, 'campaign', 'adCost', day);
   const visits = M.sum(a, 'sessions', 7), before = M.sum(a, 'sessions', 7, 1);
   return [
     { label: 'Leads', value: String(c.leads), note: c.delta + ' vs last week', c: up(c.delta), short: c.leads + (c.leads === 1 ? ' lead' : ' leads') },
-    w && w.metaLeads > 0 ? { label: 'Cost per lead', value: money(w.spend / w.metaLeads), note: 'Meta, last 7 days', c: '#5a6474', short: money(w.spend / w.metaLeads) + ' per lead' }
+    w && w.metaLeads > 0 ? { label: 'Cost per lead', value: cpl(w.spend / w.metaLeads), note: 'Meta, last 7 days', c: '#5a6474', short: cpl(w.spend / w.metaLeads) + ' per lead' }
       : { label: 'Cost per lead', value: '—', note: 'No Meta leads this week', c: '#5a6474' },
     { label: 'Spend this month', value: cash(spend), note: spend ? 'Through ' + fmtDay(M.through) : 'No ad spend linked', c: '#5a6474', short: spend ? cash(spend) + ' spent this month' : '' },
     visits || before ? { label: 'Website visits', value: Math.round(visits).toLocaleString('en-US'), note: pct(visits, before) + ' vs last week', c: up(pct(visits, before)) }

@@ -1,6 +1,7 @@
 import 'server-only';
 import type { loadMetrics } from './metrics';
 import { addDays } from './metric-store';
+import { currencyOf, money } from './money';
 
 // Rule-based risk for each client, from their stored numbers, goals and report history. A client is flagged when one of
 // the signals below fires: "At risk" (r) for a severe signal or two at once, "Needs attention" (n) for one.
@@ -25,14 +26,14 @@ export type Risk = {
   goals: { type: string; target: number; now: number | null }[];
   lastReport: { day: string; status: string } | null;
   accounts: { tool: string; name: string; error: string | null }[];
+  // The client's currency (their ad account's), for money in signals and summaries.
+  currency: string;
 };
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const fmtDay = (d: string) => { const x = new Date(d + 'T00:00:00Z'); return MON[x.getUTCMonth()] + ' ' + x.getUTCDate(); };
 const pct = (a: number, b: number) => Math.round(((a - b) / b) * 100);
 const signed = (p: number) => (p > 0 ? '+' : p < 0 ? '−' : '') + Math.abs(p) + '%';
-const money = (v: number) => v.toFixed(2);
-const cash = (v: number) => '$' + Math.round(v).toLocaleString('en-US');
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
 
 // Weeks of 7 days ending at `through`, oldest first.
@@ -50,6 +51,7 @@ export function scoreClients(metrics: Metrics, clients: Client[], reports: Repor
     const idx = metrics.accounts.map((a, i) => (a.clientId === c.id ? i : -1)).filter(i => i >= 0);
     const accts = idx.map(i => metrics.accounts[i]);
     const through = accts.map(a => a.through).filter((d): d is string => !!d).sort().pop() ?? null;
+    const currency = currencyOf(accts), fm = (v: number, cents = false) => money(v, currency, cents);
     const sum = (tool: string, metric: string, from: string, to: string) => idx.filter(i => metrics.accounts[i].tool === tool)
       .reduce((t, i) => { for (const [d, v] of Object.entries((total[i] || {})[metric] || {})) if (d >= from && d <= to) t += v; return t; }, 0);
     const weeks = !through ? [] : Array.from({ length: WEEKS }, (_, k) => {
@@ -88,7 +90,7 @@ export function scoreClients(metrics: Metrics, clients: Client[], reports: Repor
         cpl = { now: s1 / l1, before: s0 / l0 };
         const p = pct(cpl.now, cpl.before);
         if (p >= 20) signals.push({ key: 'cpl-up', label: 'Cost per lead rising', detail: signed(p) + ' in 2 weeks',
-          say: 'Each Meta lead costs ' + p + '% more than in the two weeks before (' + money(cpl.now) + ' against ' + money(cpl.before) + ').', act: 'refresh the Meta ads that cost the most per lead' });
+          say: 'Each Meta lead costs ' + p + '% more than in the two weeks before (' + fm(cpl.now, true) + ' against ' + fm(cpl.before, true) + ').', act: 'refresh the Meta ads that cost the most per lead' });
       }
     }
 
@@ -106,8 +108,8 @@ export function scoreClients(metrics: Metrics, clients: Client[], reports: Repor
         say: 'They got ' + now.leads + ' leads this week, short of their goal of ' + Math.round(tLeads) + ' a week.', act: 'find which channel is short of leads and fix it this week' });
     // A few leads make cost per lead swing too much to judge.
     if (tCpl != null && now.cpl != null && wk!.metaLeads >= 3 && now.cpl > tCpl)
-      signals.push({ key: 'goal-cpl', label: 'Cost per lead over goal', detail: '$' + money(now.cpl) + ' against $' + money(tCpl), severe: now.cpl >= tCpl * 1.5,
-        say: 'Each Meta lead cost $' + money(now.cpl) + ' this week, over their goal of $' + money(tCpl) + '.', act: 'pause or refresh the Meta ads that cost the most per lead' });
+      signals.push({ key: 'goal-cpl', label: 'Cost per lead over goal', detail: fm(now.cpl, true) + ' against ' + fm(tCpl, true), severe: now.cpl >= tCpl * 1.5,
+        say: 'Each Meta lead cost ' + fm(now.cpl, true) + ' this week, over their goal of ' + fm(tCpl, true) + '.', act: 'pause or refresh the Meta ads that cost the most per lead' });
     if (tConv != null && now.conv != null && wkRaw!.sessions >= 100 && now.conv < tConv)
       signals.push({ key: 'goal-conv', label: 'Conversion rate below goal', detail: now.conv.toFixed(1) + '% against ' + tConv.toFixed(1) + '%',
         say: 'Their conversion rate was ' + now.conv.toFixed(1) + '% this week, under their goal of ' + tConv.toFixed(1) + '%.', act: 'check the forms and landing pages that get the most visits' });
@@ -126,15 +128,15 @@ export function scoreClients(metrics: Metrics, clients: Client[], reports: Repor
       spentThisMonth = spent;
       const left = dim - td, forecast = spent / td * dim;
       if (spent >= budget && left > 0)
-        signals.push({ key: 'budget-out', label: 'Budget used up', detail: cash(spent) + ' of ' + cash(budget), severe: true,
-          say: 'They’ve spent ' + cash(spent) + ' of their ' + cash(budget) + ' monthly budget with ' + left + ' days of the month to go.', act: 'agree with the client whether to pause ads or add budget' });
+        signals.push({ key: 'budget-out', label: 'Budget used up', detail: fm(spent) + ' of ' + fm(budget), severe: true,
+          say: 'They’ve spent ' + fm(spent) + ' of their ' + fm(budget) + ' monthly budget with ' + left + ' days of the month to go.', act: 'agree with the client whether to pause ads or add budget' });
       // Pacing waits for the 5th: the first few days of a month say little about where it will land.
       else if (spent > 0 && td >= 5 && spent / budget > pace + 0.1)
-        signals.push({ key: 'budget-fast', label: 'Spending fast', detail: 'On course for ' + cash(forecast),
-          say: 'Spend is on course for ' + cash(forecast) + ' this month, over their ' + cash(budget) + ' budget.', act: 'lower daily budgets so the month lands on ' + cash(budget) });
+        signals.push({ key: 'budget-fast', label: 'Spending fast', detail: 'On course for ' + fm(forecast),
+          say: 'Spend is on course for ' + fm(forecast) + ' this month, over their ' + fm(budget) + ' budget.', act: 'lower daily budgets so the month lands on ' + fm(budget) });
       else if (spent > 0 && td >= 5 && spent / budget < pace - 0.15)
-        signals.push({ key: 'budget-slow', label: 'Spending slow', detail: 'On course for ' + cash(forecast),
-          say: 'Spend is on course for ' + cash(forecast) + ' this month, well under their ' + cash(budget) + ' budget.', act: 'check the campaigns are running and raise daily budgets if needed' });
+        signals.push({ key: 'budget-slow', label: 'Spending slow', detail: 'On course for ' + fm(forecast),
+          say: 'Spend is on course for ' + fm(forecast) + ' this month, well under their ' + fm(budget) + ' budget.', act: 'check the campaigns are running and raise daily budgets if needed' });
     }
     const goalList = (['leads', 'cpl', 'conv', 'budget'] as const).flatMap(t => { const v = target(t); return v == null ? [] : [{ type: t, target: v, now: t === 'budget' ? spentThisMonth : now[t] }]; });
 
@@ -156,7 +158,7 @@ export function scoreClients(metrics: Metrics, clients: Client[], reports: Repor
     signals.sort((a, b) => +/sync-error|stale/.test(b.key) - +/sync-error|stale/.test(a.key));
     const level = signals.some(s => s.severe) || signals.length >= 2 ? 'r' : signals.length ? 'n' : 'h';
     const keys = signals.map(s => s.key).sort().join(',');
-    out[c.id] = { level, signals, keys, signature: (through || '') + ':' + keys, through, leadSource, weeks: W, cpl, goals: goalList, lastReport, accounts: accts.map(a => ({ tool: a.tool, name: a.name, error: a.error })) };
+    out[c.id] = { level, signals, keys, signature: (through || '') + ':' + keys, through, leadSource, weeks: W, cpl, goals: goalList, lastReport, accounts: accts.map(a => ({ tool: a.tool, name: a.name, error: a.error })), currency };
   }
   return out;
 }

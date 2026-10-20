@@ -6,12 +6,12 @@ import { loadMetrics } from './metrics';
 import { noticeEmail, type NoticeItem } from './notice-email';
 import { kindOf, prefsFor, type Prefs } from './prefs';
 import { scoreClients, type Risk } from './risk';
+import { money } from './money';
 
 // Email alerts and the Monday summary, run every hour after the sync. An alert goes out once, to each teammate who
 // chose that kind by email, and again only after its cause has cleared and come back. Alerts wait for daytime
 // (7am–8pm in the agency's time zone); the summary goes out on Monday morning.
 const appUrl = () => (process.env.APP_URL || '').replace(/\/$/, '');
-const cash = (v: number) => '$' + Math.round(v).toLocaleString('en-US');
 const pct = (a: number, b: number) => { if (!b) return a ? '+100%' : '0%'; const p = Math.round((a - b) / b * 100); return (p > 0 ? '+' : p < 0 ? '−' : '') + Math.abs(p) + '%'; };
 const LEVEL: Record<string, [string, string]> = { h: ['Healthy', '#1d6b3a'], n: ['Needs attention', '#7a5a00'], r: ['At risk', '#a3330c'] };
 
@@ -114,8 +114,8 @@ function summaryItem(c: { name: string }, r: Risk | undefined, reportsSent: numb
   if (!r || !r.through) return { title: c.name, detail: 'No numbers yet. Link their Google Analytics property or Meta ad account.', note: 'No data', noteColor: '#5a6474' };
   const w = r.weeks, now = w.at(-1), before = w.at(-2);
   const bits = [now ? now.leads + (now.leads === 1 ? ' lead' : ' leads') + (before ? ' (' + pct(now.leads, before.leads) + ' vs the week before)' : '') : null,
-    now && now.metaLeads > 0 ? '$' + (now.spend / now.metaLeads).toFixed(2) + ' per Meta lead' : null,
-    now && now.spend ? cash(now.spend) + ' Meta spend' : null,
+    now && now.metaLeads > 0 ? money(now.spend / now.metaLeads, r.currency, true) + ' per Meta lead' : null,
+    now && now.spend ? money(now.spend, r.currency) + ' Meta spend' : null,
     reportsSent ? reportsSent + (reportsSent === 1 ? ' report sent' : ' reports sent') : 'No report sent'].filter(Boolean);
   const [label, color] = LEVEL[r.level];
   return { title: c.name, detail: bits.join(' · '), note: label + (r.signals[0] ? ': ' + r.signals[0].label.toLowerCase() : ''), noteColor: color };

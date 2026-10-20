@@ -1,4 +1,5 @@
 import { saveGoalAction } from '@/app/actions/goals';
+import { currencyOf, money as fmtMoney, symbolOf } from '@/lib/money';
 
 // Budget and goals for one client, shown and edited in their profile. Goals are { id, c (client index), t (type), v }.
 // Live agencies' goals are saved in the database; sample agencies keep theirs in the page.
@@ -6,7 +7,6 @@ import { saveGoalAction } from '@/app/actions/goals';
 // stored, a live client shows no spend (sample agencies use sample spend).
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const money = v => '$' + (v >= 100 ? Math.round(v).toLocaleString() : v.toFixed(2));
 const daysIn = (y, m) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
 const key = (y, m, d) => y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
 
@@ -37,6 +37,9 @@ function spendFor(live, C, i, today) {
 
 export function clientGoalVals(app, { S, live, C }, i, toast) {
   const goals = goalsOf(S, live, C), c = C[i];
+  // Money in the client's currency (their ad account's); sample clients are in dollars. Cents under 100.
+  const currency = live && live.metrics && c.extra ? currencyOf(live.metrics.accounts.filter(a => a.clientId === c.extra.id)) : 'USD';
+  const money = v => fmtMoney(v, currency, v < 100), sym = symbolOf(currency);
   const setGoals = fn => app.setState(s => ({ goals: fn(goalsOf(s, live, C).slice()) }));
   // Live: save the change. If it fails, say so and go back to what is saved.
   const persist = (type, target, replaces) => { if (!live || !c.extra) return;
@@ -48,7 +51,7 @@ export function clientGoalVals(app, { S, live, C }, i, toast) {
   const cur = live ? { cpl: wk && wk.metaLeads > 0 ? wk.spend / wk.metaLeads : null, leads: wk ? c.leads : null, conv: wk && wk.source === 'ga4' && wk.sessions > 0 ? wk.leads / wk.sessions * 100 : null }
     : { cpl: SAMPLE.cpl[i] ?? null, leads: c.leads, conv: SAMPLE.conv[i] ?? null };
   const GT = {
-    cpl: { label: 'Cost per lead', op: 'under', pre: '$', suf: '', ph: '10.00', cur: cur.cpl, fmt: money, help: 'Analyst alerts you when it goes above this.' },
+    cpl: { label: 'Cost per lead', op: 'under', pre: sym, suf: '', ph: '10.00', cur: cur.cpl, fmt: money, help: 'Analyst alerts you when it goes above this.' },
     leads: { label: 'Leads per week', op: 'over', pre: '', suf: 'leads', ph: '50', cur: cur.leads, fmt: v => Math.round(v) + ' leads', help: 'Analyst alerts you when it drops below this.' },
     conv: { label: 'Conversion rate', op: 'over', pre: '', suf: '%', ph: '3.0', cur: cur.conv, fmt: v => v.toFixed(1) + '%', help: 'Analyst alerts you when it drops below this.' },
   };
@@ -83,7 +86,7 @@ export function clientGoalVals(app, { S, live, C }, i, toast) {
   return {
     // Unsaved edits in this section, so closing the profile can ask first.
     cgDirty: (BD != null && BD !== (b != null ? String(b) : '')) || (!!F && !!F.target && (!editing || F.target !== String(editing.v) || F.type !== editing.t)),
-    cgHasBudget: b != null, cgShowBar: b != null && !sp.none, cgBudget: b != null ? money(b) + ' a month' : 'No budget yet',
+    cgSym: sym, cgHasBudget: b != null, cgShowBar: b != null && !sp.none, cgBudget: b != null ? money(b) + ' a month' : 'No budget yet',
     cgBudgetNote: sp.none ? 'No ad spend for ' + c.name + ' yet. Pacing shows once Meta or Google Ads spend arrives for them.' : b != null ? money(spent) + ' spent by ' + MON[tm - 1] + ' ' + td + ', on course for ' + money(fc) + '.' : money(spent) + ' spent by ' + MON[tm - 1] + ' ' + td + '. Set a budget and Analyst tells you when spending drifts.',
     cgBudgetStatus: { good: 'On pace', bad: 'Spending fast', warn: 'Spending slow', none: '' }[bst], cgBPBg: tone[bst][1], cgBPC: tone[bst][2], cgBCol: tone[bst][0],
     cgBW: b && !sp.none ? Math.min(100, Math.round(spent / b * 100)) + '%' : '0%', cgBMk: (pace * 100).toFixed(1) + '%',

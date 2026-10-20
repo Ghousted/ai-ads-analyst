@@ -2,7 +2,7 @@ import 'server-only';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
 import { decrypt } from './crypto';
-import { graphAll, isRateLimit, isTokenError, MetaError } from './meta';
+import { graph, graphAll, isRateLimit, isTokenError, MetaError } from './meta';
 import { addDays, daysAgo, saveSyncError, storeRows, type Row } from './metric-store';
 
 type Account = typeof schema.accounts.$inferSelect;
@@ -64,11 +64,19 @@ export async function syncMetaAccount(acct: Account) {
   if (acct.tool !== 'meta') return;
   const [conn] = await db.select().from(schema.connections).where(eq(schema.connections.id, acct.connectionId));
   if (!conn) return;
-  const end = daysAgo(1);
-  const start = acct.dataThrough ? addDays(acct.dataThrough < end ? acct.dataThrough : end, -2) : daysAgo(90);
   try {
     if (!conn.accessToken) throw new MetaError('No token', 190);
     const token = decrypt(conn.accessToken);
+    // The ad account's currency and time zone, read once. Without them the pull still runs, in UTC and dollars.
+    if (!acct.currency || !acct.timeZone) {
+      const a = await graph<{ currency?: string; timezone_name?: string }>('/act_' + acct.externalId, token, { fields: 'currency,timezone_name' }).catch(() => null);
+      if (a?.currency || a?.timezone_name) {
+        acct = { ...acct, currency: a.currency || acct.currency, timeZone: a.timezone_name || acct.timeZone };
+        await db.update(schema.accounts).set({ currency: acct.currency, timeZone: acct.timeZone }).where(eq(schema.accounts.id, acct.id));
+      }
+    }
+    const end = daysAgo(1, acct.timeZone);
+    const start = acct.dataThrough ? addDays(acct.dataThrough < end ? acct.dataThrough : end, -2) : daysAgo(90, acct.timeZone);
     const rows: Row[] = [];
     for (const r of REPORTS) rows.push(...(await runReport(token, acct.externalId, r, start, end)));
     await storeRows(acct.id, rows, start, end, REPORTS.map(r => r.dim));

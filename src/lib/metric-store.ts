@@ -6,7 +6,12 @@ import { db, schema } from '@/db';
 export type Row = { dim: string; dimValue: string; day: string; metric: string; value: number };
 
 export const iso = (d: Date) => d.toISOString().slice(0, 10);
-export const daysAgo = (n: number) => { const d = new Date(); d.setUTCDate(d.getUTCDate() - n); return iso(d); };
+// n days before today, where today is the date in the given time zone (an account's), or in UTC without one.
+export const daysAgo = (n: number, timeZone?: string | null) => {
+  let today = iso(new Date());
+  if (timeZone) try { today = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); } catch {}
+  return addDays(today, -n);
+};
 export const addDays = (day: string, n: number) => { const d = new Date(day + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
 
 // Replaces an account's rows for [start, end], but only the breakdowns that came back: a breakdown that failed keeps

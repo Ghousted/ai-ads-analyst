@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { db, schema } from '@/db';
 import { aiModel, getClaude } from './ai';
+import { currencyOf } from './money';
 
 
 const addDays = (day: string, n: number) => { const d = new Date(day + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
@@ -37,7 +38,7 @@ export async function buildFacts(clientId: string, periodDays: number) {
   const mSpend = by(mCur, 'campaign', 'spend'), mClicks = by(mCur, 'campaign', 'clicks'), mLeads = by(mCur, 'campaign', 'leads'), mPrevSpend = by(mPrev, 'campaign', 'spend');
   const r2 = (v: number) => Math.round(v * 100) / 100;
   return {
-    periodDays, start, end, prevStart, prevEnd, properties: accts.filter(a => a.tool === 'ga4').map(a => a.name), adAccounts: accts.filter(a => a.tool === 'meta').map(a => a.name),
+    periodDays, start, end, prevStart, prevEnd, currency: currencyOf(accts), properties: accts.filter(a => a.tool === 'ga4').map(a => a.name), adAccounts: accts.filter(a => a.tool === 'meta').map(a => a.name),
     totals: totals(cur, mCur), prev: totals(prev, mPrev), daily,
     channels: top('channel', 6), devices: top('device', 3), pages: top('page', 5),
     campaigns: Object.entries(camps).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, cost]) => ({ name, cost: Math.round(cost * 100) / 100, clicks: clicks[name] || 0 })),
@@ -71,6 +72,7 @@ Rules:
 - Compare this period with the previous period of the same length. Say whether things went up or down and by how much.
 - "leads" are the client's Google Analytics key events (the actions they chose to count, such as form submissions). If leads are 0 in both periods and the client has a Google Analytics property, say that leads are not being tracked yet and suggest setting up key events, instead of calling it a drop.
 - The meta* numbers and metaCampaigns are from the client's Meta (Facebook and Instagram) ads: spend, impressions, clicks and the leads Meta reports. Meta counts leads its ads only helped with, so never add Meta leads to Google Analytics leads. When both exist, cost per lead is Meta spend divided by Meta leads, and say it is Meta's count. When the client has no Google Analytics property, Meta leads are their leads.
+- Money (spend, cost, cost per lead) is in the currency given by currency, an ISO code. Write amounts with that currency's usual symbol or code, never a dollar sign unless it is USD.
 - Leave out any platform with no numbers. When the client has no Google Analytics property (properties is empty), don't mention Google Analytics, website traffic or tracking set-up at all; report on Meta alone.
 - When you explain why something changed, present it as a likely reason the data supports, not a fact.
 - Write for the client, as the agency ("we"). Plain English, short sentences, no marketing jargon, no emojis. Headings in sentence case.

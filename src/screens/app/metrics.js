@@ -1,6 +1,8 @@
 // Turns the stored daily rows (from the server) into the numbers the dashboard and client list show.
 // rows: [account index, day 'YYYY-MM-DD', dim, dim value, metric, value]. Days with no row count as zero.
 
+import { currencyOf } from '@/lib/money';
+
 const addDays = (day, n) => { const d = new Date(day + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const fmtDay = day => { const d = new Date(day + 'T00:00:00Z'); return MON[d.getUTCMonth()] + ' ' + d.getUTCDate(); };
@@ -35,6 +37,8 @@ export function makeMetrics(m) {
     },
     dayLabels: n => days(n).map(fmtDay),
     accountsFor: idxFor,
+    // The currency of the given accounts (by index), for showing their money.
+    currencyFor: accts => currencyOf(accts.map(i => m.accounts[i])),
   };
 }
 

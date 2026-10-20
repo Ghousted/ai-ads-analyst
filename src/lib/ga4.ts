@@ -1,7 +1,7 @@
 import 'server-only';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@/db';
-import { accessTokenFor, GoogleError } from './google';
+import { accessTokenFor, GoogleError, propertySettings } from './google';
 import { addDays, daysAgo, saveSyncError, storeRows, type Row } from './metric-store';
 
 type Account = typeof schema.accounts.$inferSelect;
@@ -46,15 +46,24 @@ async function runReport(token: string, propertyId: string, r: Report, start: st
 }
 
 // Pulls a GA4 property's numbers into metric_rows. First pull: the last 90 days. After that: the last 4 days, because
-// GA4 keeps processing recent days for up to 48 hours. Today is left out until it's over.
+// GA4 keeps processing recent days for up to 48 hours. Today (in the property's time zone) is left out until it's over.
 export async function syncGa4Account(acct: Account) {
   if (acct.tool !== 'ga4') return;
   const [conn] = await db.select().from(schema.connections).where(eq(schema.connections.id, acct.connectionId));
   if (!conn) return;
-  const end = daysAgo(1);
-  const start = acct.dataThrough ? addDays(acct.dataThrough, -3) : daysAgo(90);
+  let end = daysAgo(1, acct.timeZone);
   try {
     const token = await accessTokenFor(conn);
+    // The property's time zone and currency, read once. Without them the pull still runs, in UTC and dollars.
+    if (!acct.currency || !acct.timeZone) {
+      const p = await propertySettings(token, acct.externalId).catch(() => null);
+      if (p?.timeZone || p?.currencyCode) {
+        acct = { ...acct, timeZone: p.timeZone || acct.timeZone, currency: p.currencyCode || acct.currency };
+        await db.update(schema.accounts).set({ timeZone: acct.timeZone, currency: acct.currency }).where(eq(schema.accounts.id, acct.id));
+        end = daysAgo(1, acct.timeZone);
+      }
+    }
+    const start = acct.dataThrough ? addDays(acct.dataThrough, -3) : daysAgo(90, acct.timeZone);
     const rows: Row[] = [], fetched: string[] = [];
     for (const r of REPORTS) {
       try { rows.push(...(await runReport(token, acct.externalId, r, start, end))); fetched.push(r.dim); }

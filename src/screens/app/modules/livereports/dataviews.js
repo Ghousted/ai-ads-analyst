@@ -1,18 +1,21 @@
 // What a chart or table in a report shows, from the report's saved numbers (facts).
 import { fmtDay, fmtNum, pct } from '../../metrics';
+import { money as fmtMoney } from '@/lib/money';
 
 const rate = (a, b) => (b ? (a / b) * 100 : 0);
 const ptsChange = (a, b) => { const d = Math.round((a - b) * 10) / 10; return (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d) + ' pts'; };
 export const tint = note => (String(note).startsWith('+') ? '#1d6b3a' : String(note).startsWith('−') ? '#a3330c' : '#5a6474');
 // Costs read the other way round: falling is good. Spend is neither.
 const tintFor = (label, note) => (/^cost/i.test(label) ? tint(String(note).replace(/^[+−]/, m => (m === '+' ? '−' : '+'))) : /spend/i.test(label) ? '#5a6474' : tint(note));
-const money = (v, cents) => '$' + (cents && v < 100 ? v.toFixed(2) : Math.round(v).toLocaleString());
+// Money in the report's currency (saved with its numbers; reports from before that are in dollars). Cents under 100.
+const moneyIn = f => (v, cents) => fmtMoney(v, f.currency, cents && v < 100);
 // Whether the report has GA4 numbers, and Meta numbers. Reports saved before Meta have no meta* fields.
 const hasGa4 = f => !f.properties || f.properties.length > 0;
 const hasMeta = f => !!(f.totals.metaSpend || f.prev.metaSpend);
 const METRIC = { sessions: ['Sessions per day', 'sessions'], leads: ['Leads per day', 'leads'], engaged: ['Engaged sessions per day', 'engaged'], pageViews: ['Page views per day', 'pageViews'] };
 
 export function kpis(f) {
+  const money = moneyIn(f);
   const t = f.totals, p = f.prev, n = f.periodDays, ga4 = hasGa4(f), meta = hasMeta(f);
   const cpl = x => (x.metaLeads ? x.metaSpend / x.metaLeads : 0);
   // With GA4, leads are the site's; Meta's own lead count sits beside it, labelled. Without GA4, Meta's leads are the leads.
@@ -47,9 +50,10 @@ export function breakdown(f, a, color) {
 }
 
 export function table(f, a) {
+  const money = moneyIn(f);
   if (a.source === 'pages') return { caption: 'Top landing pages', cols: ['Page', 'Sessions', 'Leads'], rows: f.pages.map(x => [x.name, fmtNum(x.sessions), fmtNum(x.leads)]) };
   if (a.source === 'metaCampaigns') return { caption: 'Meta campaigns', cols: ['Campaign', 'Spend', 'Clicks', 'Leads', 'Cost per lead'], rows: (f.metaCampaigns || []).map(x => [x.name, money(x.spend), fmtNum(x.clicks), fmtNum(x.leads), x.leads ? money(x.spend / x.leads, true) : '–']) };
-  if (a.source === 'campaigns') return { caption: 'Google Ads campaigns', cols: ['Campaign', 'Cost', 'Clicks'], rows: (f.campaigns || []).map(x => [x.name, '$' + Math.round(x.cost).toLocaleString(), fmtNum(x.clicks)]) };
+  if (a.source === 'campaigns') return { caption: 'Google Ads campaigns', cols: ['Campaign', 'Cost', 'Clicks'], rows: (f.campaigns || []).map(x => [x.name, money(x.cost), fmtNum(x.clicks)]) };
   return { caption: 'Where visitors came from', cols: ['Channel', 'Sessions', 'Change', 'Leads'], rows: f.channels.map(x => [x.name, fmtNum(x.sessions), pct(x.sessions, x.prevSessions), fmtNum(x.leads)]), changeCol: 2 };
 }
 

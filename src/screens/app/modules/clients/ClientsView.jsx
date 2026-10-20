@@ -632,7 +632,7 @@ export function ClientsView({ v }) {
                   <form onSubmit={v.cgSaveBudget} noValidate={true} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                       <span style={{ display: "flex", alignItems: "center", gap: "6px", width: "200px", height: "44px", padding: "0 12px", border: "1px solid " + (v.cgBudgetErr ? "#e0481a" : "#d3dbe6"), background: "#ffffff" }}>
-                        <span style={{ color: "#5a6474", fontWeight: "600" }}>{"$"}</span>
+                        <span style={{ color: "#5a6474", fontWeight: "600" }}>{v.cgSym}</span>
                         <input aria-label={"Monthly ad budget"} autoFocus={true} value={v.cgBudgetDraft} onChange={v.cgSetBudget} inputMode={"decimal"} placeholder={"No budget"} style={{ flex: "1", minWidth: "0", height: "40px", border: "0", outline: "none", font: "inherit", letterSpacing: "inherit", fontVariantNumeric: "tabular-nums" }} />
                         <span style={{ color: "#5a6474", fontSize: "14px" }}>{"a month"}</span>
                       </span>

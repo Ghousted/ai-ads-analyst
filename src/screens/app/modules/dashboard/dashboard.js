@@ -1,6 +1,7 @@
 // Dashboard analytics.
 import { LOGOS, connList } from '../../data';
 import { makeMetrics, pct, fmtNum, fmtDay } from '../../metrics';
+import { money as fmtMoney } from '@/lib/money';
 
 const L = LOGOS;
 const tb = (cols, rows) => ({ type: 'table', cols, rows });
@@ -141,7 +142,7 @@ export function dashboardVals(app, ctx) {
         const rng = S.range || '14 days';
         // Hover: the day under the pointer, with this period's and the previous period's value.
         const prevAt = k => A.series ? (k >= rngDays ? pts[k - rngDays] : null) : pts[k] * 0.88 + (k % 3) * 2;
-        const label = A.m[mi][0], fmtV = v => v == null ? 'No data' : /rate/i.test(label) ? v.toFixed(1) + '%' : /spend|cost/i.test(label) ? '$' + Math.round(v).toLocaleString() : Math.round(v).toLocaleString();
+        const label = A.m[mi][0], fmtV = v => v == null ? 'No data' : /rate/i.test(label) ? v.toFixed(1) + '%' : /spend|cost/i.test(label) ? moneyIn(LV ? LV.M.currencyFor(LV.accts) : 'USD')(v) : Math.round(v).toLocaleString();
         const dayOf = k => { const dt = new Date(end); dt.setDate(end.getDate() - (n - 1 - k)); return MON[dt.getMonth()] + ' ' + dt.getDate(); };
         const hideCur = !!S.anHideCur, hidePrev = !!S.anHidePrev, hk = S.anHover;
         const hover = hk != null && hk >= 0 && hk < n ? { x: (hk / (n - 1) * 100).toFixed(3) + '%', flip: hk > n - 8, date: dayOf(hk), cur: fmtV(pts[hk]), prev: fmtV(prevAt(hk)),
@@ -161,11 +162,12 @@ export function dashboardVals(app, ctx) {
   };
 }
 
-const money = (v, cents) => '$' + (cents && v < 100 ? v.toFixed(2) : Math.round(v).toLocaleString());
+// Money in the accounts' own currency (sample data is in dollars). Cents only under 100.
+const moneyIn = cur => (v, cents) => fmtMoney(v, cur, cents && v < 100);
 
 // The Meta view, from stored Meta numbers. Leads are the ones Meta reports for its own ads.
 function metaView(LV, S, rng) {
-  const { M, accts } = LV;
+  const { M, accts } = LV, money = moneyIn(M.currencyFor(accts));
   const sum = (m, back = 0) => M.sum(accts, m, rng, back);
   const s = { spend: sum('spend'), imp: sum('impressions'), clicks: sum('clicks'), leads: sum('leads') };
   const p = { spend: sum('spend', 1), imp: sum('impressions', 1), clicks: sum('clicks', 1), leads: sum('leads', 1) };
@@ -201,7 +203,7 @@ function metaView(LV, S, rng) {
 
 // A dashboard view (same shape as the sample AN entries) built from stored GA4 numbers for the chosen clients and range.
 function liveView(LV, S, rng) {
-  const { M, accts } = LV, all = LV.key === 'an-all';
+  const { M, accts } = LV, all = LV.key === 'an-all', money = moneyIn(M.currencyFor(accts));
   const sum = (m, back = 0) => M.sum(accts, m, rng, back);
   const s = { sessions: sum('sessions'), engaged: sum('engagedSessions'), leads: sum('keyEvents'), views: sum('screenPageViews') };
   const p = { sessions: sum('sessions', 1), engaged: sum('engagedSessions', 1), leads: sum('keyEvents', 1), views: sum('screenPageViews', 1) };
@@ -244,7 +246,7 @@ function liveView(LV, S, rng) {
   sec.push(['Sessions by channel', { type: 'bars', rows: bars('channel', 'sessions') }]);
   sec.push(['Sessions by device', { type: 'bars', rows: bars('device', 'sessions', cap) }]);
   if (spend > 0) sec.push(['Google Ads campaigns, from Google Analytics 4', { type: 'table', cols: ['Campaign'].concat(LV.per ? ['Client'] : [], ['Cost', 'Clicks']),
-    rows: groups.flatMap(g => M.breakdown(g.accts, 'campaign', 'adCost', rng).map(([c, v]) => { const cl = M.breakdown(g.accts, 'campaign', 'adClicks', rng).find(r => r[0] === c); return { v, row: [c].concat(LV.per ? [g.name] : [], ['$' + Math.round(v).toLocaleString(), fmtNum(cl ? cl[1] : 0)]) }; }))
+    rows: groups.flatMap(g => M.breakdown(g.accts, 'campaign', 'adCost', rng).map(([c, v]) => { const cl = M.breakdown(g.accts, 'campaign', 'adClicks', rng).find(r => r[0] === c); return { v, row: [c].concat(LV.per ? [g.name] : [], [money(v), fmtNum(cl ? cl[1] : 0)]) }; }))
       .sort((x, y) => y.v - x.v).slice(0, 8).map(x => x.row) }, true]);
   if (pages.length) sec.push(['Top landing pages', { type: 'table', cols: ['Page'].concat(LV.per ? ['Client'] : [], ['Sessions', 'Engagement', 'Key events', 'Conv. rate']), rows: pages }, true]);
   const spendNote = all && spendNow ? ' ' + money(spendNow) + ' spent on ads' + (s.leads ? ', ' + money(spendNow / s.leads, true) + ' per lead.' : '.') : '';
