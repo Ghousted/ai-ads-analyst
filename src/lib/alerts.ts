@@ -35,7 +35,7 @@ function localNow(tz: string, now: Date) {
 }
 
 // Everything that is wrong right now, as alert keys with what to say.
-type Alert = { key: string; kind: string; item: NoticeItem };
+type Alert = { key: string; kind: string; item: NoticeItem; clientId?: string };
 function activeAlerts(scored: Record<string, Risk>, clients: { id: string; name: string }[], conns: { id: string; login: string; provider: string; status: string; error: string | null }[]): Alert[] {
   const out: Alert[] = [];
   for (const c of clients) {
@@ -43,13 +43,21 @@ function activeAlerts(scored: Record<string, Risk>, clients: { id: string; name:
     if (!r) continue;
     for (const s of r.signals) {
       const kind = kindOf(s.key);
-      if (kind) out.push({ key: 'sig:' + c.id + ':' + s.key, kind, item: { title: c.name + ': ' + s.label.toLowerCase(), detail: s.say, note: 'What to do: ' + s.act, noteColor: '#45505f' } });
+      if (kind) out.push({ key: 'sig:' + c.id + ':' + s.key, kind, clientId: c.id, item: { title: c.name + ': ' + s.label.toLowerCase(), detail: s.say, note: 'What to do: ' + s.act, noteColor: '#45505f' } });
     }
-    if (r.level === 'r') out.push({ key: 'risk:' + c.id, kind: 'a4', item: { title: c.name + ' is at risk', detail: r.signals.map(s => s.say).join(' '), note: r.signals[0] ? 'What to do: ' + r.signals[0].act : '', noteColor: '#a3330c' } });
+    if (r.level === 'r') out.push({ key: 'risk:' + c.id, kind: 'a4', clientId: c.id, item: { title: c.name + ' is at risk', detail: r.signals.map(s => s.say).join(' '), note: r.signals[0] ? 'What to do: ' + r.signals[0].act : '', noteColor: '#a3330c' } });
   }
   for (const c of conns) if (c.status === 'error')
     out.push({ key: 'conn:' + c.id, kind: 'a3', item: { title: (c.provider === 'meta' ? 'Meta' : 'Google Analytics') + ' stopped working for ' + c.login, detail: c.error || 'This login stopped working.', note: 'What to do: reconnect it in Settings › Integrations. Until then, numbers from its accounts stop updating.', noteColor: '#45505f' } });
   return out;
+}
+
+// Alerts not sent yet. A flag the agency dismissed (same signals as now) doesn't email: its alerts come back as quiet,
+// to be logged as if sent, so they stay quiet until the signals change and the flag comes back.
+export function newAlerts(active: Alert[], have: Set<string>, scored: Record<string, Risk>, flags: { clientId: string; dismissedKeys: string | null }[]) {
+  const dismissed = new Set(flags.filter(f => scored[f.clientId]?.keys && f.dismissedKeys === scored[f.clientId].keys).map(f => f.clientId));
+  const unsent = active.filter(a => !have.has(a.key));
+  return { fresh: unsent.filter(a => !a.clientId || !dismissed.has(a.clientId)), quiet: unsent.filter(a => a.clientId && dismissed.has(a.clientId)) };
 }
 
 export async function runAlerts(deadline: number, now = new Date()) {
@@ -58,13 +66,14 @@ export async function runAlerts(deadline: number, now = new Date()) {
   for (const agency of agencies) {
     if (Date.now() > deadline) break;
     const local = localNow(agency.timeZone, now);
-    const [clients, metrics, reports, goals, conns, logged] = await Promise.all([
+    const [clients, metrics, reports, goals, conns, logged, flags] = await Promise.all([
       db.select().from(schema.clients).where(eq(schema.clients.agencyId, agency.id)),
       loadMetrics(agency.id),
       db.select().from(schema.reports).where(eq(schema.reports.agencyId, agency.id)).orderBy(desc(schema.reports.createdAt)).limit(200),
       db.select().from(schema.clientGoals).where(eq(schema.clientGoals.agencyId, agency.id)),
       db.select().from(schema.connections).where(eq(schema.connections.agencyId, agency.id)),
       db.select().from(schema.alertLog).where(eq(schema.alertLog.agencyId, agency.id)),
+      db.select({ clientId: schema.clientFlags.clientId, dismissedKeys: schema.clientFlags.dismissedKeys }).from(schema.clientFlags).where(eq(schema.clientFlags.agencyId, agency.id)),
     ]);
     if (!clients.length) continue;
     const scored = scoreClients(metrics, clients, reports, goals, now.toISOString().slice(0, 10));
@@ -72,7 +81,8 @@ export async function runAlerts(deadline: number, now = new Date()) {
     // Causes that cleared: forget them, so they alert again if they come back.
     const cleared = logged.filter(l => /^(sig|risk|conn):/.test(l.key) && !active.some(a => a.key === l.key)).map(l => l.key);
     if (cleared.length) await db.delete(schema.alertLog).where(and(eq(schema.alertLog.agencyId, agency.id), inArray(schema.alertLog.key, cleared)));
-    const fresh = active.filter(a => !have.has(a.key));
+    const { fresh, quiet } = newAlerts(active, have, scored, flags);
+    if (quiet.length) await db.insert(schema.alertLog).values(quiet.map(a => ({ agencyId: agency.id, key: a.key }))).onConflictDoNothing();
     const team = await teamOf(agency.id);
 
     if (fresh.length && local.hour >= 7 && local.hour < 20) {
