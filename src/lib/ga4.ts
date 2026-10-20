@@ -67,7 +67,7 @@ export async function syncGa4Account(acct: Account) {
       ? (e.code === 'RESOURCE_EXHAUSTED' ? 'Google’s daily limit for this property is used up. It resumes tomorrow.'
         : e.code === 'PERMISSION_DENIED' ? 'This Google login lost access to the property.'
         : e.code === 'invalid_grant' ? 'Google signed this login out. Reconnect it.' : e.message)
-      : 'The data pull failed. It will try again on the next sync.';
+      : 'The data pull failed. It tries again within the hour.';
     await saveSyncError(acct.id, msg);
     console.error('[ga4 sync]', acct.externalId, e instanceof Error ? e.message : e);
     return { error: msg };

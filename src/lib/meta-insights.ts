@@ -77,9 +77,9 @@ export async function syncMetaAccount(acct: Account) {
     if (isTokenError(e)) await db.update(schema.connections).set({ status: 'error', error: 'Meta stopped accepting this token. Paste a new one.' }).where(eq(schema.connections.id, conn.id));
     const lost = e instanceof MetaError && (e.code === 10 || (e.code ?? 0) >= 200 && (e.code ?? 0) < 300 || (e.code === 100 && e.subcode === 33));
     const msg = isTokenError(e) ? 'Meta stopped accepting the system user token. Paste a new one in Integrations.'
-      : isRateLimit(e) ? 'Meta’s limit for this ad account is reached. It tries again on the next sync.'
+      : isRateLimit(e) ? 'Meta’s limit for this ad account is reached. It tries again within a few hours.'
       : lost ? 'The system user lost access to this ad account. Give it access again in Business Manager.'
-      : e instanceof MetaError ? e.message : 'The data pull failed. It will try again on the next sync.';
+      : e instanceof MetaError ? e.message : 'The data pull failed. It tries again within the hour.';
     await saveSyncError(acct.id, msg);
     console.error('[meta sync]', acct.externalId, e instanceof Error ? e.message : e);
     return { error: msg };

@@ -1,17 +1,18 @@
 import { syncAll } from '@/lib/sync';
 import { draftScheduled, sendApproved } from '@/lib/scheduler';
 import { runAlerts } from '@/lib/alerts';
+import { SYNC_EVERY_MS } from '@/lib/metric-store';
 
 export const maxDuration = 300;
 
 // Vercel Cron calls this every hour with the CRON_SECRET bearer token. In order: approved reports that are due go out,
-// accounts not pulled in the last 20 hours are pulled, alerts and the Monday summary go out, and reports due in the next
-// day are drafted for review.
+// accounts not pulled in the last 20 hours (or failed ones due a retry) are pulled, alerts and the Monday summary go
+// out, and reports due in the next day are drafted for review.
 export async function GET(req: Request) {
   if (!process.env.CRON_SECRET || req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) return new Response('Unauthorized', { status: 401 });
   const deadline = Date.now() + 270_000;
   const sent = await sendApproved(deadline);
-  const { results, skipped } = await syncAll(undefined, 120_000, 20 * 3600_000);
+  const { results, skipped } = await syncAll(undefined, 120_000, SYNC_EVERY_MS);
   const alerts = await runAlerts(deadline);
   const drafts = await draftScheduled(deadline);
   return Response.json({

@@ -20,6 +20,13 @@ export async function storeRows(accountId: string, rows: Row[], start: string, e
   });
 }
 
+// The scheduled sync pulls an account once syncedAt is this old.
+export const SYNC_EVERY_MS = 20 * 3600_000;
+
+// A failed pull is tried again sooner than a good one: in an hour after the first failure, then every 4 hours while it
+// keeps failing. syncedAt only schedules the next pull, so it is set back to make the account due at that time.
 export async function saveSyncError(accountId: string, msg: string) {
-  await db.update(schema.accounts).set({ syncError: msg, syncedAt: new Date() }).where(eq(schema.accounts.id, accountId));
+  const back = (h: number) => sql`now() - make_interval(secs => ${(SYNC_EVERY_MS - h * 3600_000) / 1000})`;
+  await db.update(schema.accounts).set({ syncError: msg, syncedAt: sql`case when ${schema.accounts.syncError} is null then ${back(1)} else ${back(4)} end` })
+    .where(eq(schema.accounts.id, accountId));
 }
